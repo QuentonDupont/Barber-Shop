@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { HoursForm } from "@/components/business/hours-form";
+import { OverridesManager } from "@/components/business/overrides-manager";
 import { DEFAULT_WEEK, type DayHours } from "@/components/business/hours-editor";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";
+import { businessToday, minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";
 
 export const metadata: Metadata = { title: "Opening hours" };
 
@@ -12,7 +13,9 @@ export default async function HoursPage() {
   const ctx = await requireBusiness();
   const supabase = await createClient();
 
-  const [{ data: hours }, { data: breaks }] = await Promise.all([
+  const today = businessToday(ctx.business.timezone);
+
+  const [{ data: hours }, { data: breaks }, { data: overrides }] = await Promise.all([
     supabase
       .from("business_hours")
       .select("weekday, open_time, close_time, is_closed")
@@ -21,6 +24,12 @@ export default async function HoursPage() {
       .from("business_breaks")
       .select("weekday, start_time, end_time")
       .eq("business_id", ctx.business.id),
+    supabase
+      .from("availability_overrides")
+      .select("*")
+      .eq("business_id", ctx.business.id)
+      .gte("date", today)
+      .order("date", { ascending: true }),
   ]);
 
   const initial: DayHours[] = DEFAULT_WEEK.map((fallback) => {
@@ -45,6 +54,7 @@ export default async function HoursPage() {
         description={`Your weekly schedule in ${ctx.business.timezone}. Bookly only ever offers slots inside these windows.`}
       />
       <HoursForm initialHours={initial} />
+      <OverridesManager overrides={overrides ?? []} today={today} />
     </PageContainer>
   );
 }

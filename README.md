@@ -26,6 +26,11 @@ runs full screen.
 - Services with duration, tidy-up buffer and price
 - Opening hours per day with a closed toggle and an optional break
 - Day and week calendar, with confirm / complete / no-show / cancel
+- Reschedule: a "Move" sheet that works with a thumb (flick to a day, tap a
+  time), and drag-and-drop on the desktop timeline — both re-validated
+  server-side against hours, breaks and other bookings
+- Holidays and one-off days: close a date or give it different hours. Refuses
+  to close a day that already has bookings on it
 - Settings: publishing, time zone, slot interval, minimum notice, booking
   horizon, auto-confirm
 
@@ -50,59 +55,75 @@ runs full screen.
 
 ---
 
-## Getting started
+## Run it locally
 
-### 1. Install
+The whole stack — Postgres, auth, the API, an email catcher — runs on your
+machine with one command. You need two things installed first:
+
+1. **Node.js 20+** — <https://nodejs.org>
+2. **Docker Desktop** — <https://www.docker.com/products/docker-desktop/>
+   (free for personal use; it just needs to be running)
+
+Then:
 
 ```bash
+git clone <this repo> && cd Barber-Shop
 npm install
-cp .env.example .env.local
+npm run local
 ```
 
-### 2. Create a Supabase project
+`npm run local` starts Supabase in Docker, writes its URL and keys into
+`.env.local`, applies every migration and the seed, and starts the app. The
+first run downloads the Supabase images and takes a few minutes; after that
+it's seconds.
 
-At [supabase.com](https://supabase.com), then copy the project URL and anon key
-from **Project Settings → API** into `.env.local`.
+Open **<http://localhost:3000>** and sign in as either demo account:
 
-### 3. Apply the migrations
+| Portal | Email | Password |
+|---|---|---|
+| Business — *Nong Barber*, already set up and published | `owner@bookly.local` | `bookly123` |
+| Customer | `customer@bookly.local` | `bookly123` |
 
-With the [Supabase CLI](https://supabase.com/docs/guides/cli):
+Or create your own account from the landing page — sign-up works instantly
+locally because email confirmation is switched off in `supabase/config.toml`.
+
+**To try it on your phone**, find your computer's local IP (`ipconfig` on
+Windows, `ifconfig` or System Settings → Wi-Fi on a Mac) and open
+`http://<that-ip>:3000` on the phone, on the same Wi-Fi.
+
+Useful while it's running:
+
+| | |
+|---|---|
+| `http://127.0.0.1:54323` | Supabase Studio — browse and edit the database |
+| `http://127.0.0.1:54324` | Every email the app sent, caught locally |
+| `npm run db:reset` | Wipe the database and re-seed |
+| `npm run db:stop` | Stop the Docker containers |
+| `npm run db:test` | The database acceptance suite (needs `psql`) |
+
+### Without Docker
+
+Use a free hosted project instead. Create one at
+[supabase.com](https://supabase.com), copy the URL and anon key from
+**Project Settings → API** into `.env.local`, then:
 
 ```bash
-supabase link --project-ref <your-project-ref>
-supabase db push
-```
-
-Or paste each file in `supabase/migrations/` into the SQL editor, in filename
-order.
-
-### 4. Enable Google sign-in (optional)
-
-**Authentication → Providers → Google** in the Supabase dashboard. Add
-`https://<your-project>.supabase.co/auth/v1/callback` as an authorised redirect
-URI in the Google Cloud console.
-
-### 5. Run it
-
-```bash
+npx supabase link --project-ref <your-project-ref>
+npx supabase db push
 npm run dev
 ```
 
-Open <http://localhost:3000>, choose **I'm a business**, and walk through
-onboarding. Then sign up separately as a customer to book.
+Sign up through the app to create your first account. If you want the demo
+data, paste `supabase/seed.sql` into the SQL editor — but note it creates two
+users with a known password, so only do that on a project nobody else uses.
 
-### 6. Seed some data (optional)
+### Google sign-in (optional)
 
-Sign up first — users belong to Supabase Auth, not to the seed — then:
-
-```bash
-psql "$DATABASE_URL" -v owner_email="'you@example.com'" -f supabase/seed.sql
-```
-
-That attaches two published businesses, seven services, a lunch break and a
-holiday override to your account.
-
----
+**Authentication → Providers → Google** in the Supabase dashboard, or for the
+local stack put the client id and secret in `supabase/.env` and flip
+`[auth.external.google] enabled = true` in `supabase/config.toml`. Add
+`https://<your-project>.supabase.co/auth/v1/callback` as an authorised
+redirect URI in the Google Cloud console.
 
 ## Environment variables
 
@@ -189,7 +210,8 @@ throwaway database and asserts the invariants:
 ```
 
 It covers the overlap constraint, the availability trigger (breaks, closing
-time, closed days, overrides), slug generation and cross-tenant RLS isolation.
+time, closed days, overrides), rescheduling, one-off closures, slug generation,
+cross-tenant RLS isolation, and that the seed produces two working logins.
 See `supabase/tests/README.md`.
 
 ---
@@ -213,9 +235,12 @@ src/
     actions/           Server Actions — every mutation
     supabase/          server, browser and middleware clients
 supabase/
+  config.toml          local stack settings (ports, auth, email catcher)
   migrations/          schema, functions, RLS, availability RPC
   tests/               database acceptance suite
-  seed.sql             development data
+  seed.sql             demo logins and businesses, applied by `db reset`
+scripts/
+  local-env.mjs        writes the running stack's keys into .env.local
 ```
 
 ---
@@ -235,5 +260,3 @@ deploy. Set `NEXT_PUBLIC_SITE_URL` to the production URL and add
   `staff_id`, but there is no UI for it
 - Deposits and prepayment
 - Reviews, analytics, and an embeddable booking widget
-- Drag-to-reschedule on the calendar. `rescheduleBookingAction` exists and
-  re-validates correctly; it has no UI yet

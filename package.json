@@ -9,7 +9,14 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "local": "npm run db:start && npm run db:env && npm run dev",
+    "db:start": "npx --yes supabase start",
+    "db:stop": "npx --yes supabase stop",
+    "db:reset": "npx --yes supabase db reset",
+    "db:status": "npx --yes supabase status",
+    "db:env": "node scripts/local-env.mjs",
+    "db:test": "bash supabase/tests/run.sh"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",

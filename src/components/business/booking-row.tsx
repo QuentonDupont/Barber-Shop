@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import {
   Ban,
+  CalendarClock,
   Check,
   CircleSlash,
   MessageSquare,
@@ -25,12 +26,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { updateBookingStatusAction } from "@/lib/actions/bookings";
+import { MoveBookingSheet } from "./move-booking-sheet";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow, BookingStatus } from "@/lib/database.types";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
 
-type Booking = Pick<
+export type OwnerBooking = Pick<
   BookingRow,
   | "id"
   | "starts_at"
@@ -56,11 +58,12 @@ export function OwnerBookingRow({
   timezone,
   className,
 }: {
-  booking: Booking;
+  booking: OwnerBooking;
   timezone: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
   const live = booking.status === "pending" || booking.status === "confirmed";
 
   return (
@@ -106,12 +109,25 @@ export function OwnerBookingRow({
         ) : null}
       </div>
 
-      <DetailSheet
+      <OwnerBookingSheet
         booking={booking}
         timezone={timezone}
         open={open}
         onOpenChange={setOpen}
+        onMove={() => {
+          setOpen(false);
+          setMoving(true);
+        }}
       />
+      {live ? (
+        <MoveBookingSheet
+          key={moving ? "open" : "closed"}
+          booking={booking}
+          timezone={timezone}
+          open={moving}
+          onOpenChange={setMoving}
+        />
+      ) : null}
     </>
   );
 }
@@ -189,16 +205,22 @@ function StatusMenuItem({
   );
 }
 
-function DetailSheet({
+/**
+ * The owner's view of one booking, with every action under the thumb.
+ * Exported so the calendar grid can open it for a tapped block.
+ */
+export function OwnerBookingSheet({
   booking,
   timezone,
   open,
   onOpenChange,
+  onMove,
 }: {
-  booking: Booking;
+  booking: OwnerBooking;
   timezone: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onMove?: () => void;
 }) {
   const [, formAction] = useActionState(withToast(updateBookingStatusAction), idleState);
   const live = booking.status === "pending" || booking.status === "confirmed";
@@ -263,11 +285,19 @@ function DetailSheet({
 
         {live ? (
           <SheetFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
-            <form action={formAction} className="contents">
-              <input type="hidden" name="id" value={booking.id} />
-              <input type="hidden" name="status" value="cancelled" />
-              <CancelButton />
-            </form>
+            <div className="flex gap-2">
+              <form action={formAction} className="contents">
+                <input type="hidden" name="id" value={booking.id} />
+                <input type="hidden" name="status" value="cancelled" />
+                <CancelButton />
+              </form>
+              {onMove ? (
+                <Button type="button" size="md" variant="ghost" onClick={onMove}>
+                  <CalendarClock />
+                  Move
+                </Button>
+              ) : null}
+            </div>
 
             <div className="flex gap-2">
               {booking.status === "pending" ? (

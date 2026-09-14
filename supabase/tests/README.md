@@ -12,6 +12,12 @@ own — the ones that must hold even if every line of TypeScript is wrong.
 * `20_rls_isolation.sql` — cross-tenant isolation: what each role can read and
   write, and the `busy_intervals` RPC that lets the slot engine see other
   customers' bookings as opaque ranges without leaking anything about them.
+* `30_reschedule_overrides.sql` — moving a booking (the trigger still applies,
+  the booking's own slot is excluded), who may write one-off closures, and
+  that the seed produces two usable demo logins.
+
+The runner also applies `supabase/seed.sql`, so the seed is exercised on every
+run.
 
 Run them with:
 

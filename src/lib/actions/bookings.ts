@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requireBusiness, requireSession } from "@/lib/auth";
 import { buildSlotInput, loadAvailabilitySources } from "@/lib/booking/availability";
-import { findSlot } from "@/lib/booking/slots";
+import { findSlot, getDayAvailability } from "@/lib/booking/slots";
 import { toDateKey } from "@/lib/booking/time";
 import { notifyBookingCancelled, notifyBookingCreated } from "@/lib/notifications";
 import { errorState, successState, type ActionState } from "./types";
@@ -312,4 +312,71 @@ export async function rescheduleBookingAction(
   revalidatePath("/dashboard/calendar");
   revalidatePath("/app/bookings");
   return successState("Booking moved.");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Reschedule support                                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface MoveOption {
+  startsAt: string;
+  label: string;
+}
+
+export type MoveOptionsResult =
+  | { status: "ok"; isOpen: boolean; slots: MoveOption[]; current: string }
+  | { status: "error"; message: string };
+
+/**
+ * Bookable start times for moving one booking onto `date`.
+ *
+ * Called imperatively from the move sheet as the owner flicks between days.
+ * The booking being moved is excluded from the busy set — otherwise it would
+ * block its own current slot — and the public notice window is waived, since
+ * that rule protects the owner from customers, not from themselves.
+ */
+export async function getMoveOptionsAction(
+  bookingId: string,
+  date: string,
+): Promise<MoveOptionsResult> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { status: "error", message: "That date could not be read." };
+  }
+
+  const ctx = await requireBusiness();
+  const supabase = await createClient();
+
+  const { data: booking } = await supabase
+    .from("bookings")
+    .select("id, service_id, starts_at, status")
+    .eq("id", bookingId)
+    .eq("business_id", ctx.business.id)
+    .maybeSingle();
+
+  if (!booking) return { status: "error", message: "That booking no longer exists." };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("duration_min, buffer_min")
+    .eq("id", booking.service_id)
+    .maybeSingle();
+
+  if (!service) return { status: "error", message: "The service for this booking no longer exists." };
+
+  const sources = await loadAvailabilitySources(supabase, ctx.business, date, date, {
+    ignoreBookingId: booking.id,
+  });
+
+  const input = buildSlotInput(ctx.business, service, sources, date);
+  const day = getDayAvailability({
+    ...input,
+    rules: { ...input.rules, minNoticeMin: 0 },
+  });
+
+  return {
+    status: "ok",
+    isOpen: day.isOpen,
+    current: booking.starts_at,
+    slots: day.slots.map((slot) => ({ startsAt: slot.startsAt, label: slot.label })),
+  };
 }

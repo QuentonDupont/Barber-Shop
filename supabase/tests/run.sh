@@ -27,15 +27,30 @@ for file in "$ROOT"/supabase/migrations/*.sql; do
   "${PSQL[@]}" -d "$DB" -f "$file" 2>&1 | grep -v "does not exist, skipping" || true
 done
 
-echo "Running assertions…"
-failures=0
-for file in "$ROOT"/supabase/tests/[12]*.sql; do
-  if ! "${PSQL[@]}" -d "$DB" -f "$file" 2>&1 \
-      | grep -E "PASS|FAIL|ERROR" \
-      | sed 's/^psql:[^ ]*[0-9]: //;s/^NOTICE:  //'; then
+run_assertions() {
+  local file="$1"
+  # The FAIL line is raised as an exception, so psql exits non-zero on it.
+  if ! "${PSQL[@]}" -d "$DB" -f "$file" > "$DB.log" 2>&1; then
     failures=1
   fi
-done
+  grep -E "PASS|FAIL|ERROR" "$DB.log" | sed 's/^psql:[^ ]*[0-9]: //;s/^NOTICE:  //'
+}
+
+echo "Running assertions…"
+failures=0
+# 1x and 2x build their own fixtures and expect an otherwise empty database.
+for file in "$ROOT"/supabase/tests/[12]*.sql; do run_assertions "$file"; done
+
+echo "Applying the seed…"
+if ! "${PSQL[@]}" -d "$DB" -f "$ROOT/supabase/seed.sql" > "$DB.log" 2>&1; then
+  failures=1
+  cat "$DB.log"
+fi
+grep -E "ERROR|Seeded" "$DB.log" | sed 's/^psql:[^ ]*[0-9]: //;s/^NOTICE:  //'
+
+# 3x checks the seed's output alongside the earlier fixtures.
+for file in "$ROOT"/supabase/tests/3*.sql; do run_assertions "$file"; done
+rm -f "$DB.log"
 
 if [ "$failures" -ne 0 ]; then
   echo "FAILED"

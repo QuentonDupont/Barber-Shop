@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { CalendarX2 } from "lucide-react";
 import { DateStrip } from "./date-strip";
-import { OwnerBookingRow } from "./booking-row";
+import { OwnerBookingRow, OwnerBookingSheet } from "./booking-row";
+import { MoveBookingSheet } from "./move-booking-sheet";
+import { rescheduleBookingAction } from "@/lib/actions/bookings";
+import { idleState } from "@/lib/actions/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/misc";
 import { BookingStatusBadge } from "@/components/shared/booking-status";
@@ -15,6 +19,7 @@ import {
   minutesToDisplay,
   shiftDateKey,
   toDateKey,
+  zonedDayMinutesToUtc,
   type DateKey,
 } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
@@ -329,6 +334,77 @@ function layout(bookings: Booking[], timezone: string, date: DateKey): Positione
   return positioned;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Timeline grids                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Sheet state and the drop handler shared by both grids.
+ *
+ * Dropping calls the same Server Action the move sheet uses, so a dragged
+ * booking is re-validated against hours, breaks and other bookings exactly
+ * like any other reschedule. The grid never trusts its own arithmetic.
+ */
+function useGridActions() {
+  const router = useRouter();
+  const [active, setActive] = useState<Booking | null>(null);
+  const [moving, setMoving] = useState<Booking | null>(null);
+
+  const onDrop = useCallback(
+    async (booking: Booking, startsAtIso: string) => {
+      const formData = new FormData();
+      formData.set("id", booking.id);
+      formData.set("startsAt", startsAtIso);
+      const result = await rescheduleBookingAction(idleState, formData);
+      if (result.status === "error") {
+        toast.error(result.message ?? "Could not move that booking.");
+      } else {
+        toast.success(result.message ?? "Booking moved.");
+      }
+      router.refresh();
+    },
+    [router],
+  );
+
+  return { active, setActive, moving, setMoving, onDrop };
+}
+
+function GridSheets({
+  business,
+  actions,
+}: {
+  business: BusinessRow;
+  actions: ReturnType<typeof useGridActions>;
+}) {
+  const { active, setActive, moving, setMoving } = actions;
+  return (
+    <>
+      {active ? (
+        <OwnerBookingSheet
+          key={active.id}
+          booking={active}
+          timezone={business.timezone}
+          open
+          onOpenChange={(open) => !open && setActive(null)}
+          onMove={() => {
+            setMoving(active);
+            setActive(null);
+          }}
+        />
+      ) : null}
+      {moving ? (
+        <MoveBookingSheet
+          key={moving.id}
+          booking={moving}
+          timezone={business.timezone}
+          open
+          onOpenChange={(open) => !open && setMoving(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
 function TimeGrid({
   business,
   date,
@@ -345,22 +421,32 @@ function TimeGrid({
     () => layout(bookings, business.timezone, date),
     [bookings, business.timezone, date],
   );
+  const actions = useGridActions();
 
   return (
-    <div className="flex gap-2 overflow-hidden rounded-xl border border-border bg-surface p-3">
-      <HourGutter startMinute={startMinute} hours={hours} />
-      <div className="relative flex-1" style={{ height: hours * HOUR_HEIGHT }}>
-        <HourLines hours={hours} />
-        {positioned.map((item) => (
-          <BookingBlock
-            key={item.booking.id}
-            item={item}
-            gridStart={startMinute}
-            timezone={business.timezone}
-          />
-        ))}
+    <>
+      <div className="flex gap-2 overflow-hidden rounded-xl border border-border bg-surface p-3">
+        <HourGutter startMinute={startMinute} hours={hours} />
+        <div className="relative flex-1" data-date={date} style={{ height: hours * HOUR_HEIGHT }}>
+          <HourLines hours={hours} />
+          {positioned.map((item) => (
+            <BookingBlock
+              key={item.booking.id}
+              item={item}
+              gridStart={startMinute}
+              date={date}
+              business={business}
+              onOpen={() => actions.setActive(item.booking)}
+              onDrop={actions.onDrop}
+            />
+          ))}
+        </div>
       </div>
-    </div>
+      <p className="mt-2 text-xs text-fg-subtle">
+        Click a booking for actions. Drag it to a new time to reschedule.
+      </p>
+      <GridSheets business={business} actions={actions} />
+    </>
   );
 }
 
@@ -377,54 +463,65 @@ function WeekGrid({
 }) {
   const { startMinute, endMinute } = useGridRange(business, dates, byDate);
   const hours = Math.ceil((endMinute - startMinute) / 60);
+  const actions = useGridActions();
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface">
-      <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border">
-        <span />
-        {dates.map((date) => (
-          <span
-            key={date}
-            className={cn(
-              "border-l border-border px-2 py-2 text-center text-xs font-semibold",
-              date === today ? "bg-accent-soft text-accent" : "text-fg-muted",
-            )}
-          >
-            <span className="block uppercase tracking-wide">
-              {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE")}
-            </span>
-            <span className="block text-base font-bold tabular-nums text-fg">
-              {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d")}
-            </span>
-          </span>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] p-2 pl-0">
-        <HourGutter startMinute={startMinute} hours={hours} />
-        {dates.map((date) => {
-          const positioned = layout(byDate[date] ?? [], business.timezone, date);
-          return (
-            <div
+    <>
+      <div className="overflow-hidden rounded-xl border border-border bg-surface">
+        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border">
+          <span />
+          {dates.map((date) => (
+            <span
               key={date}
-              className="relative border-l border-border"
-              style={{ height: hours * HOUR_HEIGHT }}
+              className={cn(
+                "border-l border-border px-2 py-2 text-center text-xs font-semibold",
+                date === today ? "bg-accent-soft text-accent" : "text-fg-muted",
+              )}
             >
-              <HourLines hours={hours} />
-              {positioned.map((item) => (
-                <BookingBlock
-                  key={item.booking.id}
-                  item={item}
-                  gridStart={startMinute}
-                  timezone={business.timezone}
-                  compact
-                />
-              ))}
-            </div>
-          );
-        })}
+              <span className="block uppercase tracking-wide">
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE")}
+              </span>
+              <span className="block text-base font-bold tabular-nums text-fg">
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d")}
+              </span>
+            </span>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] p-2 pl-0">
+          <HourGutter startMinute={startMinute} hours={hours} />
+          {dates.map((date) => {
+            const positioned = layout(byDate[date] ?? [], business.timezone, date);
+            return (
+              <div
+                key={date}
+                data-date={date}
+                className="relative border-l border-border"
+                style={{ height: hours * HOUR_HEIGHT }}
+              >
+                <HourLines hours={hours} />
+                {positioned.map((item) => (
+                  <BookingBlock
+                    key={item.booking.id}
+                    item={item}
+                    gridStart={startMinute}
+                    date={date}
+                    business={business}
+                    onOpen={() => actions.setActive(item.booking)}
+                    onDrop={actions.onDrop}
+                    compact
+                  />
+                ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
+      <p className="mt-2 text-xs text-fg-subtle">
+        Click a booking for actions. Drag it to another time or day to reschedule.
+      </p>
+      <GridSheets business={business} actions={actions} />
+    </>
   );
 }
 
@@ -461,32 +558,126 @@ function HourLines({ hours }: { hours: number }) {
   );
 }
 
+const DRAG_THRESHOLD_PX = 4;
+
+/**
+ * One booking on the timeline.
+ *
+ * Mouse and pen can drag it; the drop snaps to the shop's slot interval and
+ * lands in whichever day column is under the pointer. Touch never drags —
+ * a finger on a scrolling grid should scroll it — so on a phone a tap opens
+ * the sheet and "Move" lives in there.
+ */
 function BookingBlock({
   item,
   gridStart,
-  timezone,
+  date,
+  business,
+  onOpen,
+  onDrop,
   compact,
 }: {
   item: Positioned;
   gridStart: number;
-  timezone: string;
+  date: DateKey;
+  business: BusinessRow;
+  onOpen: () => void;
+  onDrop: (booking: Booking, startsAtIso: string) => Promise<void>;
   compact?: boolean;
 }) {
+  const [offset, setOffset] = useState<{ x: number; y: number } | null>(null);
+  const [saving, setSaving] = useState(false);
+  const gesture = useRef<{ x: number; y: number; moved: boolean; drags: boolean } | null>(null);
+
+  const status = item.booking.status;
+  const live = status === "pending" || status === "confirmed";
+  const cancelled = status === "cancelled";
+
   const top = ((item.startMinute - gridStart) / 60) * HOUR_HEIGHT;
-  const height = Math.max(
-    22,
-    ((item.endMinute - item.startMinute) / 60) * HOUR_HEIGHT - 2,
-  );
+  const height = Math.max(22, ((item.endMinute - item.startMinute) / 60) * HOUR_HEIGHT - 2);
   const width = 100 / item.lanes;
-  const cancelled = item.booking.status === "cancelled";
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0 && event.pointerType === "mouse") return;
+    const drags = live && event.pointerType !== "touch";
+    gesture.current = { x: event.clientX, y: event.clientY, moved: false, drags };
+    if (drags) event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const g = gesture.current;
+    if (!g || !g.drags) return;
+    const dx = event.clientX - g.x;
+    const dy = event.clientY - g.y;
+    if (!g.moved && Math.hypot(dx, dy) < DRAG_THRESHOLD_PX) return;
+    g.moved = true;
+    setOffset({ x: dx, y: dy });
+  };
+
+  const onPointerUp = async (event: React.PointerEvent<HTMLDivElement>) => {
+    const g = gesture.current;
+    gesture.current = null;
+    if (!g) return;
+    if (g.drags) event.currentTarget.releasePointerCapture(event.pointerId);
+
+    if (!g.moved) {
+      setOffset(null);
+      onOpen();
+      return;
+    }
+
+    const dy = event.clientY - g.y;
+    const rawMinute = item.startMinute + (dy / HOUR_HEIGHT) * 60;
+    const step = business.slot_interval_min;
+    const minute = Math.max(0, Math.round(rawMinute / step) * step);
+
+    const column = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-date]");
+    const targetDate = column?.dataset.date ?? date;
+
+    if (minute === item.startMinute && targetDate === date) {
+      setOffset(null);
+      return;
+    }
+
+    setSaving(true);
+    await onDrop(
+      item.booking,
+      zonedDayMinutesToUtc(targetDate, minute, business.timezone).toISOString(),
+    );
+    setSaving(false);
+    setOffset(null);
+  };
+
+  const onPointerCancel = () => {
+    gesture.current = null;
+    setOffset(null);
+  };
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
       className={cn(
         "absolute overflow-hidden rounded-md border px-1.5 py-1 text-[0.6875rem] leading-tight",
+        "select-none outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        live ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+        offset && "z-20 shadow-[var(--shadow-raised)] opacity-90",
+        saving && "opacity-50",
         cancelled
           ? "border-border bg-surface-muted text-fg-subtle line-through"
-          : item.booking.status === "pending"
+          : status === "pending"
             ? "border-warning/45 bg-warning-soft text-fg"
             : "border-accent/45 bg-accent-soft text-fg",
       )}
@@ -495,11 +686,13 @@ function BookingBlock({
         height,
         left: `calc(${item.lane * width}% + 2px)`,
         width: `calc(${width}% - 4px)`,
+        transform: offset ? `translate(${offset.x}px, ${offset.y}px)` : undefined,
+        touchAction: "pan-y",
       }}
       title={`${item.booking.service_name} — ${item.booking.customer_name}`}
     >
       <p className="truncate font-semibold">
-        {formatInBusinessTz(item.booking.starts_at, timezone, "h:mm")} ·{" "}
+        {formatInBusinessTz(item.booking.starts_at, business.timezone, "h:mm")} ·{" "}
         {item.booking.customer_name}
       </p>
       {!compact ? (
