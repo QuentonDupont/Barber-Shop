@@ -48,13 +48,15 @@ export async function loadAvailabilitySources(
       .eq("business_id", business.id)
       .gte("date", fromDate)
       .lte("date", toDate),
-    supabase
-      .from("bookings")
-      .select("id, starts_at, ends_at")
-      .eq("business_id", business.id)
-      .in("status", ["pending", "confirmed"])
-      .gte("starts_at", windowStart.toISOString())
-      .lt("starts_at", windowEnd.toISOString()),
+    // Not a `from("bookings")` select: RLS hides other customers' rows, which
+    // would make a busy day look wide open. `busy_intervals` is a SECURITY
+    // DEFINER function returning nothing but anonymous start/end pairs.
+    supabase.rpc("busy_intervals", {
+      target_business: business.id,
+      from_ts: windowStart.toISOString(),
+      to_ts: windowEnd.toISOString(),
+      exclude_booking: options.ignoreBookingId ?? null,
+    }),
   ]);
 
   const overrides: AvailabilitySources["overrides"] = {};
@@ -66,9 +68,10 @@ export async function loadAvailabilitySources(
     };
   }
 
-  const busy = (bookingsResult.data ?? [])
-    .filter((row) => row.id !== options.ignoreBookingId)
-    .map((row) => ({ starts_at: row.starts_at, ends_at: row.ends_at }));
+  const busy = (bookingsResult.data ?? []).map((row) => ({
+    starts_at: row.starts_at,
+    ends_at: row.ends_at,
+  }));
 
   return {
     hours: hoursResult.data ?? [],

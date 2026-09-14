@@ -42,10 +42,7 @@ export function SignInForm({
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Welcome back</h1>
         <p className="mt-1.5 text-sm text-fg-muted">
           New to Bookly?{" "}
-          <Link
-            href={`/sign-up?role=${role}`}
-            className="font-semibold text-accent hover:underline"
-          >
+          <Link href={`/sign-up?role=${role}`} className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">
             Create an account
           </Link>
         </p>
@@ -90,7 +87,7 @@ export function SignInForm({
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-fg-subtle transition-colors hover:text-fg"
+              className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-fg-subtle transition-colors hover:text-fg"
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}

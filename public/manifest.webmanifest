@@ -1,0 +1,50 @@
+{
+  "name": "Bookly — book local, instantly",
+  "short_name": "Bookly",
+  "description": "Find salons, barbers, clinics and studios near you and book a real time slot in seconds.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#faf8f5",
+  "theme_color": "#faf8f5",
+  "categories": ["lifestyle", "productivity", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My bookings",
+      "short_name": "Bookings",
+      "url": "/app/bookings"
+    },
+    {
+      "name": "Find a place",
+      "short_name": "Explore",
+      "url": "/app"
+    }
+  ]
+}

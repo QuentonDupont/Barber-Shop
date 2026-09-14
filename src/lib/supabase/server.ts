@@ -11,8 +11,12 @@ import { requireSupabaseEnv } from "./env";
  * RLS. This is the only client that should touch user data.
  */
 export async function createClient() {
-  const { url, anonKey } = requireSupabaseEnv();
+  // `cookies()` first, and deliberately so: awaiting it is what marks the
+  // surrounding route as dynamic. Throwing on missing configuration before that
+  // point makes the build treat these pages as statically prerenderable and
+  // then fail on the throw.
   const cookieStore = await cookies();
+  const { url, anonKey } = requireSupabaseEnv();
 
   return createServerClient<Database>(url, anonKey, {
     cookies: {

@@ -311,6 +311,15 @@ export type Database = {
         Args: { desired: string };
         Returns: string;
       };
+      busy_intervals: {
+        Args: {
+          target_business: string;
+          from_ts: string;
+          to_ts: string;
+          exclude_booking?: string | null;
+        };
+        Returns: { starts_at: string; ends_at: string }[];
+      };
     };
     Enums: {
       user_role: UserRole;

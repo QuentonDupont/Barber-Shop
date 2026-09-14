@@ -15,6 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import type { NavItem } from "@/components/shared/nav";
 import { getOwnerContext } from "@/lib/auth";
 
+/**
+ * Every screen behind this layout is specific to the signed-in user, so none of
+ * it may ever be prerendered or shared from a cache.
+ */
+export const dynamic = "force-dynamic";
+
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Today", icon: LayoutDashboard },
   { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays, matchPrefix: true },
