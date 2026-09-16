@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, MessageCircle, Phone } from "lucide-react";
 import { PageContainer } from "@/components/shared/app-shell";
 import { BookingFlow, type DayPayload, type Viewer } from "@/components/customer/booking-flow";
+import { BusinessTabs } from "@/components/customer/business-tabs";
 import { Alert } from "@/components/ui/alert";
 import { CATEGORY_LABEL } from "@/components/customer/business-card";
 import { Badge } from "@/components/ui/badge";
@@ -77,15 +78,42 @@ export default async function BusinessPage({
         ? "other-business"
         : "customer";
 
-  const { data: services } = await supabase
-    .from("services")
-    .select("*")
-    .eq("business_id", business.id)
-    .eq("is_active", true)
-    // Same order as the owner's Services list, so what they arrange is
-    // exactly what customers see.
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
+  const [{ data: services }, { data: products }, { data: campaigns }, { data: mySubs }] =
+    await Promise.all([
+      supabase
+        .from("services")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("is_active", true)
+        // Same order as the owner's Services list, so what they arrange is
+        // exactly what customers see.
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("products")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("campaigns")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("is_published", true)
+        .order("starts_at", { ascending: true }),
+      // Only a signed-in customer has subscriptions worth looking up.
+      viewer === "customer" && session
+        ? supabase
+            .from("campaign_subscriptions")
+            .select("campaign_id, status")
+            .eq("business_id", business.id)
+            .eq("customer_id", session.userId)
+        : Promise.resolve({ data: [] as { campaign_id: string; status: string }[] }),
+    ]);
+
+  const subscribedIds = (mySubs ?? [])
+    .filter((sub) => sub.status === "going")
+    .map((sub) => sub.campaign_id);
 
   const serviceList = services ?? [];
   const selectedService =
@@ -227,16 +255,24 @@ export default async function BusinessPage({
         </div>
       </header>
 
-      <BookingFlow
-        business={business}
-        services={serviceList}
-        selectedService={selectedService}
-        selectedDate={requested}
-        today={today}
-        maxDate={maxDate}
-        openDays={openDays}
-        loadedDays={loadedDays}
-        viewer={viewer}
+      <BusinessTabs
+        booking={
+          <BookingFlow
+            business={business}
+            services={serviceList}
+            selectedService={selectedService}
+            selectedDate={requested}
+            today={today}
+            maxDate={maxDate}
+            openDays={openDays}
+            loadedDays={loadedDays}
+            viewer={viewer}
+          />
+        }
+        products={products ?? []}
+        campaigns={campaigns ?? []}
+        timezone={business.timezone}
+        subscribedIds={subscribedIds}
       />
     </PageContainer>
   );

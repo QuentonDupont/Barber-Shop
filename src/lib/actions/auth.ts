@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isMockMode } from "@/lib/mock/config";
+import { setMockUserByRole } from "@/lib/mock/client";
 import { errorState, fieldErrorsFrom, type ActionState } from "./types";
 
 const roleSchema = z.enum(["customer", "business_owner"]);
@@ -113,6 +115,14 @@ export async function signInAction(
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
   const role = roleSchema.catch("customer").parse(formData.get("role"));
+
+  // Mock mode: no real OAuth. "Continue with Google" just drops you into the
+  // matching demo account.
+  if (isMockMode()) {
+    setMockUserByRole(await cookies(), role);
+    redirect(homeFor(role));
+  }
+
   const supabase = await createClient();
   const origin = (await headers()).get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
 

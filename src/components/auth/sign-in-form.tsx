@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Store, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
@@ -13,6 +13,8 @@ import { GoogleButton } from "./google-button";
 import type { Role } from "./role-toggle";
 import { signInAction } from "@/lib/actions/auth";
 import { idleState } from "@/lib/actions/types";
+
+const MOCK_MODE = process.env.NEXT_PUBLIC_USE_MOCK === "1";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -34,7 +36,16 @@ export function SignInForm({
 }) {
   const [state, formAction] = useActionState(signInAction, idleState);
   const [showPassword, setShowPassword] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const errors = state.fieldErrors ?? {};
+
+  function demoLogin(email: string) {
+    const form = formRef.current;
+    if (!form) return;
+    (form.elements.namedItem("email") as HTMLInputElement).value = email;
+    (form.elements.namedItem("password") as HTMLInputElement).value = "bookly123";
+    form.requestSubmit();
+  }
 
   return (
     <div className="space-y-5">
@@ -50,12 +61,30 @@ export function SignInForm({
         </p>
       </div>
 
+      {MOCK_MODE ? (
+        <div className="rounded-xl border border-dashed border-border bg-surface-muted/60 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+            Demo mode — one-tap sign in
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="outline" size="md" onClick={() => demoLogin("owner@bookly.local")}>
+              <Store className="size-4" />
+              Shop owner
+            </Button>
+            <Button type="button" variant="outline" size="md" onClick={() => demoLogin("customer@bookly.local")}>
+              <User className="size-4" />
+              Customer
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {oauthError ? <Alert tone="error">{oauthError}</Alert> : null}
       {state.status === "error" && state.message ? (
         <Alert tone="error">{state.message}</Alert>
       ) : null}
 
-      <form action={formAction} className="space-y-4" noValidate>
+      <form ref={formRef} action={formAction} className="space-y-4" noValidate>
         {next ? <input type="hidden" name="next" value={next} /> : null}
 
         <Field label="Email" htmlFor="email" error={errors.email} required>

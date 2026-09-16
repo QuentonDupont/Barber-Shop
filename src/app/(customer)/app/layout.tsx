@@ -1,5 +1,5 @@
-import { CalendarCheck, Compass, UserRound } from "lucide-react";
 import Link from "next/link";
+import { CalendarCheck, Compass, Ticket, UserRound } from "lucide-react";
 import { AppShell } from "@/components/shared/app-shell";
 import { TopBar } from "@/components/shared/top-bar";
 import { Logo } from "@/components/shared/logo";
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 const NAV: NavItem[] = [
   { href: "/app", label: "Explore", icon: <Compass /> },
+  { href: "/app/whats-on", label: "What's on", icon: <Ticket />, matchPrefix: true },
   { href: "/app/bookings", label: "Bookings", icon: <CalendarCheck />, matchPrefix: true },
   { href: "/app/account", label: "Account", icon: <UserRound />, matchPrefix: true },
 ];

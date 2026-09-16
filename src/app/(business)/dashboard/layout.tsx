@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Scissors,
   Settings,
+  Store,
 } from "lucide-react";
 import { AppShell } from "@/components/shared/app-shell";
 import { TopBar } from "@/components/shared/top-bar";
@@ -27,6 +28,7 @@ const NAV: NavItem[] = [
   { href: "/dashboard/calendar", label: "Calendar", icon: <CalendarDays />, matchPrefix: true },
   { href: "/dashboard/services", label: "Services", icon: <Scissors />, matchPrefix: true },
   { href: "/dashboard/hours", label: "Hours", icon: <Clock3 />, matchPrefix: true },
+  { href: "/dashboard/shopfront", label: "Shopfront", icon: <Store />, matchPrefix: true },
   { href: "/dashboard/settings", label: "Settings", icon: <Settings />, matchPrefix: true },
 ];
 

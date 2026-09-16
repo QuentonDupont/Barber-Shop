@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/lib/database.types";
+import { MOCK_COOKIE, decodeMockCookie, isMockMode } from "@/lib/mock/config";
 import { readSupabaseEnv } from "./env";
 
 /**
@@ -9,6 +10,17 @@ import { readSupabaseEnv } from "./env";
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  // Mock mode: the cookie itself carries `role:id`, so routing needs no
+  // Supabase call and no shared store (this runs in the Edge runtime).
+  if (isMockMode()) {
+    const decoded = decodeMockCookie(request.cookies.get(MOCK_COOKIE)?.value);
+    return {
+      response,
+      userId: decoded?.id ?? (null as string | null),
+      role: decoded?.role ?? (null as string | null),
+    };
+  }
 
   const env = readSupabaseEnv();
   if (!env) {
