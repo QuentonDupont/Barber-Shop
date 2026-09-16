@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LocationPicker, type LocationValue } from "./location-picker";
-import { DEFAULT_WEEK, HoursEditor, type DayHours } from "./hours-editor";
+import { HoursEditor } from "./hours-editor";
+import { DEFAULT_WEEK, type DayHours } from "./hours-shared";
 import {
   saveBusinessBasicsAction,
   saveBusinessHoursAction,

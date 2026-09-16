@@ -2,7 +2,7 @@
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { LogOut, Moon, Sun, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/misc";
 import { signOutAction } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
@@ -44,10 +44,16 @@ export function AccountMenu({
   variant?: "compact" | "sidebar";
 }) {
   const { dark, toggle } = useTheme();
+  // The sign-out form lives outside the menu: a submit button *inside* a Radix
+  // menu item never fires, because the menu (and the button with it) unmounts on
+  // select before the submit propagates. The item instead submits this form.
+  const signOutRef = useRef<HTMLFormElement>(null);
 
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
+    <>
+      <form ref={signOutRef} action={signOutAction} className="hidden" />
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger asChild>
         <button
           className={cn(
             "flex items-center gap-2.5 rounded-lg outline-none transition-colors",
@@ -101,20 +107,20 @@ export function AccountMenu({
 
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
 
-          <DropdownMenu.Item asChild>
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                className="flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 text-sm text-danger outline-none hover:bg-danger-soft"
-              >
-                <LogOut className="size-4" />
-                Sign out
-              </button>
-            </form>
+          <DropdownMenu.Item
+            onSelect={(event) => {
+              event.preventDefault();
+              signOutRef.current?.requestSubmit();
+            }}
+            className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-3 text-sm text-danger outline-none data-[highlighted]:bg-danger-soft"
+          >
+            <LogOut className="size-4" />
+            Sign out
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+    </>
   );
 }
 

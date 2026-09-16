@@ -6,26 +6,9 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { WEEKDAY_LABELS } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
+import { type DayHours } from "./hours-shared";
 
-export interface DayHours {
-  weekday: number;
-  isClosed: boolean;
-  open: string;
-  close: string;
-  breakEnabled: boolean;
-  breakStart: string;
-  breakEnd: string;
-}
-
-export const DEFAULT_WEEK: DayHours[] = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
-  weekday,
-  isClosed: weekday === 0,
-  open: "09:00",
-  close: "18:00",
-  breakEnabled: false,
-  breakStart: "12:00",
-  breakEnd: "13:00",
-}));
+export type { DayHours };
 
 /**
  * The weekly template editor.

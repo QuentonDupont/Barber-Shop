@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { OnboardingWizard } from "@/components/business/onboarding-wizard";
-import { DEFAULT_WEEK, type DayHours } from "@/components/business/hours-editor";
+import { DEFAULT_WEEK, type DayHours } from "@/components/business/hours-shared";
 import { getOwnerContext } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { HoursForm } from "@/components/business/hours-form";
 import { OverridesManager } from "@/components/business/overrides-manager";
-import { DEFAULT_WEEK, type DayHours } from "@/components/business/hours-editor";
+import { DEFAULT_WEEK, type DayHours } from "@/components/business/hours-shared";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { businessToday, minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";

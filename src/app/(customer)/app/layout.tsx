@@ -1,4 +1,3 @@
-import { CalendarCheck, Compass, UserRound } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/shared/app-shell";
 import { TopBar } from "@/components/shared/top-bar";
@@ -14,9 +13,10 @@ import { requireCustomer } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const NAV: NavItem[] = [
-  { href: "/app", label: "Explore", icon: Compass },
-  { href: "/app/bookings", label: "Bookings", icon: CalendarCheck, matchPrefix: true },
-  { href: "/app/account", label: "Account", icon: UserRound, matchPrefix: true },
+  { href: "/app", label: "Explore", icon: "explore" },
+  { href: "/app/whats-on", label: "What's on", icon: "whatson", matchPrefix: true },
+  { href: "/app/bookings", label: "Bookings", icon: "bookings", matchPrefix: true },
+  { href: "/app/account", label: "Account", icon: "account", matchPrefix: true },
 ];
 
 export default async function CustomerLayout({

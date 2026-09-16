@@ -137,6 +137,90 @@ export type BookingRow = {
   updated_at: string;
 };
 
+/* ---- Shopfront: merch, campaigns, orders, subscriptions ------------------ */
+
+/** A piece of merch a business sells from its shopfront. */
+export type ProductRow = {
+  id: string;
+  business_id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  /** Lightweight placeholder art until real image uploads exist. */
+  image_emoji: string | null;
+  /** Tailwind-ish accent token for the card, e.g. "amber" | "rose" | "sky". */
+  accent: string | null;
+  /** `null` means unlimited stock. */
+  stock: number | null;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CampaignKind = "event" | "sale";
+
+/** An event (customers subscribe/RSVP) or a sale (a promotion to showcase). */
+export type CampaignRow = {
+  id: string;
+  business_id: string;
+  kind: CampaignKind;
+  title: string;
+  description: string | null;
+  /** Event date, or the day a sale starts. */
+  starts_at: string;
+  /** Event end, or the last day of a sale. `null` for open-ended. */
+  ends_at: string | null;
+  /** Events only. */
+  location: string | null;
+  /** Event ticket price; `0` means free. */
+  price: number;
+  currency: string;
+  /** Events only: max attendees. `null` for unlimited. */
+  capacity: number | null;
+  /** Sales only: headline like "20% off all cuts". */
+  discount_label: string | null;
+  image_emoji: string | null;
+  accent: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SubscriptionStatus = "going" | "interested" | "cancelled";
+
+/** A customer subscribing to / RSVPing an event campaign. */
+export type CampaignSubscriptionRow = {
+  id: string;
+  campaign_id: string;
+  business_id: string;
+  customer_id: string;
+  customer_name: string;
+  status: SubscriptionStatus;
+  created_at: string;
+};
+
+export type OrderStatus = "paid" | "pending" | "cancelled";
+export type PaymentMethod = "stripe" | "scan";
+
+/** A merch purchase. Payment is mocked for now; `status` is set to `paid`. */
+export type OrderRow = {
+  id: string;
+  business_id: string;
+  customer_id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+  currency: string;
+  payment_method: PaymentMethod;
+  status: OrderStatus;
+  customer_name: string;
+  created_at: string;
+};
+
 type Insertable<T, Required extends keyof T, Generated extends keyof T> = Pick<
   T,
   Required
@@ -299,6 +383,46 @@ export type Database = {
           },
         ];
       };
+      products: {
+        Row: ProductRow;
+        Insert: Insertable<
+          ProductRow,
+          "business_id" | "name",
+          "id" | "created_at" | "updated_at"
+        >;
+        Update: Partial<ProductRow>;
+        Relationships: [];
+      };
+      campaigns: {
+        Row: CampaignRow;
+        Insert: Insertable<
+          CampaignRow,
+          "business_id" | "kind" | "title" | "starts_at",
+          "id" | "created_at" | "updated_at"
+        >;
+        Update: Partial<CampaignRow>;
+        Relationships: [];
+      };
+      campaign_subscriptions: {
+        Row: CampaignSubscriptionRow;
+        Insert: Insertable<
+          CampaignSubscriptionRow,
+          "campaign_id" | "business_id" | "customer_id",
+          "id" | "created_at"
+        >;
+        Update: Partial<CampaignSubscriptionRow>;
+        Relationships: [];
+      };
+      orders: {
+        Row: OrderRow;
+        Insert: Insertable<
+          OrderRow,
+          "business_id" | "customer_id" | "product_id" | "amount",
+          "id" | "created_at"
+        >;
+        Update: Partial<OrderRow>;
+        Relationships: [];
+      };
     };
     // `[_ in never]: never` is the shape `supabase gen types` emits for an
     // empty group. `Record<string, never>` fails the SDK's schema constraint
@@ -325,6 +449,10 @@ export type Database = {
       user_role: UserRole;
       business_category: BusinessCategory;
       booking_status: BookingStatus;
+      campaign_kind: CampaignKind;
+      subscription_status: SubscriptionStatus;
+      order_status: OrderStatus;
+      payment_method: PaymentMethod;
     };
     CompositeTypes: {
       [_ in never]: never;

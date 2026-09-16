@@ -2,13 +2,57 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarDays,
+  Circle,
+  Clock3,
+  Compass,
+  LayoutDashboard,
+  Scissors,
+  Settings,
+  Store,
+  Ticket,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * Nav items are built in Server Components (the portal layouts) and rendered
+ * here in a Client Component. A component reference cannot cross that boundary,
+ * so `icon` travels as a plain string key and is resolved to a Lucide icon on
+ * this side.
+ */
+export type NavIcon =
+  | "explore"
+  | "bookings"
+  | "account"
+  | "whatson"
+  | "today"
+  | "calendar"
+  | "services"
+  | "hours"
+  | "shopfront"
+  | "settings";
+
+const ICONS: Record<NavIcon, LucideIcon> = {
+  explore: Compass,
+  bookings: CalendarCheck,
+  account: UserRound,
+  whatson: Ticket,
+  today: LayoutDashboard,
+  calendar: CalendarDays,
+  services: Scissors,
+  hours: Clock3,
+  shopfront: Store,
+  settings: Settings,
+};
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIcon;
   /** Treat any deeper path as this item too. */
   matchPrefix?: boolean;
 }
@@ -44,6 +88,7 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
       <ul className="flex items-stretch">
         {items.map((item) => {
           const active = isActive(item);
+          const Icon = ICONS[item.icon] ?? Circle;
           return (
             <li key={item.href} className="flex-1">
               <Link
@@ -55,7 +100,7 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
                   active ? "text-accent" : "text-fg-subtle active:text-fg",
                 )}
               >
-                <item.icon
+                <Icon
                   className={cn("size-6 transition-transform", active && "scale-105")}
                   strokeWidth={active ? 2.4 : 1.9}
                 />
@@ -89,6 +134,7 @@ export function DesktopSidebar({
         <ul className="space-y-1">
           {items.map((item) => {
             const active = isActive(item);
+            const Icon = ICONS[item.icon] ?? Circle;
             return (
               <li key={item.href}>
                 <Link
@@ -102,7 +148,7 @@ export function DesktopSidebar({
                       : "text-fg-muted hover:bg-surface-muted hover:text-fg",
                   )}
                 >
-                  <item.icon className="size-5 shrink-0" strokeWidth={active ? 2.3 : 1.9} />
+                  <Icon className="size-5 shrink-0" strokeWidth={active ? 2.3 : 1.9} />
                   {item.label}
                 </Link>
               </li>

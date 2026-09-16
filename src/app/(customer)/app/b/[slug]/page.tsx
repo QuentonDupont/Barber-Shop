@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, MapPin, MessageCircle, Phone } from "lucide-react";
 import { PageContainer } from "@/components/shared/app-shell";
 import { BookingFlow, type DayPayload } from "@/components/customer/booking-flow";
+import { BusinessTabs } from "@/components/customer/business-tabs";
 import { CATEGORY_LABEL } from "@/components/customer/business-card";
 import { Badge } from "@/components/ui/badge";
 import { requireCustomer } from "@/lib/auth";
@@ -54,7 +55,7 @@ export default async function BusinessPage({
   searchParams: Promise<{ service?: string; date?: string }>;
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
-  await requireCustomer();
+  const session = await requireCustomer();
 
   const supabase = await createClient();
 
@@ -67,13 +68,37 @@ export default async function BusinessPage({
 
   if (!business) notFound();
 
-  const { data: services } = await supabase
-    .from("services")
-    .select("*")
-    .eq("business_id", business.id)
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-    .order("price", { ascending: true });
+  const [{ data: services }, { data: products }, { data: campaigns }, { data: mySubs }] =
+    await Promise.all([
+      supabase
+        .from("services")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("price", { ascending: true }),
+      supabase
+        .from("products")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("campaigns")
+        .select("*")
+        .eq("business_id", business.id)
+        .eq("is_published", true)
+        .order("starts_at", { ascending: true }),
+      supabase
+        .from("campaign_subscriptions")
+        .select("campaign_id, status")
+        .eq("business_id", business.id)
+        .eq("customer_id", session.userId),
+    ]);
+
+  const subscribedIds = (mySubs ?? [])
+    .filter((sub) => sub.status === "going")
+    .map((sub) => sub.campaign_id);
 
   const serviceList = services ?? [];
   const selectedService =
@@ -203,15 +228,23 @@ export default async function BusinessPage({
         </div>
       </header>
 
-      <BookingFlow
-        business={business}
-        services={serviceList}
-        selectedService={selectedService}
-        selectedDate={requested}
-        today={today}
-        maxDate={maxDate}
-        openDays={openDays}
-        loadedDays={loadedDays}
+      <BusinessTabs
+        booking={
+          <BookingFlow
+            business={business}
+            services={serviceList}
+            selectedService={selectedService}
+            selectedDate={requested}
+            today={today}
+            maxDate={maxDate}
+            openDays={openDays}
+            loadedDays={loadedDays}
+          />
+        }
+        products={products ?? []}
+        campaigns={campaigns ?? []}
+        timezone={business.timezone}
+        subscribedIds={subscribedIds}
       />
     </PageContainer>
   );

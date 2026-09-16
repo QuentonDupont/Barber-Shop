@@ -14,9 +14,10 @@ import { Logo } from "@/components/shared/logo";
 import { SetupNotice } from "@/components/shared/setup-notice";
 import { getSession } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isMockMode } from "@/lib/mock/config";
 
 export default async function LandingPage() {
-  const configured = isSupabaseConfigured();
+  const configured = isSupabaseConfigured() || isMockMode();
   const session = configured ? await getSession().catch(() => null) : null;
   const signedInHome =
     session?.profile.role === "business_owner" ? "/dashboard" : "/app";

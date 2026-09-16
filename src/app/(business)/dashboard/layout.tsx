@@ -1,12 +1,5 @@
 import Link from "next/link";
-import {
-  CalendarDays,
-  Clock3,
-  ExternalLink,
-  LayoutDashboard,
-  Scissors,
-  Settings,
-} from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { AppShell } from "@/components/shared/app-shell";
 import { TopBar } from "@/components/shared/top-bar";
 import { Logo } from "@/components/shared/logo";
@@ -22,11 +15,12 @@ import { getOwnerContext } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: LayoutDashboard },
-  { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays, matchPrefix: true },
-  { href: "/dashboard/services", label: "Services", icon: Scissors, matchPrefix: true },
-  { href: "/dashboard/hours", label: "Hours", icon: Clock3, matchPrefix: true },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings, matchPrefix: true },
+  { href: "/dashboard", label: "Today", icon: "today" },
+  { href: "/dashboard/calendar", label: "Calendar", icon: "calendar", matchPrefix: true },
+  { href: "/dashboard/services", label: "Services", icon: "services", matchPrefix: true },
+  { href: "/dashboard/hours", label: "Hours", icon: "hours", matchPrefix: true },
+  { href: "/dashboard/shopfront", label: "Shopfront", icon: "shopfront", matchPrefix: true },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings", matchPrefix: true },
 ];
 
 export default async function DashboardLayout({
