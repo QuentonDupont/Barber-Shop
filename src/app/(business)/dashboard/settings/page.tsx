@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { SettingsForm } from "@/components/business/settings-form";
+import { InstallPrompt } from "@/components/shared/install-prompt";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,6 +24,13 @@ export default async function SettingsPage() {
         description="Your details, your booking rules and whether your page is live."
       />
       <SettingsForm business={ctx.business} activeServiceCount={count ?? 0} />
+
+      {/* Owners live in this dashboard all day and are the most likely to want
+          a launcher icon, but the install prompt was only ever mounted on the
+          customer account page. The component hides itself once installed. */}
+      <div className="mt-4">
+        <InstallPrompt />
+      </div>
     </PageContainer>
   );
 }

@@ -33,7 +33,16 @@ export function DateStrip({
   const dates = Array.from({ length: days }, (_, index) => shiftDateKey(start, index));
 
   useEffect(() => {
-    selectedRef.current?.scrollIntoView({ block: "nearest", inline: "center" });
+    const cell = selectedRef.current;
+    const box = scroller.current;
+    if (!cell || !box) return;
+    // scrollIntoView walks up and scrolls every scrollable ancestor, which drags
+    // the whole page sideways and loses the left gutter. Scroll only the strip.
+    const cellBox = cell.getBoundingClientRect();
+    const boxBox = box.getBoundingClientRect();
+    const delta =
+      cellBox.left + cellBox.width / 2 - (boxBox.left + boxBox.width / 2);
+    box.scrollBy({ left: delta, behavior: "smooth" });
   }, [selected]);
 
   return (

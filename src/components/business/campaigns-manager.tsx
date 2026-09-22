@@ -69,15 +69,19 @@ export function CampaignsManager({
             <Plus />
             New campaign
           </Button>
-          <Button
-            variant="accent"
-            size="icon"
-            onClick={() => setCreating(true)}
-            aria-label="New campaign"
-            className="fixed bottom-24 right-4 z-30 size-14 rounded-full shadow-[var(--shadow-raised)] sm:hidden"
-          >
-            <Plus className="size-6" />
-          </Button>
+          {/* Clearance so the last row can scroll clear of the sticky bar. */}
+          <div className="h-[4.5rem] sm:hidden" aria-hidden />
+
+          {/* A circular FAB pinned to the right sat on top of each row's toggle
+              and edit controls, which are right-aligned too, and won the tap.
+              A full-width bar above the tab bar keeps it in thumb reach without
+              ever covering a row. Mirrors the booking flow's sticky bar. */}
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-nav backdrop-blur-lg sm:hidden">
+            <Button variant="accent" size="lg" block onClick={() => setCreating(true)}>
+              <Plus />
+              New campaign
+            </Button>
+          </div>
         </>
       ) : null}
 
