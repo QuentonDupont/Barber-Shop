@@ -33,7 +33,7 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
   return (
     <Link
       href={businessPath(business.slug)}
-      className="group flex gap-3 rounded-xl border border-border bg-surface p-3.5 transition-colors hover:border-border-strong active:bg-surface-muted"
+      className="group flex min-w-0 gap-3 rounded-xl border border-border bg-surface p-3.5 transition-colors hover:border-border-strong active:bg-surface-muted"
     >
       {/* A generated monogram rather than a stock photo: a shop with no cover
           image should not look broken next to one that has uploaded one. */}
@@ -46,7 +46,7 @@ export function BusinessCard({ business }: { business: BusinessSummary }) {
 
       <span className="min-w-0 flex-1">
         <span className="flex items-start justify-between gap-2">
-          <span className="min-w-0 truncate font-semibold group-hover:text-accent">
+          <span className="block min-w-0 truncate font-semibold group-hover:text-accent">
             {business.name}
           </span>
           {business.fromPrice != null ? (

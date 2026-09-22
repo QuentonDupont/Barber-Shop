@@ -11,8 +11,12 @@ const Switch = React.forwardRef<
   <SwitchPrimitive.Root
     ref={ref}
     className={cn(
-      // The track is 52x32; the surrounding label row supplies the 44px height.
-      "peer inline-flex h-8 w-[3.25rem] shrink-0 cursor-pointer items-center",
+      // The track is 52x32. The ::before pseudo-element extends the hit area to
+      // the 44px minimum without changing layout — a label row may or may not
+      // supply that height, so the control carries it itself.
+      "peer relative inline-flex h-8 w-[3.25rem] shrink-0 cursor-pointer items-center",
+      "before:absolute before:inset-x-0 before:top-1/2 before:h-11",
+      "before:-translate-y-1/2 before:content-['']",
       "rounded-full border-2 border-transparent transition-colors outline-none",
       "focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2",
       "focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:opacity-50",

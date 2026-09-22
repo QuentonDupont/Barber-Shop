@@ -41,11 +41,12 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ComponentRef<typeof DialogPrimitive.Content>,
   SheetContentProps
->(({ className, children, hideClose, ...props }, ref) => (
+>(({ className, children, hideClose, onOpenAutoFocus, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />
     <DialogPrimitive.Content
       ref={ref}
+      onOpenAutoFocus={onOpenAutoFocus}
       className={cn(
         "fixed z-50 bg-surface shadow-[var(--shadow-raised)] focus:outline-none",
         // phone: bottom sheet, capped so the header behind stays visible
@@ -59,9 +60,22 @@ const SheetContent = React.forwardRef<
       )}
       {...props}
     >
-      {/* Grab handle — purely affordance, so hidden from assistive tech. */}
-      <div className="sticky top-0 z-10 flex justify-center bg-surface pt-3 pb-1 sm:hidden">
+      {/* Grab handle — purely affordance, so hidden from assistive tech. The
+          close button rides in this sticky bar so it stays reachable on a phone
+          however far the sheet is scrolled. */}
+      <div className="sticky top-0 z-10 flex justify-center bg-surface pt-3 pb-1 relative sm:hidden">
         <div className="h-1.5 w-11 rounded-full bg-border-strong" aria-hidden />
+        {hideClose ? null : (
+          <DialogPrimitive.Close
+            className={cn(
+              "absolute right-1 top-0 flex size-11 items-center justify-center rounded-full",
+              "text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg",
+            )}
+          >
+            <X className="size-5" />
+            <span className="sr-only">Close</span>
+          </DialogPrimitive.Close>
+        )}
       </div>
       {children}
       {hideClose ? null : (

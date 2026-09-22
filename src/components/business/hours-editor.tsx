@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { toast } from "sonner";
 import { Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -25,32 +25,8 @@ export function HoursEditor({
   onChange: (next: DayHours[]) => void;
   name?: string;
 }) {
-  const [copied, setCopied] = useState(false);
-
   const update = (weekday: number, patch: Partial<DayHours>) => {
     onChange(value.map((day) => (day.weekday === weekday ? { ...day, ...patch } : day)));
-  };
-
-  /** Most shops keep one schedule all week; typing it seven times is a chore. */
-  const copyToAllOpenDays = () => {
-    const monday = value.find((day) => day.weekday === 1) ?? value[0];
-    if (!monday) return;
-    onChange(
-      value.map((day) =>
-        day.weekday === monday.weekday || day.isClosed
-          ? day
-          : {
-              ...day,
-              open: monday.open,
-              close: monday.close,
-              breakEnabled: monday.breakEnabled,
-              breakStart: monday.breakStart,
-              breakEnd: monday.breakEnd,
-            },
-      ),
-    );
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2000);
   };
 
   // Render Monday first — a shop week starts on Monday, even though Postgres
@@ -59,12 +35,55 @@ export function HoursEditor({
     .map((weekday) => value.find((day) => day.weekday === weekday))
     .filter((day): day is DayHours => Boolean(day));
 
+  // Copy from the first day that is actually OPEN. Sourcing from Monday
+  // regardless meant a closed Monday's stale times silently overwrote the
+  // whole week.
+  const source = ordered.find((day) => !day.isClosed) ?? null;
+  const targetCount = ordered.filter(
+    (day) => !day.isClosed && day.weekday !== source?.weekday,
+  ).length;
+
+  /** Most shops keep one schedule all week; typing it seven times is a chore. */
+  const copyToAllOpenDays = () => {
+    if (!source || targetCount === 0) return;
+    const previous = value;
+    onChange(
+      value.map((day) =>
+        day.weekday === source.weekday || day.isClosed
+          ? day
+          : {
+              ...day,
+              open: source.open,
+              close: source.close,
+              breakEnabled: source.breakEnabled,
+              breakStart: source.breakStart,
+              breakEnd: source.breakEnd,
+            },
+      ),
+    );
+    toast.success(
+      `Copied ${WEEKDAY_LABELS[source.weekday]} (${source.open}–${source.close}) to ${targetCount} open day${targetCount === 1 ? "" : "s"}`,
+      {
+        duration: 10_000,
+        action: { label: "Undo", onClick: () => onChange(previous) },
+      },
+    );
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex justify-end">
-        <Button type="button" variant="subtle" size="sm" onClick={copyToAllOpenDays}>
+        <Button
+          type="button"
+          variant="subtle"
+          size="sm"
+          onClick={copyToAllOpenDays}
+          disabled={!source || targetCount === 0}
+        >
           <Copy />
-          {copied ? "Copied to every open day" : "Copy Monday to all"}
+          {source
+            ? `Copy ${WEEKDAY_LABELS[source.weekday]} to all open days`
+            : "Copy to all open days"}
         </Button>
       </div>
 

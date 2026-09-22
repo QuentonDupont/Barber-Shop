@@ -59,6 +59,18 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={jakarta.variable} suppressHydrationWarning>
+      <head>
+        {/* Applies the theme before first paint. The class used to be set by a
+            useEffect inside the signed-in shells, which meant every cold start
+            flashed light, and public pages (/, /sign-in) were never themed at
+            all — so tapping through from the landing page was a light-to-dark
+            jolt. Kept in sync with the toggle in account-menu.tsx. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem("bookly-theme");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(d){document.documentElement.classList.add("dark")}}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster
