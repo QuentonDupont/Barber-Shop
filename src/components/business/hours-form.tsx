@@ -5,7 +5,8 @@ import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
-import { HoursEditor, type DayHours } from "./hours-editor";
+import { HoursEditor } from "./hours-editor";
+import type { DayHours } from "@/lib/booking/hours";
 import { saveBusinessHoursAction } from "@/lib/actions/business";
 import { idleState } from "@/lib/actions/types";
 

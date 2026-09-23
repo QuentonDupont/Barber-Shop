@@ -14,9 +14,9 @@ import { requireCustomer } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const NAV: NavItem[] = [
-  { href: "/app", label: "Explore", icon: Compass },
-  { href: "/app/bookings", label: "Bookings", icon: CalendarCheck, matchPrefix: true },
-  { href: "/app/account", label: "Account", icon: UserRound, matchPrefix: true },
+  { href: "/app", label: "Explore", icon: <Compass /> },
+  { href: "/app/bookings", label: "Bookings", icon: <CalendarCheck />, matchPrefix: true },
+  { href: "/app/account", label: "Account", icon: <UserRound />, matchPrefix: true },
 ];
 
 export default async function CustomerLayout({

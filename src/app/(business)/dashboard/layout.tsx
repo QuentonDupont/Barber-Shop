@@ -22,11 +22,11 @@ import { getOwnerContext } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: LayoutDashboard },
-  { href: "/dashboard/calendar", label: "Calendar", icon: CalendarDays, matchPrefix: true },
-  { href: "/dashboard/services", label: "Services", icon: Scissors, matchPrefix: true },
-  { href: "/dashboard/hours", label: "Hours", icon: Clock3, matchPrefix: true },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings, matchPrefix: true },
+  { href: "/dashboard", label: "Today", icon: <LayoutDashboard /> },
+  { href: "/dashboard/calendar", label: "Calendar", icon: <CalendarDays />, matchPrefix: true },
+  { href: "/dashboard/services", label: "Services", icon: <Scissors />, matchPrefix: true },
+  { href: "/dashboard/hours", label: "Hours", icon: <Clock3 />, matchPrefix: true },
+  { href: "/dashboard/settings", label: "Settings", icon: <Settings />, matchPrefix: true },
 ];
 
 export default async function DashboardLayout({

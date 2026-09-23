@@ -1,16 +1,28 @@
 "use client";
 
+import { cloneElement, isValidElement, type ReactElement } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  /**
+   * A rendered icon element (`<LayoutDashboard />`), not the component
+   * itself. These arrays are built in a Server Component layout and passed
+   * down to this client module; a bare component reference is a function and
+   * cannot cross that boundary, but an already-created element can — the
+   * className/strokeWidth below are applied by cloning it.
+   */
+  icon: ReactElement;
   /** Treat any deeper path as this item too. */
   matchPrefix?: boolean;
+}
+
+function sizedIcon(icon: ReactElement, className: string, strokeWidth: number) {
+  if (!isValidElement<{ className?: string; strokeWidth?: number }>(icon)) return icon;
+  return cloneElement(icon, { className, strokeWidth });
 }
 
 function useIsActive() {
@@ -55,10 +67,11 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
                   active ? "text-accent" : "text-fg-subtle active:text-fg",
                 )}
               >
-                <item.icon
-                  className={cn("size-6 transition-transform", active && "scale-105")}
-                  strokeWidth={active ? 2.4 : 1.9}
-                />
+                {sizedIcon(
+                  item.icon,
+                  cn("size-6 transition-transform", active && "scale-105"),
+                  active ? 2.4 : 1.9,
+                )}
                 <span className="truncate max-w-full">{item.label}</span>
               </Link>
             </li>
@@ -102,7 +115,7 @@ export function DesktopSidebar({
                       : "text-fg-muted hover:bg-surface-muted hover:text-fg",
                   )}
                 >
-                  <item.icon className="size-5 shrink-0" strokeWidth={active ? 2.3 : 1.9} />
+                  {sizedIcon(item.icon, "size-5 shrink-0", active ? 2.3 : 1.9)}
                   {item.label}
                 </Link>
               </li>
