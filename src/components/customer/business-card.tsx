@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistance } from "@/lib/geo";
 import { formatMoney } from "@/lib/booking/time";
 import type { BusinessCategory } from "@/lib/database.types";
+import { businessPath } from "@/lib/routes";
 
 export const CATEGORY_LABEL: Record<BusinessCategory, string> = {
   barber: "Barber",
@@ -31,7 +32,7 @@ export interface BusinessSummary {
 export function BusinessCard({ business }: { business: BusinessSummary }) {
   return (
     <Link
-      href={`/app/b/${business.slug}`}
+      href={businessPath(business.slug)}
       className="group flex gap-3 rounded-xl border border-border bg-surface p-3.5 transition-colors hover:border-border-strong active:bg-surface-muted"
     >
       {/* A generated monogram rather than a stock photo: a shop with no cover

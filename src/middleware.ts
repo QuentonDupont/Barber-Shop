@@ -9,6 +9,15 @@ const BUSINESS_PREFIX = "/dashboard";
 const AUTH_PATHS = ["/sign-in", "/sign-up"];
 
 export async function middleware(request: NextRequest) {
+  // The booking page moved out of the customer-only tree to /b/[slug]. Forward
+  // old links before any role check, or an owner opening their own shop's
+  // old URL would be bounced to the dashboard instead.
+  if (request.nextUrl.pathname.startsWith("/app/b/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = request.nextUrl.pathname.replace(/^\/app\/b\//, "/b/");
+    return NextResponse.redirect(url);
+  }
+
   const { response, userId, role } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 

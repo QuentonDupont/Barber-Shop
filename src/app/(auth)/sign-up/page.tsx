@@ -7,9 +7,10 @@ export const metadata: Metadata = { title: "Create an account" };
 export default async function SignUpPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; next?: string }>;
 }) {
-  const { role } = await searchParams;
+  const { role, next } = await searchParams;
   const initialRole: Role = role === "business_owner" ? "business_owner" : "customer";
-  return <SignUpForm initialRole={initialRole} />;
+  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
+  return <SignUpForm initialRole={initialRole} next={safeNext} />;
 }

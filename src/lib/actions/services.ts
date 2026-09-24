@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireBusiness } from "@/lib/auth";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
+import { businessPath } from "@/lib/routes";
 
 const serviceSchema = z.object({
   id: z.uuid().optional().or(z.literal("")),
@@ -65,14 +66,23 @@ export async function saveServiceAction(
       .eq("business_id", ctx.business.id);
     if (error) return errorState(error.message);
   } else {
+    // New services go to the end of the list customers see, not the top.
+    const { data: last } = await supabase
+      .from("services")
+      .select("sort_order")
+      .eq("business_id", ctx.business.id)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
     const { error } = await supabase
       .from("services")
-      .insert({ ...payload, business_id: ctx.business.id });
+      .insert({ ...payload, business_id: ctx.business.id, sort_order: (last?.sort_order ?? -1) + 1 });
     if (error) return errorState(error.message);
   }
 
   revalidatePath("/dashboard/services");
-  revalidatePath(`/app/b/${ctx.business.slug}`);
+  revalidatePath(businessPath(ctx.business.slug));
   return successState(id ? "Service updated." : "Service added.");
 }
 
@@ -91,7 +101,7 @@ export async function toggleServiceAction(formData: FormData): Promise<void> {
     .eq("business_id", ctx.business.id);
 
   revalidatePath("/dashboard/services");
-  revalidatePath(`/app/b/${ctx.business.slug}`);
+  revalidatePath(businessPath(ctx.business.slug));
 }
 
 export async function deleteServiceAction(
@@ -133,6 +143,53 @@ export async function deleteServiceAction(
   if (error) return errorState(error.message);
 
   revalidatePath("/dashboard/services");
-  revalidatePath(`/app/b/${ctx.business.slug}`);
+  revalidatePath(businessPath(ctx.business.slug));
   return successState("Service deleted.");
+}
+
+/**
+ * Moves a service one place up or down in the list customers see.
+ *
+ * Renumbers the whole list 0…n-1 rather than swapping two values: services
+ * created before ordering existed all share `sort_order = 0`, and swapping two
+ * equal numbers would change nothing.
+ */
+export async function moveServiceAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const direction = formData.get("direction") === "up" ? -1 : 1;
+  if (!id) return;
+
+  const ctx = await requireBusiness();
+  const supabase = await createClient();
+
+  const { data: services } = await supabase
+    .from("services")
+    .select("id, sort_order")
+    .eq("business_id", ctx.business.id)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  const ordered = (services ?? []).map((row) => row.id);
+  const from = ordered.indexOf(id);
+  const to = from + direction;
+  if (from === -1 || to < 0 || to >= ordered.length) return;
+
+  [ordered[from], ordered[to]] = [ordered[to]!, ordered[from]!];
+
+  const current = new Map((services ?? []).map((row) => [row.id, row.sort_order]));
+  await Promise.all(
+    ordered
+      .map((serviceId, index) => ({ serviceId, index }))
+      .filter(({ serviceId, index }) => current.get(serviceId) !== index)
+      .map(({ serviceId, index }) =>
+        supabase
+          .from("services")
+          .update({ sort_order: index })
+          .eq("id", serviceId)
+          .eq("business_id", ctx.business.id),
+      ),
+  );
+
+  revalidatePath("/dashboard/services");
+  revalidatePath(businessPath(ctx.business.slug));
 }

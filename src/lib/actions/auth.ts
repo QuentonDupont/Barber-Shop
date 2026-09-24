@@ -75,7 +75,9 @@ export async function signUpAction(
     );
   }
 
-  redirect(homeFor(role));
+  // A customer who signed up from a shop's booking page goes straight back
+  // to it. Owners always start at onboarding.
+  redirect(role === "customer" ? safeNext(formData.get("next"), homeFor(role)) : homeFor(role));
 }
 
 export async function signInAction(

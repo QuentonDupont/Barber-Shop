@@ -29,7 +29,7 @@ function SubmitButton({ role }: { role: Role }) {
   );
 }
 
-export function SignUpForm({ initialRole }: { initialRole: Role }) {
+export function SignUpForm({ initialRole, next }: { initialRole: Role; next?: string }) {
   const [state, formAction] = useActionState(signUpAction, idleState);
   const [role, setRole] = useState<Role>(initialRole);
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +43,7 @@ export function SignUpForm({ initialRole }: { initialRole: Role }) {
         </h1>
         <p className="mt-1.5 text-sm text-fg-muted">
           Already with us?{" "}
-          <Link href="/sign-in" className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">
+          <Link href={next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"} className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">
             Sign in
           </Link>
         </p>
@@ -54,6 +54,7 @@ export function SignUpForm({ initialRole }: { initialRole: Role }) {
       ) : null}
 
       <form action={formAction} className="space-y-4" noValidate>
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <RoleToggle value={role} onChange={setRole} />
 
         <Field

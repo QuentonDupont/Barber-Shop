@@ -11,6 +11,7 @@ import {
   zonedDayMinutesToUtc,
 } from "@/lib/booking/time";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
+import { businessPath } from "@/lib/routes";
 
 const overrideSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
@@ -121,7 +122,7 @@ export async function saveOverrideAction(
 
   revalidatePath("/dashboard/hours");
   revalidatePath("/dashboard/calendar");
-  revalidatePath(`/app/b/${business.slug}`);
+  revalidatePath(businessPath(business.slug));
   return successState(mode === "closed" ? "Day marked as closed." : "Custom hours saved.");
 }
 
@@ -145,6 +146,6 @@ export async function deleteOverrideAction(
 
   revalidatePath("/dashboard/hours");
   revalidatePath("/dashboard/calendar");
-  revalidatePath(`/app/b/${ctx.business.slug}`);
+  revalidatePath(businessPath(ctx.business.slug));
   return successState("Removed. Regular hours apply again on that day.");
 }

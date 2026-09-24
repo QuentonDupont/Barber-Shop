@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
-import { Clock3, Pencil, Plus, Scissors, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock3, Pencil, Plus, Scissors, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   deleteServiceAction,
+  moveServiceAction,
   saveServiceAction,
   toggleServiceAction,
 } from "@/lib/actions/services";
@@ -35,7 +36,9 @@ export function ServicesManager({ services }: { services: ServiceRow[] }) {
 
   return (
     <>
-      <div className="space-y-2.5">
+      {/* On a phone the floating "+" sits over the bottom of the list; leave
+          room so it never covers the last card's Edit button. */}
+      <div className={cn("space-y-2.5", services.length > 0 && "pb-20 sm:pb-0")}>
         {services.length === 0 ? (
           <EmptyState
             icon={Scissors}
@@ -49,8 +52,14 @@ export function ServicesManager({ services }: { services: ServiceRow[] }) {
             }
           />
         ) : (
-          services.map((service) => (
-            <ServiceCard key={service.id} service={service} onEdit={setEditing} />
+          services.map((service, index) => (
+            <ServiceCard
+              key={service.id}
+              service={service}
+              index={index}
+              count={services.length}
+              onEdit={setEditing}
+            />
           ))
         )}
       </div>
@@ -98,26 +107,32 @@ export function ServicesManager({ services }: { services: ServiceRow[] }) {
 
 function ServiceCard({
   service,
+  index,
+  count,
   onEdit,
 }: {
   service: ServiceRow;
+  index: number;
+  count: number;
   onEdit: (service: ServiceRow) => void;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-xl border border-border bg-surface p-3.5",
-        !service.is_active && "opacity-60",
+        "rounded-xl border border-border bg-surface",
+        !service.is_active && "bg-surface-muted/60",
       )}
     >
       <button
         type="button"
         onClick={() => onEdit(service)}
-        className="min-w-0 flex-1 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        className="block w-full rounded-t-xl p-3.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <span className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-semibold">{service.name}</span>
-          {!service.is_active ? <Badge tone="neutral">Hidden</Badge> : null}
+          <span className={cn("font-semibold", !service.is_active && "text-fg-muted")}>
+            {service.name}
+          </span>
+          {!service.is_active ? <Badge tone="neutral">Hidden from customers</Badge> : null}
         </span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted">
           <span className="inline-flex items-center gap-1">
@@ -130,24 +145,84 @@ function ServiceCard({
           </span>
         </span>
         {service.description ? (
-          <span className="mt-1 block truncate text-sm text-fg-subtle">
+          <span className="mt-1.5 line-clamp-2 block text-sm text-fg-subtle">
             {service.description}
           </span>
-        ) : null}
+        ) : (
+          <span className="mt-1.5 block text-sm italic text-fg-subtle">
+            No description — customers only see the name.
+          </span>
+        )}
       </button>
 
-      <div className="flex shrink-0 items-center gap-1">
+      {/* Every control is labelled and a full 44px tall: this bar is what an
+          owner reaches for with a thumb between customers. */}
+      <div className="flex items-center gap-1 border-t border-border px-2 py-1.5">
         <ToggleForm service={service} />
-        <button
-          type="button"
-          onClick={() => onEdit(service)}
-          className="flex size-11 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg"
-          aria-label={`Edit ${service.name}`}
-        >
-          <Pencil className="size-4" />
-        </button>
+        <div className="ml-auto flex items-center gap-0.5">
+          <MoveButton id={service.id} direction="up" disabled={index === 0} name={service.name} />
+          <MoveButton
+            id={service.id}
+            direction="down"
+            disabled={index === count - 1}
+            name={service.name}
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(service)}
+            aria-label={`Edit ${service.name}`}
+          >
+            <Pencil />
+            Edit
+          </Button>
+        </div>
       </div>
     </div>
+  );
+}
+
+function MoveButton({
+  id,
+  direction,
+  disabled,
+  name,
+}: {
+  id: string;
+  direction: "up" | "down";
+  disabled: boolean;
+  name: string;
+}) {
+  return (
+    <form action={moveServiceAction}>
+      <input type="hidden" name="id" value={id} />
+      <input type="hidden" name="direction" value={direction} />
+      <MoveSubmit direction={direction} disabled={disabled} name={name} />
+    </form>
+  );
+}
+
+function MoveSubmit({
+  direction,
+  disabled,
+  name,
+}: {
+  direction: "up" | "down";
+  disabled: boolean;
+  name: string;
+}) {
+  const { pending } = useFormStatus();
+  const Icon = direction === "up" ? ArrowUp : ArrowDown;
+  return (
+    <button
+      type="submit"
+      disabled={disabled || pending}
+      aria-label={`Move ${name} ${direction}`}
+      className="flex size-11 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg disabled:opacity-30"
+    >
+      <Icon className="size-4" />
+    </button>
   );
 }
 
@@ -157,18 +232,23 @@ function ServiceCard({
  */
 function ToggleForm({ service }: { service: ServiceRow }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const switchId = `visible-${service.id}`;
 
   return (
-    <form ref={formRef} action={toggleServiceAction} className="flex items-center">
+    <form ref={formRef} action={toggleServiceAction} className="flex min-h-11 items-center gap-2.5 pl-1.5">
       <input type="hidden" name="id" value={service.id} />
       <input type="hidden" name="isActive" value={String(!service.is_active)} />
       <Switch
+        id={switchId}
         checked={service.is_active}
         // Radix Switch renders a `type="button"`, so it never submits on its
         // own; the form has to be asked explicitly.
         onCheckedChange={() => formRef.current?.requestSubmit()}
         aria-label={`${service.is_active ? "Hide" : "Show"} ${service.name}`}
       />
+      <label htmlFor={switchId} className="text-sm font-medium text-fg-muted">
+        {service.is_active ? "Visible" : "Hidden"}
+      </label>
     </form>
   );
 }
@@ -210,8 +290,9 @@ function ServiceSheet({
         <SheetHeader>
           <SheetTitle>{service ? "Edit service" : "New service"}</SheetTitle>
           <SheetDescription>
-            The duration is what reserves the chair, so include everything the
-            appointment actually takes.
+            The name, description and price appear on your booking page as
+            soon as you save. The duration is what reserves the chair, so
+            include everything the appointment actually takes.
           </SheetDescription>
         </SheetHeader>
 
@@ -289,7 +370,11 @@ function ServiceSheet({
               />
             </Field>
 
-            <Field label="Description" htmlFor="service-description" hint="Optional.">
+            <Field
+              label="Description"
+              htmlFor="service-description"
+              hint="Shown to customers under the service name. What's included, who it's for."
+            >
               <Textarea
                 id="service-description"
                 name="description"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
@@ -37,7 +38,15 @@ import {
   formatMoney,
   type DateKey,
 } from "@/lib/booking/time";
+import { businessPath } from "@/lib/routes";
 import { cn } from "@/lib/utils";
+
+/**
+ * Who is looking at the page decides what the final button does:
+ * a customer books, a signed-out visitor is sent to sign in and comes straight
+ * back to the same service and day, and an owner gets a read-only preview.
+ */
+export type Viewer = "customer" | "anon" | "owner" | "other-business";
 
 export interface DayPayload {
   date: DateKey;
@@ -53,6 +62,7 @@ export function BookingFlow({
   maxDate,
   openDays,
   loadedDays,
+  viewer,
 }: {
   business: BusinessRow;
   services: ServiceRow[];
@@ -64,6 +74,7 @@ export function BookingFlow({
   openDays: Record<DateKey, boolean>;
   /** The window whose slots were sent down with the page. */
   loadedDays: DayPayload[];
+  viewer: Viewer;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -79,7 +90,7 @@ export function BookingFlow({
     params.set("date", next.date ?? selectedDate);
     setSlotIso(null);
     startTransition(() => {
-      router.replace(`/app/b/${business.slug}?${params.toString()}`, { scroll: false });
+      router.replace(businessPath(business.slug, Object.fromEntries(params)), { scroll: false });
     });
   };
 
@@ -228,7 +239,7 @@ export function BookingFlow({
           Fixed above the tab bar so the action is always one thumb-tap away,
           however far down the slot grid the user has scrolled. -------------- */}
       {selectedService && slotIso ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-nav backdrop-blur-lg md:sticky md:bottom-4 md:rounded-xl md:border md:pb-3 md:shadow-[var(--shadow-raised)]">
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg md:sticky md:bottom-4 md:rounded-xl md:border md:pb-3 md:shadow-[var(--shadow-raised)]">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{selectedService.name}</p>
@@ -238,15 +249,35 @@ export function BookingFlow({
                 {formatMoney(selectedService.price, selectedService.currency)}
               </p>
             </div>
-            <Button size="lg" variant="accent" onClick={() => setConfirming(true)}>
-              Review
-              <ChevronRight />
-            </Button>
+            {viewer === "customer" ? (
+              <Button size="lg" variant="accent" onClick={() => setConfirming(true)}>
+                Review
+                <ChevronRight />
+              </Button>
+            ) : viewer === "anon" ? (
+              <Button asChild size="lg" variant="accent">
+                <Link
+                  href={`/sign-in?role=customer&next=${encodeURIComponent(
+                    businessPath(business.slug, {
+                      service: selectedService.id,
+                      date: selectedDate,
+                    }),
+                  )}`}
+                >
+                  Sign in to book
+                  <ChevronRight />
+                </Link>
+              </Button>
+            ) : (
+              <span className="shrink-0 rounded-lg bg-surface-muted px-3 py-2 text-xs font-semibold text-fg-muted">
+                Preview only
+              </span>
+            )}
           </div>
         </div>
       ) : null}
 
-      {selectedService && slotIso ? (
+      {selectedService && slotIso && viewer === "customer" ? (
         <ConfirmSheet
           open={confirming}
           onOpenChange={setConfirming}

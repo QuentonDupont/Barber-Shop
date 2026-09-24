@@ -14,6 +14,7 @@ import { AccountMenu } from "@/components/shared/account-menu";
 import { Badge } from "@/components/ui/badge";
 import type { NavItem } from "@/components/shared/nav";
 import { getOwnerContext } from "@/lib/auth";
+import { businessPath } from "@/lib/routes";
 
 /**
  * Every screen behind this layout is specific to the signed-in user, so none of
@@ -48,7 +49,7 @@ export default async function DashboardLayout({
               <div className="mt-1.5">
                 {ctx.business.is_published ? (
                   <Link
-                    href={`/app/b/${ctx.business.slug}`}
+                    href={businessPath(ctx.business.slug)}
                     target="_blank"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                   >

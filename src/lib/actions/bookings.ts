@@ -9,6 +9,7 @@ import { findSlot, getDayAvailability } from "@/lib/booking/slots";
 import { toDateKey } from "@/lib/booking/time";
 import { notifyBookingCancelled, notifyBookingCreated } from "@/lib/notifications";
 import { errorState, successState, type ActionState } from "./types";
+import { businessPath } from "@/lib/routes";
 
 const createSchema = z.object({
   businessId: z.uuid(),
@@ -117,7 +118,7 @@ export async function createBookingAction(
   await notifyBookingCreated(booking, business);
 
   revalidatePath("/app/bookings");
-  revalidatePath(`/app/b/${business.slug}`);
+  revalidatePath(businessPath(business.slug));
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
 

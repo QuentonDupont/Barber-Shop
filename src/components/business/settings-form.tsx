@@ -22,6 +22,7 @@ import { saveBusinessSettingsAction } from "@/lib/actions/business";
 import { idleState } from "@/lib/actions/types";
 import type { BusinessRow } from "@/lib/database.types";
 import { formatDuration } from "@/lib/booking/time";
+import { businessPath } from "@/lib/routes";
 
 const SLOT_INTERVALS = [5, 10, 15, 20, 30, 60];
 
@@ -113,7 +114,7 @@ export function SettingsForm({
 
           {published ? (
             <Link
-              href={`/app/b/${business.slug}`}
+              href={businessPath(business.slug)}
               target="_blank"
               className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
             >

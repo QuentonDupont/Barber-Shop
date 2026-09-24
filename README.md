@@ -11,6 +11,11 @@ runs full screen.
 
 ## What works today
 
+**Public booking page** — `/b/<shop-name>`
+- Anyone can open it, signed in or not, so a shop can share the link on LINE,
+  Instagram or a flyer. A visitor picks a time, taps *Sign in to book*, and
+  lands back on the same shop and day after signing in or signing up
+
 **Customer**
 - Search and filter published businesses, sorted by distance when location is
   allowed
@@ -23,7 +28,10 @@ runs full screen.
 **Business**
 - Three-step onboarding: identity, location (Google Places search + draggable
   map pin), weekly opening hours
-- Services with duration, tidy-up buffer and price
+- Services with name, description, duration, tidy-up buffer and price — every
+  field is editable and updates the customer page as soon as it's saved.
+  Show/hide, reorder, and a "Preview your page" button to see exactly what
+  customers see (works before publishing, too)
 - Opening hours per day with a closed toggle and an optional break
 - Day and week calendar, with confirm / complete / no-show / cancel
 - Reschedule: a "Move" sheet that works with a thumb (flick to a day, tap a

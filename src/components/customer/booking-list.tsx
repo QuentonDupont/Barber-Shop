@@ -22,6 +22,7 @@ import { idleState } from "@/lib/actions/types";
 import type { BookingRow } from "@/lib/database.types";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
+import { businessPath } from "@/lib/routes";
 
 export interface CustomerBooking extends BookingRow {
   business: {
@@ -198,7 +199,7 @@ function DetailSheet({
 
             {booking.business ? (
               <Link
-                href={`/app/b/${booking.business.slug}`}
+                href={businessPath(booking.business.slug)}
                 className="inline-flex min-h-12 items-center gap-2.5 rounded-lg border border-border px-3.5 text-sm font-medium transition-colors hover:bg-surface-muted"
               >
                 <Repeat2 className="size-4 shrink-0 text-accent" />

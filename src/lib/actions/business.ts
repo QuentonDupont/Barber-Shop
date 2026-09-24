@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getOwnerContext, requireBusiness } from "@/lib/auth";
 import { minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
+import { businessPath } from "@/lib/routes";
 
 const CATEGORIES = [
   "salon",
@@ -260,7 +261,7 @@ export async function saveBusinessHoursAction(
   }
 
   revalidatePath("/dashboard", "layout");
-  revalidatePath(`/app/b/${ctx.business.slug}`);
+  revalidatePath(businessPath(ctx.business.slug));
 
   if (finishing) redirect("/dashboard?welcome=1");
   return successState("Opening hours saved.");
@@ -346,7 +347,7 @@ export async function saveBusinessSettingsAction(
   if (error) return errorState(error.message);
 
   revalidatePath("/dashboard", "layout");
-  revalidatePath(`/app/b/${ctx.business.slug}`);
+  revalidatePath(businessPath(ctx.business.slug));
   return successState("Settings saved.");
 }
 
