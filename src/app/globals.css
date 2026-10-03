@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Bookly design tokens
+   --------------------------------------------------------------------------
+   Warm ink + gold. Reads as "premium local salon" rather than "enterprise SaaS",
+   and holds up on the cheap, glare-heavy phone screens this is mostly used on.
+   Every colour is defined for light first, then overridden for dark.
+   ========================================================================== */
+
+@layer base {
+  :root {
+    --bg: 40 33% 98%;
+    --surface: 0 0% 100%;
+    --surface-muted: 40 20% 96%;
+    --border: 36 16% 88%;
+    --border-strong: 36 14% 78%;
+
+    --fg: 25 18% 12%;
+    --fg-muted: 28 8% 42%;
+    --fg-subtle: 30 7% 56%;
+
+    --primary: 24 16% 14%;
+    --primary-fg: 40 33% 98%;
+
+    --accent: 36 84% 48%;
+    --accent-fg: 30 40% 99%;
+    --accent-soft: 38 92% 94%;
+
+    --success: 152 46% 34%;
+    --success-soft: 152 45% 94%;
+    --warning: 34 92% 44%;
+    --warning-soft: 38 92% 94%;
+    --danger: 2 68% 48%;
+    --danger-soft: 4 80% 96%;
+    --info: 214 60% 44%;
+    --info-soft: 214 80% 95%;
+
+    --ring: 36 84% 48%;
+
+    --radius: 0.875rem;
+  }
+
+  .dark {
+    --bg: 26 14% 8%;
+    --surface: 26 13% 11%;
+    --surface-muted: 26 12% 15%;
+    --border: 28 10% 20%;
+    --border-strong: 28 10% 28%;
+
+    --fg: 38 24% 95%;
+    --fg-muted: 34 9% 68%;
+    --fg-subtle: 32 8% 54%;
+
+    --primary: 38 24% 95%;
+    --primary-fg: 26 14% 10%;
+
+    --accent: 38 88% 56%;
+    --accent-fg: 26 20% 10%;
+    --accent-soft: 34 40% 18%;
+
+    --success: 152 44% 52%;
+    --success-soft: 154 30% 16%;
+    --warning: 38 88% 58%;
+    --warning-soft: 34 40% 18%;
+    --danger: 4 76% 62%;
+    --danger-soft: 4 34% 18%;
+    --info: 212 70% 62%;
+    --info-soft: 212 34% 18%;
+
+    --ring: 38 88% 56%;
+  }
+}
+
+@theme inline {
+  --color-bg: hsl(var(--bg));
+  --color-surface: hsl(var(--surface));
+  --color-surface-muted: hsl(var(--surface-muted));
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+
+  --color-fg: hsl(var(--fg));
+  --color-fg-muted: hsl(var(--fg-muted));
+  --color-fg-subtle: hsl(var(--fg-subtle));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-fg: hsl(var(--primary-fg));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-fg: hsl(var(--accent-fg));
+  --color-accent-soft: hsl(var(--accent-soft));
+
+  --color-success: hsl(var(--success));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warning: hsl(var(--warning));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-danger: hsl(var(--danger));
+  --color-danger-soft: hsl(var(--danger-soft));
+  --color-info: hsl(var(--info));
+  --color-info-soft: hsl(var(--info-soft));
+
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-sm: calc(var(--radius) - 0.5rem);
+  --radius-xl: calc(var(--radius) + 0.375rem);
+
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+
+  --shadow-card: 0 1px 2px hsl(var(--fg) / 0.04), 0 8px 24px -12px hsl(var(--fg) / 0.12);
+  --shadow-raised: 0 2px 6px hsl(var(--fg) / 0.06), 0 18px 40px -18px hsl(var(--fg) / 0.22);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;      /* iOS must not reflow on rotate */
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: hsl(var(--bg));
+    color: hsl(var(--fg));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* Nothing may ever push the page sideways on a phone. */
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+  }
+
+  /* 16px minimum on every control: anything smaller makes iOS Safari zoom in
+     when the field takes focus, which then strands the user mid-form. */
+  input,
+  select,
+  textarea {
+    font-size: max(1rem, 16px);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Safe areas: iPhone home indicator and notch. Applied to every fixed bar. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .inset-x-safe {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  /* Room for the mobile tab bar so content never hides behind it. */
+  .pb-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Horizontal chip rows that snap, the way native pickers feel. */
+  .snap-x-mandatory {
+    scroll-snap-type: x mandatory;
+  }
+  .snap-start-always {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+@keyframes bookly-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bookly-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes bookly-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: bookly-fade-in 0.22s ease-out both;
+  }
+  .animate-slide-up {
+    animation: bookly-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+}

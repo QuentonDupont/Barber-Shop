@@ -1,0 +1,40 @@
+import Link from "next/link";
+import { Logo } from "./logo";
+import { cn } from "@/lib/utils";
+
+/**
+ * Mobile header. Sticky so the brand and the account action stay reachable,
+ * but only 56px tall so it does not eat a phone screen.
+ */
+export function TopBar({
+  title,
+  right,
+  className,
+  href = "/",
+}: {
+  title?: string;
+  right?: React.ReactNode;
+  className?: string;
+  href?: string;
+}) {
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur-md pt-safe",
+        "md:bg-surface",
+        className,
+      )}
+    >
+      <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6">
+        {title ? (
+          <p className="truncate text-base font-bold tracking-tight">{title}</p>
+        ) : (
+          <Link href={href} className="md:hidden">
+            <Logo />
+          </Link>
+        )}
+        <div className="flex shrink-0 items-center gap-1.5">{right}</div>
+      </div>
+    </header>
+  );
+}
