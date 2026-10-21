@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/misc";
 import { BookingStatusBadge } from "@/components/shared/booking-status";
-import { useT } from "@/lib/i18n/context";
+import { useT, useLocale } from "@/lib/i18n/context";
 import type { BookingRow, BusinessRow } from "@/lib/database.types";
 import {
   formatInBusinessTz,
@@ -119,8 +119,8 @@ export function CalendarView({
           onValueChange={(value) => navigate({ view: value as "day" | "week" })}
         >
           <TabsList className="w-full max-w-64">
-            <TabsTrigger value="day">Day</TabsTrigger>
-            <TabsTrigger value="week">Week</TabsTrigger>
+            <TabsTrigger value="day">{t("calendarAdmin.dayTab")}</TabsTrigger>
+            <TabsTrigger value="week">{t("calendarAdmin.weekTab")}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -182,26 +182,30 @@ function DayView({
   date: DateKey;
   bookings: Booking[];
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const live = bookings.filter((b) => b.status !== "cancelled");
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold tracking-tight">
-          {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMMM yyyy")}
+          {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMMM yyyy", locale)}
         </h2>
         <p className="text-sm text-fg-muted">
           {live.length === 0
-            ? "Nothing booked"
-            : `${live.length} booking${live.length === 1 ? "" : "s"}`}
+            ? t("calendarAdmin.nothingBooked")
+            : live.length === 1
+              ? t("calendarAdmin.bookingCountOne", { n: live.length })
+              : t("calendarAdmin.bookingCountMany", { n: live.length })}
         </p>
       </div>
 
       {bookings.length === 0 ? (
         <EmptyState
           icon={CalendarX2}
-          title="No bookings on this day"
-          description="Slots stay open until someone takes them."
+          title={t("calendarAdmin.noBookingsTitle")}
+          description={t("calendarAdmin.noBookingsDescription")}
         />
       ) : (
         <>
@@ -240,11 +244,13 @@ function WeekView({
   byDate: Record<DateKey, Booking[]>;
   onSelectDay: (date: DateKey) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold tracking-tight">
-        {formatInBusinessTz(`${dates[0]}T12:00:00Z`, "UTC", "d MMM")} –{" "}
-        {formatInBusinessTz(`${dates[6]}T12:00:00Z`, "UTC", "d MMM yyyy")}
+        {formatInBusinessTz(`${dates[0]}T12:00:00Z`, "UTC", "d MMM", locale)} –{" "}
+        {formatInBusinessTz(`${dates[6]}T12:00:00Z`, "UTC", "d MMM yyyy", locale)}
       </h2>
 
       {/* A seven-column time grid is unreadable at 360px, so the week becomes a
@@ -263,17 +269,17 @@ function WeekView({
                 )}
               >
                 <span className="text-sm font-bold uppercase tracking-wide">
-                  {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMM")}
-                  {date === today ? " · Today" : ""}
+                  {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMM", locale)}
+                  {date === today ? t("calendarAdmin.todaySuffix") : ""}
                 </span>
                 <span className="text-xs font-semibold text-fg-subtle">
-                  {list.length === 0 ? "Free" : `${list.length}`}
+                  {list.length === 0 ? t("calendarAdmin.free") : `${list.length}`}
                 </span>
               </button>
 
               {list.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-fg-subtle">
-                  Nothing booked
+                  {t("calendarAdmin.nothingBooked")}
                 </p>
               ) : (
                 list.map((booking) => (
@@ -393,6 +399,7 @@ function layout(bookings: Booking[], timezone: string, date: DateKey): Positione
  */
 function useGridActions() {
   const router = useRouter();
+  const t = useT();
   const [active, setActive] = useState<Booking | null>(null);
   const [moving, setMoving] = useState<Booking | null>(null);
 
@@ -403,13 +410,13 @@ function useGridActions() {
       formData.set("startsAt", startsAtIso);
       const result = await rescheduleBookingAction(idleState, formData);
       if (result.status === "error") {
-        toast.error(result.message ?? "Could not move that booking.");
+        toast.error(result.message ?? t("common.couldNotMoveBooking"));
       } else {
-        toast.success(result.message ?? "Booking moved.");
+        toast.success(result.message ?? t("common.bookingMoved"));
       }
       router.refresh();
     },
-    [router],
+    [router, t],
   );
 
   return { active, setActive, moving, setMoving, onDrop };
@@ -468,6 +475,7 @@ function TimeGrid({
     [bookings, business.timezone, date],
   );
   const actions = useGridActions();
+  const t = useT();
 
   return (
     <>
@@ -488,9 +496,7 @@ function TimeGrid({
           ))}
         </div>
       </div>
-      <p className="mt-2 text-xs text-fg-subtle">
-        Click a booking for actions. Drag it to a new time to reschedule.
-      </p>
+      <p className="mt-2 text-xs text-fg-subtle">{t("calendarAdmin.dragHintDay")}</p>
       <GridSheets business={business} actions={actions} />
     </>
   );
@@ -510,6 +516,8 @@ function WeekGrid({
   const { startMinute, endMinute } = useGridRange(business, dates, byDate);
   const hours = Math.ceil((endMinute - startMinute) / 60);
   const actions = useGridActions();
+  const t = useT();
+  const { locale } = useLocale();
 
   return (
     <>
@@ -525,10 +533,10 @@ function WeekGrid({
               )}
             >
               <span className="block uppercase tracking-wide">
-                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE")}
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE", locale)}
               </span>
               <span className="block text-base font-bold tabular-nums text-fg">
-                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d")}
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d", locale)}
               </span>
             </span>
           ))}
@@ -563,9 +571,7 @@ function WeekGrid({
           })}
         </div>
       </div>
-      <p className="mt-2 text-xs text-fg-subtle">
-        Click a booking for actions. Drag it to another time or day to reschedule.
-      </p>
+      <p className="mt-2 text-xs text-fg-subtle">{t("calendarAdmin.dragHintWeek")}</p>
       <GridSheets business={business} actions={actions} />
     </>
   );

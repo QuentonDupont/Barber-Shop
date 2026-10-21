@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatInBusinessTz, shiftDateKey, type DateKey } from "@/lib/booking/time";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,6 +26,8 @@ export function DateStrip({
   days?: number;
   countsByDate?: Record<DateKey, number>;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const scroller = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<HTMLButtonElement>(null);
 
@@ -51,7 +54,7 @@ export function DateStrip({
         type="button"
         onClick={() => onSelect(shiftDateKey(selected, -1))}
         className="flex size-11 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted"
-        aria-label="Previous day"
+        aria-label={t("calendarAdmin.previousDay")}
       >
         <ChevronLeft className="size-5" />
       </button>
@@ -84,10 +87,10 @@ export function DateStrip({
               )}
             >
               <span className="text-[0.625rem] font-semibold uppercase tracking-wide opacity-80">
-                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE")}
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE", locale)}
               </span>
               <span className="text-lg font-bold tabular-nums leading-none">
-                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d")}
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d", locale)}
               </span>
               <span
                 className={cn(
@@ -102,7 +105,9 @@ export function DateStrip({
               />
               {count > 0 ? (
                 <span className="sr-only">
-                  {count} booking{count === 1 ? "" : "s"}
+                  {count === 1
+                    ? t("calendarAdmin.bookingCountOne", { n: count })
+                    : t("calendarAdmin.bookingCountMany", { n: count })}
                 </span>
               ) : null}
             </button>
@@ -114,7 +119,7 @@ export function DateStrip({
         type="button"
         onClick={() => onSelect(shiftDateKey(selected, 1))}
         className="flex size-11 shrink-0 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted"
-        aria-label="Next day"
+        aria-label={t("calendarAdmin.nextDay")}
       >
         <ChevronRight className="size-5" />
       </button>

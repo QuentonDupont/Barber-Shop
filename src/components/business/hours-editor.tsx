@@ -5,7 +5,7 @@ import { Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import type { DayHours } from "@/lib/booking/hours";
-import { WEEKDAY_LABELS } from "@/lib/booking/time";
+import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,6 +25,16 @@ export function HoursEditor({
   onChange: (next: DayHours[]) => void;
   name?: string;
 }) {
+  const t = useT();
+  const weekdayLabels: Record<number, string> = {
+    0: t("hoursAdmin.weekday0"),
+    1: t("hoursAdmin.weekday1"),
+    2: t("hoursAdmin.weekday2"),
+    3: t("hoursAdmin.weekday3"),
+    4: t("hoursAdmin.weekday4"),
+    5: t("hoursAdmin.weekday5"),
+    6: t("hoursAdmin.weekday6"),
+  };
   const update = (weekday: number, patch: Partial<DayHours>) => {
     onChange(value.map((day) => (day.weekday === weekday ? { ...day, ...patch } : day)));
   };
@@ -62,10 +72,15 @@ export function HoursEditor({
       ),
     );
     toast.success(
-      `Copied ${WEEKDAY_LABELS[source.weekday]} (${source.open}–${source.close}) to ${targetCount} open day${targetCount === 1 ? "" : "s"}`,
+      t("hoursAdmin.copiedToast", {
+        weekday: weekdayLabels[source.weekday] ?? "",
+        open: source.open,
+        close: source.close,
+        count: targetCount,
+      }),
       {
         duration: 10_000,
-        action: { label: "Undo", onClick: () => onChange(previous) },
+        action: { label: t("hoursAdmin.undo"), onClick: () => onChange(previous) },
       },
     );
   };
@@ -82,8 +97,8 @@ export function HoursEditor({
         >
           <Copy />
           {source
-            ? `Copy ${WEEKDAY_LABELS[source.weekday]} to all open days`
-            : "Copy to all open days"}
+            ? t("hoursAdmin.copyWeekdayToAllOpenDays", { weekday: weekdayLabels[source.weekday] ?? "" })
+            : t("hoursAdmin.copyToAllOpenDays")}
         </Button>
       </div>
 
@@ -100,7 +115,7 @@ export function HoursEditor({
               htmlFor={`open-${day.weekday}`}
               className="text-[0.9375rem] font-semibold"
             >
-              {WEEKDAY_LABELS[day.weekday]}
+              {weekdayLabels[day.weekday]}
             </label>
             <div className="flex items-center gap-2.5">
               <span
@@ -109,13 +124,13 @@ export function HoursEditor({
                   day.isClosed ? "text-fg-subtle" : "text-success",
                 )}
               >
-                {day.isClosed ? "Closed" : "Open"}
+                {day.isClosed ? t("hoursAdmin.closed") : t("hoursAdmin.open")}
               </span>
               <Switch
                 id={`open-${day.weekday}`}
                 checked={!day.isClosed}
                 onCheckedChange={(checked) => update(day.weekday, { isClosed: !checked })}
-                aria-label={`${WEEKDAY_LABELS[day.weekday]} open`}
+                aria-label={t("hoursAdmin.dayOpenLabel", { weekday: weekdayLabels[day.weekday] ?? "" })}
               />
             </div>
           </div>
@@ -124,12 +139,12 @@ export function HoursEditor({
             <div className="mt-3 space-y-3 border-t border-border pt-3">
               <div className="grid grid-cols-2 gap-2.5">
                 <TimeField
-                  label="Opens"
+                  label={t("hoursAdmin.opens")}
                   value={day.open}
                   onChange={(open) => update(day.weekday, { open })}
                 />
                 <TimeField
-                  label="Closes"
+                  label={t("hoursAdmin.closes")}
                   value={day.close}
                   onChange={(close) => update(day.weekday, { close })}
                 />
@@ -140,25 +155,25 @@ export function HoursEditor({
                   htmlFor={`break-${day.weekday}`}
                   className="text-sm font-medium text-fg-muted"
                 >
-                  Lunch or break
+                  {t("hoursAdmin.lunchOrBreak")}
                 </label>
                 <Switch
                   id={`break-${day.weekday}`}
                   checked={day.breakEnabled}
                   onCheckedChange={(breakEnabled) => update(day.weekday, { breakEnabled })}
-                  aria-label={`${WEEKDAY_LABELS[day.weekday]} break`}
+                  aria-label={t("hoursAdmin.dayBreakLabel", { weekday: weekdayLabels[day.weekday] ?? "" })}
                 />
               </div>
 
               {day.breakEnabled ? (
                 <div className="grid grid-cols-2 gap-2.5">
                   <TimeField
-                    label="Break starts"
+                    label={t("hoursAdmin.breakStarts")}
                     value={day.breakStart}
                     onChange={(breakStart) => update(day.weekday, { breakStart })}
                   />
                   <TimeField
-                    label="Break ends"
+                    label={t("hoursAdmin.breakEnds")}
                     value={day.breakEnd}
                     onChange={(breakEnd) => update(day.weekday, { breakEnd })}
                   />

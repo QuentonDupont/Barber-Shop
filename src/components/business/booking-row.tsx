@@ -33,6 +33,7 @@ import { MoveBookingSheet } from "./move-booking-sheet";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow, BookingStatus } from "@/lib/database.types";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 export type OwnerBooking = Pick<
@@ -66,6 +67,8 @@ export function OwnerBookingRow({
   timezone: string;
   className?: string;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const live = booking.status === "pending" || booking.status === "confirmed";
@@ -86,10 +89,10 @@ export function OwnerBookingRow({
         >
           <span className="flex w-16 shrink-0 flex-col items-center rounded-lg bg-surface-muted px-1 py-2 sm:w-20">
             <span className="text-sm font-bold tabular-nums sm:text-base">
-              {formatInBusinessTz(booking.starts_at, timezone, "h:mm")}
+              {formatInBusinessTz(booking.starts_at, timezone, "h:mm", locale)}
             </span>
             <span className="text-[0.625rem] font-semibold uppercase text-fg-subtle">
-              {formatInBusinessTz(booking.starts_at, timezone, "a")}
+              {formatInBusinessTz(booking.starts_at, timezone, "a", locale)}
             </span>
           </span>
 
@@ -102,7 +105,9 @@ export function OwnerBookingRow({
             <span className="flex flex-wrap items-center gap-1.5">
               <BookingStatusBadge status={booking.status} short />
               <span className="text-xs text-fg-subtle">
-                until {formatInBusinessTz(booking.ends_at, timezone, "h:mm a")}
+                {t("bookingAdmin.untilTime", {
+                  time: formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale),
+                })}
               </span>
             </span>
           </span>
@@ -138,12 +143,13 @@ export function OwnerBookingRow({
 
 /** Desktop-friendly overflow menu; hidden on phones where the sheet rules. */
 function QuickActions({ bookingId, status }: { bookingId: string; status: BookingStatus }) {
+  const t = useT();
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
           className="hidden size-9 shrink-0 items-center justify-center self-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg sm:flex"
-          aria-label="Booking actions"
+          aria-label={t("bookingAdmin.bookingActionsLabel")}
         >
           <MoreVertical className="size-4" />
         </button>
@@ -156,18 +162,18 @@ function QuickActions({ bookingId, status }: { bookingId: string; status: Bookin
         >
           {status === "pending" ? (
             <StatusMenuItem id={bookingId} status="confirmed" icon={Check}>
-              Confirm
+              {t("bookingAdmin.confirm")}
             </StatusMenuItem>
           ) : null}
           <StatusMenuItem id={bookingId} status="completed" icon={Check}>
-            Mark completed
+            {t("bookingAdmin.markCompleted")}
           </StatusMenuItem>
           <StatusMenuItem id={bookingId} status="no_show" icon={CircleSlash}>
-            Mark no-show
+            {t("bookingAdmin.markNoShow")}
           </StatusMenuItem>
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <StatusMenuItem id={bookingId} status="cancelled" icon={Ban} danger>
-            Cancel booking
+            {t("bookingAdmin.cancelBooking")}
           </StatusMenuItem>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
@@ -226,6 +232,8 @@ export function OwnerBookingSheet({
   onOpenChange: (open: boolean) => void;
   onMove?: () => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [, formAction] = useActionState(withToast(updateBookingStatusAction), idleState);
   const live = booking.status === "pending" || booking.status === "confirmed";
 
@@ -235,9 +243,9 @@ export function OwnerBookingSheet({
         <SheetHeader>
           <SheetTitle>{booking.service_name}</SheetTitle>
           <SheetDescription>
-            {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM")} ·{" "}
-            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a")} –{" "}
-            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a")}
+            {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM", locale)} ·{" "}
+            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)} –{" "}
+            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale)}
           </SheetDescription>
         </SheetHeader>
 
@@ -253,7 +261,7 @@ export function OwnerBookingSheet({
             <div className="flex items-start gap-2.5">
               <UserRound className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
               <div className="min-w-0">
-                <dt className="sr-only">Customer</dt>
+                <dt className="sr-only">{t("bookingAdmin.customer")}</dt>
                 <dd className="font-semibold">{booking.customer_name}</dd>
               </div>
             </div>
@@ -262,7 +270,7 @@ export function OwnerBookingSheet({
               <div className="flex items-start gap-2.5">
                 <Phone className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
                 <div className="min-w-0">
-                  <dt className="sr-only">Phone</dt>
+                  <dt className="sr-only">{t("bookingAdmin.phone")}</dt>
                   <dd>
                     <a
                       href={`tel:${booking.customer_phone.replace(/\s/g, "")}`}
@@ -279,7 +287,7 @@ export function OwnerBookingSheet({
               <div className="flex items-start gap-2.5">
                 <MessageSquare className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
                 <div className="min-w-0">
-                  <dt className="sr-only">Notes</dt>
+                  <dt className="sr-only">{t("bookingAdmin.notes")}</dt>
                   <dd className="text-fg-muted text-pretty">{booking.notes}</dd>
                 </div>
               </div>
@@ -304,7 +312,7 @@ export function OwnerBookingSheet({
               {onMove ? (
                 <Button type="button" size="md" variant="ghost" onClick={onMove}>
                   <CalendarClock />
-                  Move
+                  {t("bookingAdmin.move")}
                 </Button>
               ) : null}
             </div>
@@ -316,7 +324,7 @@ export function OwnerBookingSheet({
                   <input type="hidden" name="status" value="confirmed" />
                   <SubmitButton variant="accent">
                     <Check />
-                    Confirm
+                    {t("bookingAdmin.confirm")}
                   </SubmitButton>
                 </form>
               ) : (
@@ -324,14 +332,14 @@ export function OwnerBookingSheet({
                   <form action={formAction} className="flex-1">
                     <input type="hidden" name="id" value={booking.id} />
                     <input type="hidden" name="status" value="no_show" />
-                    <SubmitButton variant="outline">No-show</SubmitButton>
+                    <SubmitButton variant="outline">{t("bookingAdmin.noShow")}</SubmitButton>
                   </form>
                   <form action={formAction} className="flex-1">
                     <input type="hidden" name="id" value={booking.id} />
                     <input type="hidden" name="status" value="completed" />
                     <SubmitButton variant="primary">
                       <Check />
-                      Done
+                      {t("bookingAdmin.done")}
                     </SubmitButton>
                   </form>
                 </>
@@ -350,6 +358,7 @@ export function OwnerBookingSheet({
  * opened never costs a lookup.
  */
 function CustomerNoteSection({ customerId, open }: { customerId: string; open: boolean }) {
+  const t = useT();
   const [initialNote, setInitialNote] = useState<string | null>(null);
   const [, formAction] = useActionState(withToast(saveCustomerNoteAction), idleState);
 
@@ -368,7 +377,7 @@ function CustomerNoteSection({ customerId, open }: { customerId: string; open: b
     return (
       <div className="flex items-center gap-2.5 text-sm text-fg-subtle">
         <NotebookPen className="size-4 shrink-0" />
-        Loading customer notes…
+        {t("bookingAdmin.loadingCustomerNotes")}
       </div>
     );
   }
@@ -378,14 +387,14 @@ function CustomerNoteSection({ customerId, open }: { customerId: string; open: b
       <input type="hidden" name="customerId" value={customerId} />
       <label htmlFor="customerNote" className="flex items-center gap-2 text-sm font-medium">
         <NotebookPen className="size-4 shrink-0 text-fg-subtle" />
-        Customer notes
+        {t("bookingAdmin.customerNotes")}
       </label>
       <Textarea
         id="customerNote"
         name="note"
         defaultValue={initialNote}
         maxLength={2000}
-        placeholder="Usual cut, preferences, allergies…"
+        placeholder={t("bookingAdmin.customerNotePlaceholder")}
         className="min-h-20"
       />
       <div className="flex justify-end">
@@ -397,9 +406,10 @@ function CustomerNoteSection({ customerId, open }: { customerId: string; open: b
 
 function SaveNoteButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="sm" variant="outline" loading={pending}>
-      Save note
+      {t("bookingAdmin.saveNote")}
     </Button>
   );
 }
@@ -421,10 +431,11 @@ function SubmitButton({
 
 function CancelButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="md" variant="ghost" loading={pending} className="text-danger">
       <Ban />
-      Cancel booking
+      {t("bookingAdmin.cancelBooking")}
     </Button>
   );
 }
