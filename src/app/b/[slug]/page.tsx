@@ -6,7 +6,6 @@ import { PageContainer } from "@/components/shared/app-shell";
 import { BookingFlow, type DayPayload, type Viewer } from "@/components/customer/booking-flow";
 import { BusinessTabs } from "@/components/customer/business-tabs";
 import { Alert } from "@/components/ui/alert";
-import { CATEGORY_LABEL } from "@/components/customer/business-card";
 import { Badge } from "@/components/ui/badge";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +14,8 @@ import {
   loadAvailabilitySources,
 } from "@/lib/booking/availability";
 import { businessToday, shiftDateKey, type DateKey } from "@/lib/booking/time";
+import { categoryLabel, t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 /**
  * How many days of full slot data travel with the page.
@@ -56,6 +57,7 @@ export default async function BusinessPage({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const session = await getSession().catch(() => null);
+  const locale = await getLocale();
 
   const supabase = await createClient();
 
@@ -167,18 +169,26 @@ export default async function BusinessPage({
         className="mb-3 inline-flex min-h-11 items-center gap-1.5 -ml-2 px-2 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
       >
         <ArrowLeft className="size-4" />
-        {viewer === "owner" ? "Back to your services" : viewer === "other-business" ? "Your dashboard" : "All places"}
+        {viewer === "owner"
+          ? t(locale, "listing.backToServices")
+          : viewer === "other-business"
+            ? t(locale, "listing.backToDashboard")
+            : t(locale, "listing.backAllPlaces")}
       </Link>
 
       {viewer === "owner" ? (
         <Alert
           tone={business.is_published ? "info" : "warning"}
-          title={business.is_published ? "This is what customers see" : "Preview — not published yet"}
+          title={
+            business.is_published
+              ? t(locale, "listing.ownerPreviewLiveTitle")
+              : t(locale, "listing.ownerPreviewDraftTitle")
+          }
           className="mb-5"
         >
           {business.is_published
-            ? "Change a service's name, price, description or order under Services and it updates here straight away."
-            : "Only you can see this page. Publish it from Settings when you're ready to take bookings."}
+            ? t(locale, "listing.ownerPreviewLiveBody")
+            : t(locale, "listing.ownerPreviewDraftBody")}
         </Alert>
       ) : null}
 
@@ -195,11 +205,11 @@ export default async function BusinessPage({
               {business.name}
             </h1>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Badge tone="outline">{CATEGORY_LABEL[business.category]}</Badge>
+              <Badge tone="outline">{categoryLabel(business.category, locale)}</Badge>
               {business.auto_confirm ? (
-                <Badge tone="success">Instant confirmation</Badge>
+                <Badge tone="success">{t(locale, "listing.instantConfirmation")}</Badge>
               ) : (
-                <Badge tone="warning">Confirmed by the shop</Badge>
+                <Badge tone="warning">{t(locale, "listing.confirmedByShop")}</Badge>
               )}
             </div>
           </div>
@@ -237,7 +247,7 @@ export default async function BusinessPage({
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted"
             >
               <Phone className="size-4 shrink-0 text-accent" />
-              Call
+              {t(locale, "listing.call")}
             </a>
           ) : null}
 
@@ -249,9 +259,18 @@ export default async function BusinessPage({
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted"
             >
               <MessageCircle className="size-4 shrink-0 text-accent" />
-              LINE
+              {t(locale, "listing.line")}
             </a>
           ) : null}
+        </div>
+
+        {/* Cancellation/no-show policy — repeated here, on the booking-confirmation
+            screen and in the confirmation email (roadmap.md §1 row 6). */}
+        <div className="mt-4 rounded-xl border border-border bg-surface-muted p-3.5">
+          <p className="text-sm font-semibold">{t(locale, "listing.cancellationPolicyHeading")}</p>
+          <p className="mt-1 text-sm text-fg-muted text-pretty">
+            {business.cancellation_policy || t(locale, "listing.cancellationPolicyFallback")}
+          </p>
         </div>
       </header>
 

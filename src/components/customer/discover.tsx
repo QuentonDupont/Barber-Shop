@@ -5,9 +5,11 @@ import { LocateFixed, Search, SearchX, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
-import { BusinessCard, CATEGORY_LABEL, type BusinessSummary } from "./business-card";
+import { BusinessCard, type BusinessSummary } from "./business-card";
 import { distanceKm } from "@/lib/geo";
 import type { BusinessCategory } from "@/lib/database.types";
+import { categoryLabel } from "@/lib/i18n/dictionaries";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 interface Listing extends BusinessSummary {
@@ -29,6 +31,8 @@ const CATEGORIES: (BusinessCategory | "all")[] = [
 type GeoState = "idle" | "asking" | "granted" | "denied" | "unsupported";
 
 export function Discover({ businesses }: { businesses: Listing[] }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<BusinessCategory | "all">("all");
   const [origin, setOrigin] = useState<{ lat: number; lng: number } | null>(null);
@@ -101,7 +105,8 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
         business.name.toLowerCase().includes(needle) ||
         business.address?.toLowerCase().includes(needle) ||
         business.description?.toLowerCase().includes(needle) ||
-        CATEGORY_LABEL[business.category].toLowerCase().includes(needle)
+        categoryLabel(business.category, locale).toLowerCase().includes(needle) ||
+        categoryLabel(business.category, "en").toLowerCase().includes(needle)
       );
     });
 
@@ -117,7 +122,7 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
     });
 
     return filtered;
-  }, [businesses, query, category, origin]);
+  }, [businesses, query, category, origin, locale]);
 
   return (
     <div className="space-y-4">
@@ -127,17 +132,17 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search shops, services or areas"
+          placeholder={t("discover.searchPlaceholder")}
           className="pl-11 pr-11"
           enterKeyHint="search"
-          aria-label="Search businesses"
+          aria-label={t("discover.searchAriaLabel")}
         />
         {query ? (
           <button
             type="button"
             onClick={() => setQuery("")}
             className="absolute right-1 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-md text-fg-subtle transition-colors hover:text-fg"
-            aria-label="Clear search"
+            aria-label={t("discover.clearSearchAriaLabel")}
           >
             <X className="size-4.5" />
           </button>
@@ -149,7 +154,7 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
       <div
         className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0"
         role="group"
-        aria-label="Filter by category"
+        aria-label={t("discover.filterAriaLabel")}
       >
         {CATEGORIES.map((value) => {
           const active = value === category;
@@ -167,7 +172,7 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
                   : "border-border bg-surface text-fg-muted hover:bg-surface-muted",
               )}
             >
-              {value === "all" ? "All" : CATEGORY_LABEL[value]}
+              {value === "all" ? t("discover.all") : categoryLabel(value, locale)}
             </button>
           );
         })}
@@ -182,22 +187,24 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
           loading={geo === "asking"}
         >
           <LocateFixed />
-          {geo === "denied" ? "Location blocked — sorting A–Z" : "Sort by what's nearest"}
+          {geo === "denied" ? t("discover.locationBlocked") : t("discover.sortNearest")}
         </Button>
       ) : null}
 
       <div className="flex items-baseline justify-between">
         <p className="text-sm text-fg-muted">
-          {results.length} place{results.length === 1 ? "" : "s"}
-          {origin ? " · nearest first" : ""}
+          {t(results.length === 1 ? "discover.placeCountOne" : "discover.placeCountMany", {
+            n: results.length,
+          })}
+          {origin ? t("discover.nearestFirstSuffix") : ""}
         </p>
       </div>
 
       {results.length === 0 ? (
         <EmptyState
           icon={SearchX}
-          title="Nothing matches that"
-          description="Try a different word, or clear the filters to see everything nearby."
+          title={t("discover.nothingMatchesTitle")}
+          description={t("discover.nothingMatchesDescription")}
           action={
             <Button
               variant="outline"
@@ -206,7 +213,7 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
                 setCategory("all");
               }}
             >
-              Clear filters
+              {t("discover.clearFilters")}
             </Button>
           }
         />

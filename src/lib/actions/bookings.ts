@@ -10,6 +10,8 @@ import { toDateKey } from "@/lib/booking/time";
 import { notifyBookingCancelled, notifyBookingCreated } from "@/lib/notifications";
 import { errorState, successState, type ActionState } from "./types";
 import { businessPath } from "@/lib/routes";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 const createSchema = z.object({
   businessId: z.uuid(),
@@ -38,16 +40,18 @@ export async function createBookingAction(
     notes: formData.get("notes"),
   });
 
+  const locale = await getLocale();
+
   if (!parsed.success) {
-    return errorState("That booking request was incomplete. Please pick a time again.");
+    return errorState(t(locale, "toast.incompleteBooking"));
   }
 
   const session = await getSession();
   if (!session) {
-    return errorState("Please sign in to finish booking.");
+    return errorState(t(locale, "toast.signInToFinish"));
   }
   if (session.profile.role !== "customer") {
-    return errorState("Business accounts cannot make bookings. Sign in as a customer.");
+    return errorState(t(locale, "toast.businessCannotBook"));
   }
 
   const supabase = await createClient();
@@ -61,7 +65,7 @@ export async function createBookingAction(
     .maybeSingle();
 
   if (!business) {
-    return errorState("That business is no longer taking bookings.");
+    return errorState(t(locale, "toast.businessNotTakingBookings"));
   }
 
   const { data: service } = await supabase
@@ -73,7 +77,7 @@ export async function createBookingAction(
     .maybeSingle();
 
   if (!service) {
-    return errorState("That service is no longer available.");
+    return errorState(t(locale, "toast.serviceUnavailable"));
   }
 
   const date = toDateKey(new Date(startsAt), business.timezone);
@@ -81,9 +85,7 @@ export async function createBookingAction(
   const slot = findSlot(buildSlotInput(business, service, sources, date), startsAt);
 
   if (!slot) {
-    return errorState(
-      "Sorry — that time was taken while you were choosing. Please pick another slot.",
-    );
+    return errorState(t(locale, "toast.slotTaken"));
   }
 
   const { data: booking, error } = await supabase
@@ -108,9 +110,7 @@ export async function createBookingAction(
   if (error) {
     // 23P01 is the exclusion-constraint violation: someone else won the race.
     if (error.code === "23P01") {
-      return errorState(
-        "Sorry — that time was taken while you were choosing. Please pick another slot.",
-      );
+      return errorState(t(locale, "toast.slotTaken"));
     }
     return errorState(error.message);
   }
@@ -123,9 +123,7 @@ export async function createBookingAction(
   revalidatePath("/dashboard/calendar");
 
   return successState(
-    business.auto_confirm
-      ? "Booked. You will get a confirmation email shortly."
-      : "Request sent. The business will confirm shortly.",
+    t(locale, business.auto_confirm ? "toast.bookedAutoConfirm" : "toast.bookedManualConfirm"),
   );
 }
 
@@ -134,8 +132,9 @@ export async function cancelBookingAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const id = String(formData.get("id") ?? "");
-  if (!id) return errorState("That booking no longer exists.");
+  if (!id) return errorState(t(locale, "toast.bookingGone"));
 
   const session = await requireSession();
   const supabase = await createClient();
@@ -146,10 +145,10 @@ export async function cancelBookingAction(
     .eq("id", id)
     .maybeSingle();
 
-  if (!booking) return errorState("That booking no longer exists.");
-  if (booking.status === "cancelled") return successState("That booking was already cancelled.");
+  if (!booking) return errorState(t(locale, "toast.bookingGone"));
+  if (booking.status === "cancelled") return successState(t(locale, "toast.alreadyCancelled"));
   if (booking.status !== "pending" && booking.status !== "confirmed") {
-    return errorState("That booking can no longer be cancelled.");
+    return errorState(t(locale, "toast.cannotCancel"));
   }
 
   const { error } = await supabase
@@ -168,7 +167,7 @@ export async function cancelBookingAction(
   revalidatePath("/app/bookings");
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  return successState("Booking cancelled.");
+  return successState(t(locale, "toast.cancelled"));
 }
 
 const statusSchema = z.enum(["confirmed", "cancelled", "completed", "no_show"]);

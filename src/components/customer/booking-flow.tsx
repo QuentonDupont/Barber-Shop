@@ -39,6 +39,7 @@ import {
   type DateKey,
 } from "@/lib/booking/time";
 import { businessPath } from "@/lib/routes";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -77,6 +78,8 @@ export function BookingFlow({
   viewer: Viewer;
 }) {
   const router = useRouter();
+  const t = useT();
+  const { locale } = useLocale();
   const [pending, startTransition] = useTransition();
   const [slotIso, setSlotIso] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -98,8 +101,8 @@ export function BookingFlow({
     return (
       <EmptyState
         icon={CalendarX2}
-        title="Nothing to book just yet"
-        description={`${business.name} has not published any services. Try again soon, or give them a call.`}
+        title={t("booking.nothingToBookTitle")}
+        description={t("booking.nothingToBookDescription", { name: business.name })}
       />
     );
   }
@@ -109,7 +112,7 @@ export function BookingFlow({
       {/* ---- 1. Service ---------------------------------------------------- */}
       <section aria-labelledby="pick-service" className="space-y-2.5">
         <StepHeading number={1} id="pick-service">
-          Choose a service
+          {t("booking.stepService")}
         </StepHeading>
 
         <div className="space-y-2">
@@ -165,7 +168,7 @@ export function BookingFlow({
       {/* ---- 2. Date ------------------------------------------------------- */}
       <section aria-labelledby="pick-date" className="space-y-3">
         <StepHeading number={2} id="pick-date">
-          Pick a day
+          {t("booking.stepDate")}
         </StepHeading>
 
         <div className="rounded-xl border border-border bg-surface p-3.5">
@@ -183,29 +186,29 @@ export function BookingFlow({
       {/* ---- 3. Time ------------------------------------------------------- */}
       <section aria-labelledby="pick-time" className="space-y-3">
         <StepHeading number={3} id="pick-time">
-          Pick a time
+          {t("booking.stepTime")}
         </StepHeading>
 
         <p className="flex items-center gap-2 text-sm text-fg-muted">
           <CalendarDays className="size-4 shrink-0" />
-          {formatInBusinessTz(`${selectedDate}T12:00:00Z`, "UTC", "EEEE d MMMM")}
+          {formatInBusinessTz(`${selectedDate}T12:00:00Z`, "UTC", "EEEE d MMMM", locale)}
           <span className="text-fg-subtle">· {business.timezone}</span>
         </p>
 
         {pending ? (
           <div className="flex min-h-24 items-center justify-center gap-2 rounded-xl border border-border bg-surface text-sm text-fg-muted">
             <Loader2 className="size-4 animate-spin" />
-            Checking availability…
+            {t("booking.checkingAvailability")}
           </div>
         ) : slots === null ? (
           <div className="flex min-h-24 items-center justify-center rounded-xl border border-border bg-surface text-sm text-fg-muted">
-            Loading times…
+            {t("booking.loadingTimes")}
           </div>
         ) : slots.length === 0 ? (
           <EmptyState
             icon={CalendarX2}
-            title="No free times that day"
-            description="They are closed or fully booked. Try another date on the calendar above."
+            title={t("booking.noFreeTimesTitle")}
+            description={t("booking.noFreeTimesDescription")}
           />
         ) : (
           // 3 columns on the narrowest phone keeps each chip comfortably over
@@ -244,14 +247,14 @@ export function BookingFlow({
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{selectedService.name}</p>
               <p className="truncate text-xs text-fg-muted">
-                {formatInBusinessTz(`${selectedDate}T12:00:00Z`, "UTC", "EEE d MMM")} ·{" "}
-                {formatInBusinessTz(slotIso, business.timezone, "h:mm a")} ·{" "}
+                {formatInBusinessTz(`${selectedDate}T12:00:00Z`, "UTC", "EEE d MMM", locale)} ·{" "}
+                {formatInBusinessTz(slotIso, business.timezone, "h:mm a", locale)} ·{" "}
                 {formatMoney(selectedService.price, selectedService.currency)}
               </p>
             </div>
             {viewer === "customer" ? (
               <Button size="lg" variant="accent" onClick={() => setConfirming(true)}>
-                Review
+                {t("booking.review")}
                 <ChevronRight />
               </Button>
             ) : viewer === "anon" ? (
@@ -264,13 +267,13 @@ export function BookingFlow({
                     }),
                   )}`}
                 >
-                  Sign in to book
+                  {t("booking.signInToBook")}
                   <ChevronRight />
                 </Link>
               </Button>
             ) : (
               <span className="shrink-0 rounded-lg bg-surface-muted px-3 py-2 text-xs font-semibold text-fg-muted">
-                Preview only
+                {t("booking.previewOnly")}
               </span>
             )}
           </div>
@@ -330,16 +333,18 @@ function ConfirmSheet({
   onBooked: () => void;
 }) {
   const [state, formAction] = useActionState(createBookingAction, idleState);
+  const t = useT();
+  const { locale } = useLocale();
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Booked.");
+      toast.success(state.message ?? t("confirm.bookedFallback"));
       onBooked();
     }
     if (state.status === "error" && state.message) {
       toast.error(state.message);
     }
-  }, [state, onBooked]);
+  }, [state, onBooked, t]);
 
   const endsAt = new Date(
     new Date(startsAt).getTime() + (service.duration_min + service.buffer_min) * 60_000,
@@ -349,11 +354,11 @@ function ConfirmSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Confirm your booking</SheetTitle>
+          <SheetTitle>{t("confirm.title")}</SheetTitle>
           <SheetDescription>
             {business.auto_confirm
-              ? "Your slot is held as soon as you confirm."
-              : `${business.name} will review and confirm this request. Your slot is held in the meantime.`}
+              ? t("confirm.descriptionAuto")
+              : t("confirm.descriptionManual", { name: business.name })}
           </SheetDescription>
         </SheetHeader>
 
@@ -364,38 +369,49 @@ function ConfirmSheet({
             <input type="hidden" name="startsAt" value={startsAt} />
 
             <dl className="divide-y divide-border rounded-xl bg-surface-muted px-3.5">
-              <Row label="Where" value={business.name} sub={business.address} />
+              <Row label={t("confirm.rowWhere")} value={business.name} sub={business.address} />
               <Row
-                label="What"
+                label={t("confirm.rowWhat")}
                 value={service.name}
                 sub={formatDuration(service.duration_min)}
               />
               <Row
-                label="When"
-                value={formatInBusinessTz(startsAt, business.timezone, "EEEE d MMMM")}
-                sub={`${formatInBusinessTz(startsAt, business.timezone, "h:mm a")} – ${formatInBusinessTz(
+                label={t("confirm.rowWhen")}
+                value={formatInBusinessTz(startsAt, business.timezone, "EEEE d MMMM", locale)}
+                sub={`${formatInBusinessTz(startsAt, business.timezone, "h:mm a", locale)} – ${formatInBusinessTz(
                   endsAt,
                   business.timezone,
                   "h:mm a",
+                  locale,
                 )} (${business.timezone})`}
               />
               <Row
-                label="Price"
+                label={t("confirm.rowPrice")}
                 value={formatMoney(service.price, service.currency)}
-                sub="Paid at the shop"
+                sub={t("confirm.paidAtShop")}
               />
             </dl>
 
+            {/* Cancellation/no-show policy — shown here, on the listing page, and in
+                the confirmation email (roadmap.md §1 row 6; ux-benchmark.md §4.2's
+                "repeat it everywhere" pattern). */}
+            <div className="rounded-xl border border-border bg-surface p-3.5">
+              <p className="text-sm font-semibold">{t("confirm.cancellationPolicyLabel")}</p>
+              <p className="mt-1 text-sm text-fg-muted text-pretty">
+                {business.cancellation_policy || t("confirm.cancellationPolicyFallback")}
+              </p>
+            </div>
+
             <Field
-              label="Anything they should know?"
+              label={t("confirm.notesLabel")}
               htmlFor="notes"
-              hint="Optional — allergies, a preferred stylist, running late."
+              hint={t("confirm.notesHint")}
             >
               <Textarea
                 id="notes"
                 name="notes"
                 maxLength={400}
-                placeholder="First time here, happy to take advice."
+                placeholder={t("confirm.notesPlaceholder")}
               />
             </Field>
           </SheetBody>
@@ -431,9 +447,10 @@ function Row({
 
 function ConfirmButton({ autoConfirm }: { autoConfirm: boolean }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" block variant="accent" loading={pending}>
-      {autoConfirm ? "Confirm booking" : "Send request"}
+      {autoConfirm ? t("confirm.confirmButton") : t("confirm.sendRequestButton")}
     </Button>
   );
 }

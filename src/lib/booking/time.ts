@@ -1,5 +1,7 @@
 import { addDays, differenceInCalendarDays } from "date-fns";
+import { th as thDateLocale } from "date-fns/locale";
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import type { Locale } from "@/lib/i18n/dictionaries";
 
 export const DEFAULT_TIMEZONE = "Asia/Bangkok";
 
@@ -125,16 +127,27 @@ export function shiftDateKey(date: DateKey, days: number): DateKey {
   return formatInTimeZone(addDays(new Date(`${date}T12:00:00Z`), days), "UTC", "yyyy-MM-dd");
 }
 
-/** `formatInTimeZone` with the app's house formats. */
+/**
+ * `formatInTimeZone` with the app's house formats.
+ *
+ * `locale` is optional and defaults to English formatting (no behaviour
+ * change for the many existing call sites that don't pass it yet — mostly
+ * the owner dashboard, not translated in this pass, see handoff 02). Pass
+ * the active locale explicitly at a call site that has already switched to
+ * `useT()`/`getLocale()`, so month and day names come out in Thai there
+ * without silently flipping dashboard screens that haven't been touched.
+ */
 export function formatInBusinessTz(
   instant: Date | string,
   timezone: string,
   pattern: string,
+  locale: Locale = "en",
 ): string {
   return formatInTimeZone(
     typeof instant === "string" ? new Date(instant) : instant,
     timezone,
     pattern,
+    locale === "th" ? { locale: thDateLocale } : undefined,
   );
 }
 

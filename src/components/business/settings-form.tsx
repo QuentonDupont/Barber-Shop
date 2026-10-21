@@ -191,6 +191,36 @@ export function SettingsForm({
         </CardContent>
       </Card>
 
+      {/* ---- Cancellation / no-show policy ----------------------------------
+          roadmap.md §1 row 6: one string, shown on the listing page, the
+          booking-confirmation screen and the confirmation email — nothing
+          more to configure here, by design (no fee calculator yet). */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Cancellation / no-show policy</CardTitle>
+          <CardDescription>
+            Shown to customers on your listing page and booking confirmation, and
+            included in their confirmation email. Leave blank and customers see a
+            generic &quot;contact us&quot; line instead.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Field
+            label="Policy"
+            htmlFor="cancellationPolicy"
+            error={errors.cancellationPolicy}
+            hint='e.g. "Free up to 24h before your appointment; 50% charge inside that window."'
+          >
+            <Textarea
+              id="cancellationPolicy"
+              name="cancellationPolicy"
+              defaultValue={business.cancellation_policy ?? ""}
+              maxLength={500}
+            />
+          </Field>
+        </CardContent>
+      </Card>
+
       {/* ---- Booking rules -------------------------------------------------- */}
       <Card>
         <CardHeader>

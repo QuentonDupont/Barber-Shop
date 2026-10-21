@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -10,11 +10,13 @@ import {
   CircleSlash,
   MessageSquare,
   MoreVertical,
+  NotebookPen,
   Phone,
   UserRound,
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
 import { BookingStatusBadge } from "@/components/shared/booking-status";
 import {
   Sheet,
@@ -26,6 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { updateBookingStatusAction } from "@/lib/actions/bookings";
+import { getCustomerNote, saveCustomerNoteAction } from "@/lib/actions/customer-notes";
 import { MoveBookingSheet } from "./move-booking-sheet";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow, BookingStatus } from "@/lib/database.types";
@@ -35,6 +38,7 @@ import { cn } from "@/lib/utils";
 export type OwnerBooking = Pick<
   BookingRow,
   | "id"
+  | "customer_id"
   | "starts_at"
   | "ends_at"
   | "status"
@@ -281,6 +285,12 @@ export function OwnerBookingSheet({
               </div>
             ) : null}
           </dl>
+
+          {/* Simple client records (roadmap.md §1 row 5): a note that follows
+              this customer across every booking at this business, not just
+              the one-off note above tied to a single booking. Never shown to
+              the customer — see the RLS policy in the matching migration. */}
+          <CustomerNoteSection customerId={booking.customer_id} open={open} />
         </SheetBody>
 
         {live ? (
@@ -331,6 +341,66 @@ export function OwnerBookingSheet({
         ) : null}
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * Loads the customer's standing note (if any) once the sheet is actually
+ * open, rather than on every booking row render — a sheet that's never
+ * opened never costs a lookup.
+ */
+function CustomerNoteSection({ customerId, open }: { customerId: string; open: boolean }) {
+  const [initialNote, setInitialNote] = useState<string | null>(null);
+  const [, formAction] = useActionState(withToast(saveCustomerNoteAction), idleState);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getCustomerNote(customerId).then((note) => {
+      if (!cancelled) setInitialNote(note);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, customerId]);
+
+  if (initialNote === null) {
+    return (
+      <div className="flex items-center gap-2.5 text-sm text-fg-subtle">
+        <NotebookPen className="size-4 shrink-0" />
+        Loading customer notes…
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-1.5">
+      <input type="hidden" name="customerId" value={customerId} />
+      <label htmlFor="customerNote" className="flex items-center gap-2 text-sm font-medium">
+        <NotebookPen className="size-4 shrink-0 text-fg-subtle" />
+        Customer notes
+      </label>
+      <Textarea
+        id="customerNote"
+        name="note"
+        defaultValue={initialNote}
+        maxLength={2000}
+        placeholder="Usual cut, preferences, allergies…"
+        className="min-h-20"
+      />
+      <div className="flex justify-end">
+        <SaveNoteButton />
+      </div>
+    </form>
+  );
+}
+
+function SaveNoteButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" size="sm" variant="outline" loading={pending}>
+      Save note
+    </Button>
   );
 }
 

@@ -274,6 +274,7 @@ const settingsSchema = z.object({
   lineId: z.string().trim().max(60).optional().or(z.literal("")),
   address: z.string().trim().max(240).optional().or(z.literal("")),
   timezone: z.string().trim().min(1),
+  cancellationPolicy: z.string().trim().max(500).optional().or(z.literal("")),
   slotInterval: z.coerce.number().int().refine((v) => [5, 10, 15, 20, 30, 60].includes(v), {
     message: "Pick one of the offered intervals",
   }),
@@ -294,6 +295,7 @@ export async function saveBusinessSettingsAction(
     lineId: formData.get("lineId"),
     address: formData.get("address"),
     timezone: formData.get("timezone"),
+    cancellationPolicy: formData.get("cancellationPolicy"),
     slotInterval: formData.get("slotInterval"),
     minNotice: formData.get("minNotice"),
     maxAdvanceDays: formData.get("maxAdvanceDays"),
@@ -336,6 +338,7 @@ export async function saveBusinessSettingsAction(
       line_id: parsed.data.lineId || null,
       address: parsed.data.address || null,
       timezone: parsed.data.timezone,
+      cancellation_policy: parsed.data.cancellationPolicy || null,
       slot_interval_min: parsed.data.slotInterval,
       min_notice_min: parsed.data.minNotice,
       max_advance_days: parsed.data.maxAdvanceDays,

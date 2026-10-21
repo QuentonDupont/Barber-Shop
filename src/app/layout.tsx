@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { ServiceWorker } from "@/components/shared/service-worker";
+import { LocaleProvider } from "@/lib/i18n/context";
+import { LocaleToggle } from "@/components/shared/locale-toggle";
+import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -54,11 +57,17 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Read before first paint, same reason the theme script below runs inline:
+  // Thai is the default locale (roadmap.md §1 row 3), and a flash of English
+  // before hydration would be exactly the kind of regression GoWabi's users
+  // complained about (ux-benchmark.md §1).
+  const locale = await getLocale();
+
   return (
-    <html lang="en" className={jakarta.variable} suppressHydrationWarning>
+    <html lang={locale} className={jakarta.variable} suppressHydrationWarning>
       <head>
         {/* Applies the theme before first paint. The class used to be set by a
             useEffect inside the signed-in shells, which meant every cold start
@@ -72,7 +81,12 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-dvh antialiased">
-        {children}
+        <LocaleProvider initialLocale={locale}>
+          <div className="fixed right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50 sm:right-4">
+            <LocaleToggle />
+          </div>
+          {children}
+        </LocaleProvider>
         <Toaster
           position="top-center"
           richColors

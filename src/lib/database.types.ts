@@ -53,6 +53,9 @@ export type BusinessRow = {
   phone: string | null;
   line_id: string | null;
   cover_url: string | null;
+  /** Shown on the listing page, the booking-confirmation screen and the
+   *  confirmation email (roadmap.md §1 row 6). `null` until the owner sets one. */
+  cancellation_policy: string | null;
   slot_interval_min: number;
   min_notice_min: number;
   max_advance_days: number;
@@ -133,6 +136,21 @@ export type BookingRow = {
   customer_phone: string | null;
   cancelled_at: string | null;
   cancelled_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * A barber/owner's private note on a customer — "usual: skin fade, prefers
+ * quiet" — one per (business, customer) pair, never visible to the customer
+ * (roadmap.md §1 row 5). Separate from `BookingRow.notes`, which is the
+ * customer's own one-off note on a single booking.
+ */
+export type CustomerNoteRow = {
+  id: string;
+  business_id: string;
+  customer_id: string;
+  note: string;
   created_at: string;
   updated_at: string;
 };
@@ -377,6 +395,31 @@ export type Database = {
           {
             foreignKeyName: "bookings_cancelled_by_fkey";
             columns: ["cancelled_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      customer_notes: {
+        Row: CustomerNoteRow;
+        Insert: Insertable<
+          CustomerNoteRow,
+          "business_id" | "customer_id",
+          "id" | "created_at" | "updated_at"
+        >;
+        Update: Partial<CustomerNoteRow>;
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey";
+            columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
