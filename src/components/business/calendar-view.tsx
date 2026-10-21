@@ -10,8 +10,10 @@ import { MoveBookingSheet } from "./move-booking-sheet";
 import { rescheduleBookingAction } from "@/lib/actions/bookings";
 import { idleState } from "@/lib/actions/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/misc";
 import { BookingStatusBadge } from "@/components/shared/booking-status";
+import { useT } from "@/lib/i18n/context";
 import type { BookingRow, BusinessRow } from "@/lib/database.types";
 import {
   formatInBusinessTz,
@@ -37,9 +39,16 @@ interface Positioned {
 
 const HOUR_HEIGHT = 56;
 
+/** Sentinel for the staff filter's "show everyone" option — kept out of the
+ *  URL param namespace Radix Select's value prop (which rejects ""). */
+const ALL_STAFF = "all";
+
+type StaffOption = { id: string; name: string };
+
 export function CalendarView({
   business,
   bookings,
+  staff = [],
   selectedDate,
   today,
   view,
@@ -47,6 +56,8 @@ export function CalendarView({
 }: {
   business: BusinessRow;
   bookings: Booking[];
+  /** Active staff only — this is what the filter offers a choice of. */
+  staff?: StaffOption[];
   selectedDate: DateKey;
   today: DateKey;
   view: "day" | "week";
@@ -54,17 +65,31 @@ export function CalendarView({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
 
-  const navigate = (next: { date?: DateKey; view?: "day" | "week" }) => {
+  const staffFilter = searchParams.get("staff") ?? ALL_STAFF;
+
+  const navigate = (next: { date?: DateKey; view?: "day" | "week"; staff?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     if (next.date) params.set("date", next.date);
     if (next.view) params.set("view", next.view);
+    if (next.staff) {
+      if (next.staff === ALL_STAFF) params.delete("staff");
+      else params.set("staff", next.staff);
+    }
     router.replace(`/dashboard/calendar?${params.toString()}`, { scroll: false });
   };
 
+  // One barber's own calendar, or every booking — a client-side filter is
+  // enough since bookings for the whole visible range are already loaded.
+  const filteredBookings = useMemo(
+    () => (staffFilter === ALL_STAFF ? bookings : bookings.filter((b) => b.staff_id === staffFilter)),
+    [bookings, staffFilter],
+  );
+
   const byDate = useMemo(() => {
     const map: Record<DateKey, Booking[]> = {};
-    for (const booking of bookings) {
+    for (const booking of filteredBookings) {
       const key = toDateKey(new Date(booking.starts_at), business.timezone);
       (map[key] ??= []).push(booking);
     }
@@ -72,7 +97,7 @@ export function CalendarView({
       list.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
     }
     return map;
-  }, [bookings, business.timezone]);
+  }, [filteredBookings, business.timezone]);
 
   const counts = useMemo(() => {
     const out: Record<DateKey, number> = {};
@@ -88,15 +113,36 @@ export function CalendarView({
 
   return (
     <div className="space-y-4">
-      <Tabs
-        value={view}
-        onValueChange={(value) => navigate({ view: value as "day" | "week" })}
-      >
-        <TabsList className="w-full max-w-64">
-          <TabsTrigger value="day">Day</TabsTrigger>
-          <TabsTrigger value="week">Week</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <Tabs
+          value={view}
+          onValueChange={(value) => navigate({ view: value as "day" | "week" })}
+        >
+          <TabsList className="w-full max-w-64">
+            <TabsTrigger value="day">Day</TabsTrigger>
+            <TabsTrigger value="week">Week</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {staff.length > 0 ? (
+          <Select value={staffFilter} onValueChange={(value) => navigate({ staff: value })}>
+            <SelectTrigger
+              aria-label={t("staffAdmin.calendarFilterLabel")}
+              className="h-10 w-auto min-w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_STAFF}>{t("staffAdmin.calendarFilterAllLabel")}</SelectItem>
+              {staff.map((member) => (
+                <SelectItem key={member.id} value={member.id}>
+                  {member.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </div>
 
       {view === "day" ? (
         <>
