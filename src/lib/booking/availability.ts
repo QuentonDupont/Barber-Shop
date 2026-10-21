@@ -1,9 +1,24 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, BusinessRow, ServiceRow, StaffRow } from "@/lib/database.types";
+import type { Database, BusinessRow, ServiceRow } from "@/lib/database.types";
 import { getDayAvailability, type DayAvailability, type GetAvailableSlotsInput } from "./slots";
-import { type DateKey, shiftDateKey, zonedDayMinutesToUtc, weekdayOf } from "./time";
+import { type DateKey, shiftDateKey, zonedDayMinutesToUtc } from "./time";
+import type { StaffWithServices } from "./staff-eligibility";
+
+// Re-exported so existing imports from "@/lib/booking/availability" (the
+// customer- and owner-side streams both import staff helpers from here) keep
+// working unchanged — the logic itself moved to staff-eligibility.ts so it
+// has no `server-only`/Supabase dependency and can be unit-tested directly
+// (QA report #4 §2).
+export {
+  bookableStaffFor,
+  staffCanPerform,
+  staffWorksWeekday,
+  resolveStaffCandidates,
+  type StaffWithServices,
+  type StaffSelection,
+} from "./staff-eligibility";
 
 type Client = SupabaseClient<Database>;
 
@@ -140,11 +155,6 @@ export function availabilityForRange(
 /* Multi-staff (roadmap.md §1 row 4)                                          */
 /* -------------------------------------------------------------------------- */
 
-export interface StaffWithServices extends StaffRow {
-  /** service ids this staff member performs. Empty = every active service. */
-  serviceIds: string[];
-}
-
 /**
  * Every staff row for a business, each annotated with the services it's
  * narrowed to (if any). One extra query, always run together so the "no
@@ -180,31 +190,4 @@ export async function loadStaffWithServices(
   }
 
   return rows.map((s) => ({ ...s, serviceIds: byStaff.get(s.id) ?? [] }));
-}
-
-/** No rows in `staff_services` for a staff member means "performs everything". */
-export function staffCanPerform(staff: Pick<StaffWithServices, "serviceIds">, serviceId: string): boolean {
-  return staff.serviceIds.length === 0 || staff.serviceIds.includes(serviceId);
-}
-
-export function staffWorksWeekday(staff: Pick<StaffRow, "works_weekdays">, date: DateKey): boolean {
-  return staff.works_weekdays.includes(weekdayOf(date));
-}
-
-/**
- * The staff a customer can actually choose for one service on one date: active,
- * able to perform the service, and rostered to work that weekday. This is the
- * list the "choose your barber, or any available" step is built from — and if
- * it comes back empty, the booking flow falls back to the pre-multi-staff,
- * business-wide path (no staff step shown at all), which is also exactly what
- * happens for any shop that hasn't added staff yet.
- */
-export function bookableStaffFor(
-  staff: StaffWithServices[],
-  serviceId: string,
-  date: DateKey,
-): StaffWithServices[] {
-  return staff.filter(
-    (s) => s.is_active && staffCanPerform(s, serviceId) && staffWorksWeekday(s, date),
-  );
 }

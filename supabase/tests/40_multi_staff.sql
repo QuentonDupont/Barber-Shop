@@ -119,11 +119,16 @@ select test_assert(
   $q$),
   'double-booking the SAME barber at an overlapping time is refused');
 
-select test_assert(true, (
-  -- Somchai, a *different* barber at the same shop, same exact time as Nong's
-  -- booking above — this must succeed. Multi-staff's whole point is that two
-  -- barbers at one shop are independent calendars.
-  select case when (
+-- Somchai, a *different* barber at the same shop, same exact time as Nong's
+-- booking above — this must succeed. Multi-staff's whole point is that two
+-- barbers at one shop are independent calendars. The actual boolean (not a
+-- hardcoded `true`) is what's passed to test_assert — QA report #4 §4's
+-- cosmetic note: the previous version passed `true` unconditionally and
+-- relied on the insert itself raising to catch a real failure, rather than
+-- going through this function's own exception path like every other
+-- assertion in this file.
+select test_assert(
+  (
     with inserted as (
       insert into public.bookings
         (business_id, service_id, customer_id, staff_id, starts_at, ends_at, status,
@@ -134,9 +139,9 @@ select test_assert(true, (
       returning id
     )
     select count(*) from inserted
-  ) = 1 then 'a different barber, same business, same exact time slot is allowed'
-  else 'FAIL: a different barber at the same time was wrongly refused' end
-));
+  ) = 1,
+  'a different barber, same business, same exact time slot is allowed'
+);
 
 select test_assert(
   test_raises(null, $q$

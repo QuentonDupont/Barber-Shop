@@ -5,10 +5,10 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requireBusiness, requireSession } from "@/lib/auth";
 import {
-  bookableStaffFor,
   buildSlotInput,
   loadAvailabilitySources,
   loadStaffWithServices,
+  resolveStaffCandidates,
 } from "@/lib/booking/availability";
 import { findSlot, getDayAvailability } from "@/lib/booking/slots";
 import { toDateKey } from "@/lib/booking/time";
@@ -104,23 +104,16 @@ export async function createBookingAction(
   //     race just moves on to the next available barber instead of failing.
   const allStaff = await loadStaffWithServices(supabase, businessId);
 
-  let candidateIds: (string | null)[];
-  if (allStaff.length === 0) {
-    candidateIds = [null];
-  } else {
-    const bookable = bookableStaffFor(allStaff, serviceId, date);
-    if (bookable.length === 0) {
-      return errorState(t(locale, "toast.noStaffAvailable"));
-    }
-    if (requestedStaffId && requestedStaffId !== "any") {
-      if (!bookable.some((s) => s.id === requestedStaffId)) {
-        return errorState(t(locale, "toast.staffUnavailable"));
-      }
-      candidateIds = [requestedStaffId];
-    } else {
-      candidateIds = bookable.map((s) => s.id);
-    }
+  // Pure decision, unit-tested on its own (QA report #4 §2) — see
+  // `resolveStaffCandidates` in `src/lib/booking/staff-eligibility.ts` for
+  // the three shapes this can come back in.
+  const selection = resolveStaffCandidates(allStaff, serviceId, date, requestedStaffId);
+  if (!selection.ok) {
+    return errorState(
+      t(locale, selection.reason === "no_staff_available" ? "toast.noStaffAvailable" : "toast.staffUnavailable"),
+    );
   }
+  const { candidateIds, isNamedChoice } = selection;
 
   // Name lookup for the candidate being tried, denormalised onto the booking
   // row (same pattern as `service_name`/`customer_name`) so My bookings and
@@ -174,6 +167,15 @@ export async function createBookingAction(
   if (!booking) {
     if (lastError && lastError.code !== "23P01") {
       return errorState(lastError.message);
+    }
+    // A named barber's only candidate lost a last-instant race (the DB's
+    // exclusion constraint caught what the earlier, slightly-stale
+    // availability read didn't) — that specific barber is who became
+    // unavailable, not "some slot, somewhere." "Any available" still falls
+    // through to the generic message below, since there it genuinely means
+    // every eligible candidate was tried and none were free.
+    if (isNamedChoice && lastError?.code === "23P01") {
+      return errorState(t(locale, "toast.staffUnavailable"));
     }
     return errorState(t(locale, "toast.slotTaken"));
   }
