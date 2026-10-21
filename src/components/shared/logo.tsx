@@ -24,6 +24,7 @@ export function Logo({
           width={420}
           height={120}
           priority
+          unoptimized
           className="brand-asset-light h-8 w-auto"
         />
         <Image
@@ -33,6 +34,7 @@ export function Logo({
           width={420}
           height={120}
           priority
+          unoptimized
           className="brand-asset-dark h-8 w-auto"
         />
       </span>
@@ -47,6 +49,7 @@ export function Logo({
         width={64}
         height={64}
         priority
+        unoptimized
         className="brand-asset-light size-8 shrink-0"
       />
       <Image
@@ -56,6 +59,7 @@ export function Logo({
         width={64}
         height={64}
         priority
+        unoptimized
         className="brand-asset-dark size-8 shrink-0"
       />
     </span>
