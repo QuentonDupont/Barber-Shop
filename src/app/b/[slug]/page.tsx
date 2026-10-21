@@ -44,7 +44,7 @@ export async function generateMetadata({
   if (!data) return { title: "Not found" };
   return {
     title: data.name,
-    description: data.description ?? `Book an appointment at ${data.name} on Bookly.`,
+    description: data.description ?? `Book an appointment at ${data.name} on TatNat.`,
   };
 }
 

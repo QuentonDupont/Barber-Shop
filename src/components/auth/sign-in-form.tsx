@@ -52,7 +52,7 @@ export function SignInForm({
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Welcome back</h1>
         <p className="mt-1.5 text-sm text-fg-muted">
-          New to Bookly?{" "}
+          New to TatNat?{" "}
           <Link
             href={`/sign-up?role=${role}${next ? `&next=${encodeURIComponent(next)}` : ""}`}
             className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">

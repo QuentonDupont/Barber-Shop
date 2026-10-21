@@ -162,7 +162,7 @@ function AddOverrideSheet({
         <SheetHeader>
           <SheetTitle>Add a one-off day</SheetTitle>
           <SheetDescription>
-            If the day already has bookings, move or cancel them first — Bookly
+            If the day already has bookings, move or cancel them first — TatNat
             will not strand a customer.
           </SheetDescription>
         </SheetHeader>

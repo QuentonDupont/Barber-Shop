@@ -70,7 +70,7 @@ export function OnboardingWizard({
             ? "This is what customers see when they search. You can change any of it later."
             : step === 2
               ? "Search your address, then drag the pin to your exact door."
-              : "Bookly turns these hours into bookable slots. Breaks are blocked out automatically."}
+              : "TatNat turns these hours into bookable slots. Breaks are blocked out automatically."}
         </p>
       </div>
 

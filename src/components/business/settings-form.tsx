@@ -171,7 +171,7 @@ export function SettingsForm({
           <Field
             label="Time zone"
             error={errors.timezone}
-            hint="Every time in Bookly is shown to customers in this zone, wherever they are."
+            hint="Every time in TatNat is shown to customers in this zone, wherever they are."
             required
           >
             <Select value={timezone} onValueChange={setTimezone}>

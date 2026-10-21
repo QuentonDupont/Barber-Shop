@@ -17,7 +17,7 @@ export function SetupNotice({ className }: { className?: string }) {
     >
       <p className="flex items-center gap-2 font-semibold text-warning">
         <TriangleAlert className="size-4 shrink-0" />
-        Bookly is not connected to a database yet
+        TatNat is not connected to a database yet
       </p>
       <p className="mt-2 text-fg-muted text-pretty">
         Copy <code className="rounded bg-surface px-1 py-0.5">.env.example</code>{" "}

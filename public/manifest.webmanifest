@@ -1,6 +1,6 @@
 {
-  "name": "Bookly — book local, instantly",
-  "short_name": "Bookly",
+  "name": "TatNat — book local, instantly",
+  "short_name": "TatNat",
   "description": "Find salons, barbers, clinics and studios near you and book a real time slot in seconds.",
   "start_url": "/app",
   "scope": "/",

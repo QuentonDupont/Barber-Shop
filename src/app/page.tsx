@@ -31,7 +31,7 @@ export default async function LandingPage() {
           {session ? (
             <Button asChild size="sm" variant="primary">
               <Link href={signedInHome}>
-                Open Bookly
+                Open TatNat
                 <ArrowRight />
               </Link>
             </Button>
@@ -57,7 +57,7 @@ export default async function LandingPage() {
             <span className="text-accent">under a minute</span>.
           </h1>
           <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-fg-muted sm:text-lg">
-            Bookly shows you the times a salon, barber, clinic or studio can
+            TatNat shows you the times a salon, barber, clinic or studio can
             genuinely see you — then holds the slot the moment you tap it. No
             phone calls, no waiting for a reply.
           </p>
@@ -68,7 +68,7 @@ export default async function LandingPage() {
             a phone screen rather than being buried in a nav menu. ---------- */}
         <section aria-labelledby="choose-portal" className="mt-4 sm:mt-8">
           <h2 id="choose-portal" className="sr-only">
-            Choose how you want to use Bookly
+            Choose how you want to use TatNat
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
@@ -93,7 +93,7 @@ export default async function LandingPage() {
               signInHref="/sign-in?role=business_owner"
               eyebrow="I'm a business"
               title="Fill your calendar"
-              description="Publish your opening hours once. Bookly turns them into bookable slots and keeps your day organised."
+              description="Publish your opening hours once. TatNat turns them into bookable slots and keeps your day organised."
               icon={Store}
               tone="primary"
               points={[
@@ -114,7 +114,7 @@ export default async function LandingPage() {
             },
             {
               title: "Install it, skip the app store",
-              body: "Add Bookly to your home screen and it opens full-screen like a native app — no download, no updates.",
+              body: "Add TatNat to your home screen and it opens full-screen like a native app — no download, no updates.",
             },
             {
               title: "Your time zone, their time zone",
@@ -137,7 +137,7 @@ export default async function LandingPage() {
       <footer className="border-t border-border py-8 pb-safe">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 text-sm text-fg-subtle sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <Logo />
-          <p>© {new Date().getFullYear()} Bookly</p>
+          <p>© {new Date().getFullYear()} TatNat</p>
         </div>
       </footer>
     </div>

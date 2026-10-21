@@ -55,7 +55,7 @@ export default async function ExplorePage() {
         <EmptyState
           icon={Store}
           title="No businesses are live yet"
-          description="Bookly is brand new here. Once shops publish their pages they will show up in this list."
+          description="TatNat is brand new here. Once shops publish their pages they will show up in this list."
         />
       ) : (
         <Discover businesses={listings} />

@@ -50,7 +50,7 @@ export function SignUpForm({
 
       {businessLinkUsed ? (
         <Alert tone="info">
-          Bookly is in an invite-only beta for businesses.{" "}
+          TatNat is in an invite-only beta for businesses.{" "}
           <Link href={BETA_INVITE_HREF} className="font-semibold underline">
             {BETA_INVITE_LABEL}
           </Link>{" "}
@@ -160,7 +160,7 @@ export function SignUpForm({
       <GoogleButton role="customer" />
 
       <p className="text-center text-xs leading-relaxed text-fg-subtle text-pretty">
-        By creating an account you agree to Bookly&rsquo;s terms of service and
+        By creating an account you agree to TatNat&rsquo;s terms of service and
         privacy policy.
       </p>
     </div>

@@ -51,7 +51,7 @@ export default async function HoursPage() {
     <PageContainer>
       <PageHeader
         title="Opening hours"
-        description={`Your weekly schedule in ${ctx.business.timezone}. Bookly only ever offers slots inside these windows.`}
+        description={`Your weekly schedule in ${ctx.business.timezone}. TatNat only ever offers slots inside these windows.`}
       />
       <HoursForm initialHours={initial} />
       <OverridesManager overrides={overrides ?? []} today={today} />

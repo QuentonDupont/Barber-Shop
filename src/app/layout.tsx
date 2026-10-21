@@ -18,23 +18,23 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Bookly — book local, instantly",
-    template: "%s · Bookly",
+    default: "TatNat — book local, instantly",
+    template: "%s · TatNat",
   },
   description:
     "Find salons, barbers, clinics and studios near you and book a real time slot in seconds. Free scheduling tools for the businesses behind them.",
-  applicationName: "Bookly",
+  applicationName: "TatNat",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Bookly",
+    title: "TatNat",
     statusBarStyle: "default",
   },
   formatDetection: { telephone: false },
   openGraph: {
     type: "website",
-    siteName: "Bookly",
-    title: "Bookly — book local, instantly",
+    siteName: "TatNat",
+    title: "TatNat — book local, instantly",
     description:
       "Find salons, barbers, clinics and studios near you and book a real time slot in seconds.",
   },

@@ -16,7 +16,7 @@ export default function NotFound() {
         className="w-full"
         icon={MapPinOff}
         title="We can't find that page"
-        description="The shop may have closed its Bookly page, or the link might be out of date."
+        description="The shop may have closed its TatNat page, or the link might be out of date."
         action={
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button asChild variant="accent" size="lg">

@@ -1,5 +1,5 @@
 /*
- * Bookly service worker.
+ * TatNat service worker.
  *
  * Deliberately conservative. This app is mostly signed-in, personal data on
  * devices that get shared and handed around, so:

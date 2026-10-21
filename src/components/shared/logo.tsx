@@ -28,9 +28,9 @@ export function Logo({
         </svg>
       </span>
       {showWordmark ? (
-        <span className="text-lg font-bold tracking-tight">Bookly</span>
+        <span className="text-lg font-bold tracking-tight">TatNat</span>
       ) : null}
-      <span className="sr-only">Bookly</span>
+      <span className="sr-only">TatNat</span>
     </span>
   );
 }

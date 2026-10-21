@@ -17,7 +17,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 /**
- * "Add to home screen", which is how Bookly gets a launcher icon without an
+ * "Add to home screen", which is how TatNat gets a launcher icon without an
  * app store.
  *
  * Chrome fires `beforeinstallprompt` and lets us drive the native dialog. iOS
@@ -66,7 +66,7 @@ export function InstallPrompt() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Smartphone className="size-5 text-accent" />
-          Add Bookly to your home screen
+          Add TatNat to your home screen
         </CardTitle>
         <CardDescription>
           It opens full screen like a normal app, and your bookings are one tap
@@ -86,7 +86,7 @@ export function InstallPrompt() {
               setDeferred(null);
             }}
           >
-            Install Bookly
+            Install TatNat
           </Button>
         ) : (
           <ol className="space-y-2.5 text-sm text-fg-muted">

@@ -42,7 +42,7 @@ export default async function AccountPage() {
           <CardHeader>
             <CardTitle>Run a business?</CardTitle>
             <CardDescription>
-              Bookly is in an invite-only beta for shops. Request an invite and
+              TatNat is in an invite-only beta for shops. Request an invite and
               we&rsquo;ll set up your business account with you.
             </CardDescription>
           </CardHeader>

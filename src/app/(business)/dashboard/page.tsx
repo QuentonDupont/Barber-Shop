@@ -104,7 +104,7 @@ export default async function DashboardHome({
               <div>
                 <p className="font-semibold">Add your first service</p>
                 <p className="text-sm text-fg-muted text-pretty">
-                  Customers book a service, not just a time. Add one and Bookly
+                  Customers book a service, not just a time. Add one and TatNat
                   builds the slots.
                 </p>
               </div>

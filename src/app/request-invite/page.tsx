@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Request beta invite" };
 
 /**
  * Static on purpose: during the invite-only beta, business accounts are made by
- * the Bookly team, so this page never creates an account or stores anything.
+ * the TatNat team, so this page never creates an account or stores anything.
  */
 export default function RequestInvitePage() {
   return (
@@ -23,13 +23,13 @@ export default function RequestInvitePage() {
         <h1 className="text-xl font-bold tracking-tight">Request your invite.</h1>
         <p className="max-w-sm text-sm text-fg-muted text-pretty">
           We&rsquo;re onboarding a small number of shops by hand before opening up.
-          Tell the Bookly team who shared this demo with you about your business
+          Tell the TatNat team who shared this demo with you about your business
           and we&rsquo;ll reach out.
         </p>
       </div>
       <div className="flex w-full max-w-xs flex-col gap-2">
         <Button asChild size="lg" block variant="ghost">
-          <Link href="/">Back to Bookly</Link>
+          <Link href="/">Back to TatNat</Link>
         </Button>
         <Button asChild size="md" block variant="ghost">
           <Link href="/sign-in?role=business_owner">I already have an invite</Link>

@@ -9,5 +9,5 @@ const inviteEmail = process.env.NEXT_PUBLIC_BETA_INVITE_EMAIL?.trim();
 export const BETA_INVITE_LABEL = "Request beta invite";
 
 export const BETA_INVITE_HREF = inviteEmail
-  ? `mailto:${inviteEmail}?subject=${encodeURIComponent("Bookly beta invite request")}`
+  ? `mailto:${inviteEmail}?subject=${encodeURIComponent("TatNat beta invite request")}`
   : "/request-invite";

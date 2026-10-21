@@ -24,7 +24,7 @@ function resendConfig() {
   if (!apiKey) return null;
   return {
     apiKey,
-    from: process.env.RESEND_FROM ?? "Bookly <onboarding@resend.dev>",
+    from: process.env.RESEND_FROM ?? "TatNat <onboarding@resend.dev>",
   };
 }
 
@@ -117,7 +117,7 @@ function layout(heading: string, intro: string, rows: [string, string][], footer
 <html><body style="margin:0;padding:24px;background:#faf8f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table role="presentation" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e7e2da;">
     <tr><td style="padding:28px 24px;">
-      <p style="margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#d08a12;">Bookly</p>
+      <p style="margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#d08a12;">ตัดนัด</p>
       <h1 style="margin:0 0 8px;font-size:21px;line-height:1.3;color:#1f1a16;">${heading}</h1>
       <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#5c544c;">${intro}</p>
       <table role="presentation" style="width:100%;border-top:1px solid #efeae2;">${cells}</table>

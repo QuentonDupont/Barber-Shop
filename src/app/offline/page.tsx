@@ -14,7 +14,7 @@ export default function OfflinePage() {
       <div className="space-y-1.5">
         <h1 className="text-xl font-bold tracking-tight">You&rsquo;re offline</h1>
         <p className="max-w-sm text-sm text-fg-muted text-pretty">
-          Bookly needs a connection to show live availability — a cached time
+          TatNat needs a connection to show live availability — a cached time
           slot could already be taken. Reconnect and this page will reload.
         </p>
       </div>

@@ -43,7 +43,7 @@ export function ServicesManager({ services }: { services: ServiceRow[] }) {
           <EmptyState
             icon={Scissors}
             title="No services yet"
-            description="A service is what a customer books — its name, how long it takes and what it costs. Bookly turns the duration into slots."
+            description="A service is what a customer books — its name, how long it takes and what it costs. TatNat turns the duration into slots."
             action={
               <Button variant="accent" size="lg" onClick={() => setCreating(true)}>
                 <Plus />
