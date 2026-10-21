@@ -109,6 +109,12 @@ export type StaffRow = {
   created_at: string;
 };
 
+export type StaffServiceRow = {
+  staff_id: string;
+  service_id: string;
+  created_at: string;
+};
+
 export type AvailabilityOverrideRow = {
   id: string;
   business_id: string;
@@ -336,6 +342,27 @@ export type Database = {
           },
         ];
       };
+      staff_services: {
+        Row: StaffServiceRow;
+        Insert: Insertable<StaffServiceRow, "staff_id" | "service_id", "created_at">;
+        Update: Partial<StaffServiceRow>;
+        Relationships: [
+          {
+            foreignKeyName: "staff_services_staff_id_fkey";
+            columns: ["staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_services_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       availability_overrides: {
         Row: AvailabilityOverrideRow;
         Insert: Insertable<AvailabilityOverrideRow, "business_id" | "date", "id">;
@@ -484,6 +511,7 @@ export type Database = {
           from_ts: string;
           to_ts: string;
           exclude_booking?: string | null;
+          target_staff?: string | null;
         };
         Returns: { starts_at: string; ends_at: string }[];
       };

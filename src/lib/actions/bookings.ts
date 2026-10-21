@@ -4,11 +4,17 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requireBusiness, requireSession } from "@/lib/auth";
-import { buildSlotInput, loadAvailabilitySources } from "@/lib/booking/availability";
+import {
+  bookableStaffFor,
+  buildSlotInput,
+  loadAvailabilitySources,
+  loadStaffWithServices,
+} from "@/lib/booking/availability";
 import { findSlot, getDayAvailability } from "@/lib/booking/slots";
 import { toDateKey } from "@/lib/booking/time";
 import { notifyBookingCancelled, notifyBookingCreated } from "@/lib/notifications";
 import { errorState, successState, type ActionState } from "./types";
+import type { BookingRow } from "@/lib/database.types";
 import { businessPath } from "@/lib/routes";
 import { t } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -18,6 +24,10 @@ const createSchema = z.object({
   serviceId: z.uuid(),
   startsAt: z.iso.datetime({ offset: true }).or(z.iso.datetime()),
   notes: z.string().trim().max(400).optional().or(z.literal("")),
+  // "" or "any" (or simply omitted) both mean "any available barber" — the
+  // staff-choice step only ever posts a concrete uuid when the customer named
+  // one explicitly.
+  staffId: z.uuid().optional().or(z.literal("any")).or(z.literal("")),
 });
 
 /**
@@ -38,6 +48,7 @@ export async function createBookingAction(
     serviceId: formData.get("serviceId"),
     startsAt: formData.get("startsAt"),
     notes: formData.get("notes"),
+    staffId: formData.get("staffId") ?? "",
   });
 
   const locale = await getLocale();
@@ -55,7 +66,7 @@ export async function createBookingAction(
   }
 
   const supabase = await createClient();
-  const { businessId, serviceId, startsAt, notes } = parsed.data;
+  const { businessId, serviceId, startsAt, notes, staffId: requestedStaffId } = parsed.data;
 
   const { data: business } = await supabase
     .from("businesses")
@@ -81,38 +92,83 @@ export async function createBookingAction(
   }
 
   const date = toDateKey(new Date(startsAt), business.timezone);
-  const sources = await loadAvailabilitySources(supabase, business, date, date);
-  const slot = findSlot(buildSlotInput(business, service, sources, date), startsAt);
 
-  if (!slot) {
-    return errorState(t(locale, "toast.slotTaken"));
+  // Staff is resolved in one of three shapes:
+  //   - the business has no staff configured at all: book business-wide,
+  //     staff_id stays null, exactly as before this feature existed.
+  //   - the customer named a specific staff member: that one candidate only —
+  //     a race there is a real "sorry, taken" rather than something to paper
+  //     over by silently handing the booking to someone else.
+  //   - "any available" (or no choice at all, once staff exist): every
+  //     eligible staff member is a candidate, tried in order, so a last-second
+  //     race just moves on to the next available barber instead of failing.
+  const allStaff = await loadStaffWithServices(supabase, businessId);
+
+  let candidateIds: (string | null)[];
+  if (allStaff.length === 0) {
+    candidateIds = [null];
+  } else {
+    const bookable = bookableStaffFor(allStaff, serviceId, date);
+    if (bookable.length === 0) {
+      return errorState(t(locale, "toast.noStaffAvailable"));
+    }
+    if (requestedStaffId && requestedStaffId !== "any") {
+      if (!bookable.some((s) => s.id === requestedStaffId)) {
+        return errorState(t(locale, "toast.staffUnavailable"));
+      }
+      candidateIds = [requestedStaffId];
+    } else {
+      candidateIds = bookable.map((s) => s.id);
+    }
   }
 
-  const { data: booking, error } = await supabase
-    .from("bookings")
-    .insert({
-      business_id: businessId,
-      service_id: serviceId,
-      customer_id: session.userId,
-      starts_at: slot.startsAt,
-      ends_at: slot.endsAt,
-      status: business.auto_confirm ? "confirmed" : "pending",
-      notes: notes || null,
-      service_name: service.name,
-      price: service.price,
-      currency: service.currency,
-      customer_name: session.profile.full_name || session.email || "Customer",
-      customer_phone: session.profile.phone,
-    })
-    .select("*")
-    .single();
+  let booking: BookingRow | null = null;
+  let lastError: { code?: string; message: string } | null = null;
 
-  if (error) {
-    // 23P01 is the exclusion-constraint violation: someone else won the race.
-    if (error.code === "23P01") {
-      return errorState(t(locale, "toast.slotTaken"));
+  for (const candidateStaffId of candidateIds) {
+    const sources = await loadAvailabilitySources(supabase, business, date, date, {
+      staffId: candidateStaffId ?? undefined,
+    });
+    const slot = findSlot(buildSlotInput(business, service, sources, date), startsAt);
+    if (!slot) continue;
+
+    const { data, error } = await supabase
+      .from("bookings")
+      .insert({
+        business_id: businessId,
+        service_id: serviceId,
+        customer_id: session.userId,
+        staff_id: candidateStaffId,
+        starts_at: slot.startsAt,
+        ends_at: slot.endsAt,
+        status: business.auto_confirm ? "confirmed" : "pending",
+        notes: notes || null,
+        service_name: service.name,
+        price: service.price,
+        currency: service.currency,
+        customer_name: session.profile.full_name || session.email || "Customer",
+        customer_phone: session.profile.phone,
+      })
+      .select("*")
+      .single();
+
+    if (!error) {
+      booking = data;
+      break;
     }
-    return errorState(error.message);
+
+    lastError = error;
+    // 23P01 is the exclusion-constraint violation: someone else won the race
+    // for this candidate. If more candidates remain ("any available"), try
+    // the next one; otherwise this falls through to the error below.
+    if (error.code !== "23P01") break;
+  }
+
+  if (!booking) {
+    if (lastError && lastError.code !== "23P01") {
+      return errorState(lastError.message);
+    }
+    return errorState(t(locale, "toast.slotTaken"));
   }
 
   await notifyBookingCreated(booking, business);
@@ -282,6 +338,10 @@ export async function rescheduleBookingAction(
   const date = toDateKey(new Date(parsed.data.startsAt), ctx.business.timezone);
   const sources = await loadAvailabilitySources(supabase, ctx.business, date, date, {
     ignoreBookingId: booking.id,
+    // A booking with no staff assigned (business-wide path) checks against
+    // the whole business, same as before. One with staff_id set only needs
+    // to avoid that one staff member's own other bookings.
+    staffId: booking.staff_id ?? undefined,
   });
 
   // The owner may move a booking closer than the public notice window allows —
@@ -348,7 +408,7 @@ export async function getMoveOptionsAction(
 
   const { data: booking } = await supabase
     .from("bookings")
-    .select("id, service_id, starts_at, status")
+    .select("id, service_id, starts_at, status, staff_id")
     .eq("id", bookingId)
     .eq("business_id", ctx.business.id)
     .maybeSingle();
@@ -365,6 +425,7 @@ export async function getMoveOptionsAction(
 
   const sources = await loadAvailabilitySources(supabase, ctx.business, date, date, {
     ignoreBookingId: booking.id,
+    staffId: booking.staff_id ?? undefined,
   });
 
   const input = buildSlotInput(ctx.business, service, sources, date);

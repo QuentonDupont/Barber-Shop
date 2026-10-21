@@ -1,9 +1,9 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, BusinessRow, ServiceRow } from "@/lib/database.types";
+import type { Database, BusinessRow, ServiceRow, StaffRow } from "@/lib/database.types";
 import { getDayAvailability, type DayAvailability, type GetAvailableSlotsInput } from "./slots";
-import { type DateKey, shiftDateKey, zonedDayMinutesToUtc } from "./time";
+import { type DateKey, shiftDateKey, zonedDayMinutesToUtc, weekdayOf } from "./time";
 
 type Client = SupabaseClient<Database>;
 
@@ -20,13 +20,19 @@ export interface AvailabilitySources {
  *
  * `ignoreBookingId` lets the reschedule path ask "would this slot be free if
  * the booking being moved were not in the way?".
+ *
+ * `staffId` narrows the busy set to one staff member's own bookings — pass it
+ * to compute a specific barber's availability instead of the whole
+ * business's. Leave it unset for the pre-multi-staff behaviour (and for
+ * businesses that have no staff configured at all, which keep booking exactly
+ * as they did before this feature existed).
  */
 export async function loadAvailabilitySources(
   supabase: Client,
   business: Pick<BusinessRow, "id" | "timezone">,
   fromDate: DateKey,
   toDate: DateKey,
-  options: { ignoreBookingId?: string } = {},
+  options: { ignoreBookingId?: string; staffId?: string } = {},
 ): Promise<AvailabilitySources> {
   // Widen by a day on each side: a booking can start before local midnight and
   // still occupy the first minutes of the day being asked about.
@@ -56,6 +62,7 @@ export async function loadAvailabilitySources(
       from_ts: windowStart.toISOString(),
       to_ts: windowEnd.toISOString(),
       exclude_booking: options.ignoreBookingId ?? null,
+      target_staff: options.staffId ?? null,
     }),
   ]);
 
@@ -127,4 +134,77 @@ export function availabilityForRange(
     out.push(getDayAvailability(buildSlotInput(business, service, sources, date, now)));
   }
   return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Multi-staff (roadmap.md §1 row 4)                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface StaffWithServices extends StaffRow {
+  /** service ids this staff member performs. Empty = every active service. */
+  serviceIds: string[];
+}
+
+/**
+ * Every staff row for a business, each annotated with the services it's
+ * narrowed to (if any). One extra query, always run together so the "no
+ * staff_services rows = performs everything" default only has to be applied
+ * in one place (`staffCanPerform` below).
+ */
+export async function loadStaffWithServices(
+  supabase: Client,
+  businessId: string,
+): Promise<StaffWithServices[]> {
+  const { data: staffRows } = await supabase
+    .from("staff")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: true });
+
+  const rows = staffRows ?? [];
+  if (rows.length === 0) return [];
+
+  const { data: links } = await supabase
+    .from("staff_services")
+    .select("staff_id, service_id")
+    .in(
+      "staff_id",
+      rows.map((s) => s.id),
+    );
+
+  const byStaff = new Map<string, string[]>();
+  for (const link of links ?? []) {
+    const list = byStaff.get(link.staff_id) ?? [];
+    list.push(link.service_id);
+    byStaff.set(link.staff_id, list);
+  }
+
+  return rows.map((s) => ({ ...s, serviceIds: byStaff.get(s.id) ?? [] }));
+}
+
+/** No rows in `staff_services` for a staff member means "performs everything". */
+export function staffCanPerform(staff: Pick<StaffWithServices, "serviceIds">, serviceId: string): boolean {
+  return staff.serviceIds.length === 0 || staff.serviceIds.includes(serviceId);
+}
+
+export function staffWorksWeekday(staff: Pick<StaffRow, "works_weekdays">, date: DateKey): boolean {
+  return staff.works_weekdays.includes(weekdayOf(date));
+}
+
+/**
+ * The staff a customer can actually choose for one service on one date: active,
+ * able to perform the service, and rostered to work that weekday. This is the
+ * list the "choose your barber, or any available" step is built from — and if
+ * it comes back empty, the booking flow falls back to the pre-multi-staff,
+ * business-wide path (no staff step shown at all), which is also exactly what
+ * happens for any shop that hasn't added staff yet.
+ */
+export function bookableStaffFor(
+  staff: StaffWithServices[],
+  serviceId: string,
+  date: DateKey,
+): StaffWithServices[] {
+  return staff.filter(
+    (s) => s.is_active && staffCanPerform(s, serviceId) && staffWorksWeekday(s, date),
+  );
 }
