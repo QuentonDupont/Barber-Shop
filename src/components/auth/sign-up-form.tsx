@@ -9,29 +9,28 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/misc";
-import { RoleToggle, type Role } from "./role-toggle";
+import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
 import { GoogleButton } from "./google-button";
 import { signUpAction } from "@/lib/actions/auth";
 import { idleState } from "@/lib/actions/types";
 
-function SubmitButton({ role }: { role: Role }) {
+function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <Button
-      type="submit"
-      size="lg"
-      block
-      loading={pending}
-      variant={role === "business_owner" ? "primary" : "accent"}
-    >
-      {role === "business_owner" ? "Create business account" : "Create account"}
+    <Button type="submit" size="lg" block loading={pending} variant="accent">
+      Create account
     </Button>
   );
 }
 
-export function SignUpForm({ initialRole, next }: { initialRole: Role; next?: string }) {
+export function SignUpForm({
+  businessLinkUsed,
+  next,
+}: {
+  businessLinkUsed: boolean;
+  next?: string;
+}) {
   const [state, formAction] = useActionState(signUpAction, idleState);
-  const [role, setRole] = useState<Role>(initialRole);
   const [showPassword, setShowPassword] = useState(false);
   const errors = state.fieldErrors ?? {};
 
@@ -49,16 +48,24 @@ export function SignUpForm({ initialRole, next }: { initialRole: Role; next?: st
         </p>
       </div>
 
+      {businessLinkUsed ? (
+        <Alert tone="info">
+          Bookly is in an invite-only beta for businesses.{" "}
+          <Link href={BETA_INVITE_HREF} className="font-semibold underline">
+            {BETA_INVITE_LABEL}
+          </Link>{" "}
+          — or create a customer account below to book appointments.
+        </Alert>
+      ) : null}
+
       {state.status === "error" && state.message ? (
         <Alert tone="error">{state.message}</Alert>
       ) : null}
 
       <form action={formAction} className="space-y-4" noValidate>
         {next ? <input type="hidden" name="next" value={next} /> : null}
-        <RoleToggle value={role} onChange={setRole} />
-
         <Field
-          label={role === "business_owner" ? "Your name" : "Full name"}
+          label="Full name"
           htmlFor="fullName"
           error={errors.fullName}
           required
@@ -139,7 +146,7 @@ export function SignUpForm({ initialRole, next }: { initialRole: Role; next?: st
           </div>
         </Field>
 
-        <SubmitButton role={role} />
+        <SubmitButton />
       </form>
 
       <div className="flex items-center gap-3">
@@ -150,7 +157,7 @@ export function SignUpForm({ initialRole, next }: { initialRole: Role; next?: st
         <Separator className="flex-1" />
       </div>
 
-      <GoogleButton role={role} />
+      <GoogleButton role="customer" />
 
       <p className="text-center text-xs leading-relaxed text-fg-subtle text-pretty">
         By creating an account you agree to Bookly&rsquo;s terms of service and

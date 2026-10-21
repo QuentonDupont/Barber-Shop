@@ -11,8 +11,10 @@ import { errorState, fieldErrorsFrom, type ActionState } from "./types";
 
 const roleSchema = z.enum(["customer", "business_owner"]);
 
+// Invite-only beta: self-sign-up creates customers only. Business accounts are
+// made by staff (see handoff 01); the database enforces the same rule, so this
+// is the friendly message, not the lock.
 const signUpSchema = z.object({
-  role: roleSchema,
   fullName: z.string().trim().min(2, "Please tell us your name"),
   email: z.email("Enter a valid email address"),
   phone: z
@@ -42,8 +44,13 @@ export async function signUpAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  if (formData.get("role") === "business_owner") {
+    return errorState(
+      "Business accounts are invite-only during the beta. Request an invite from the home page.",
+    );
+  }
+
   const parsed = signUpSchema.safeParse({
-    role: formData.get("role"),
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     phone: formData.get("phone"),
@@ -57,14 +64,16 @@ export async function signUpAction(
     );
   }
 
-  const { role, fullName, email, phone, password } = parsed.data;
+  const { fullName, email, phone, password } = parsed.data;
+  const role = "customer" as const;
   const supabase = await createClient();
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      // Read by the `handle_new_user` trigger to create the profile row.
+      // Profile details for the `handle_new_user` trigger. The role here is
+      // only a routing hint; the trigger never grants business_owner from it.
       data: { role, full_name: fullName, phone },
     },
   });
@@ -79,7 +88,7 @@ export async function signUpAction(
 
   // A customer who signed up from a shop's booking page goes straight back
   // to it. Owners always start at onboarding.
-  redirect(role === "customer" ? safeNext(formData.get("next"), homeFor(role)) : homeFor(role));
+  redirect(safeNext(formData.get("next"), homeFor(role)));
 }
 
 export async function signInAction(

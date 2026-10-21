@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
-  const role = searchParams.get("role");
   const next = searchParams.get("next");
 
   const safeNext =
@@ -30,28 +29,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // A Google sign-in carries no role, so the trigger defaulted the profile to
-  // `customer`. If the user came in through the "I'm a business" door, promote
-  // them now — but only on their very first visit, so an existing customer
-  // cannot flip themselves into a business account by editing the URL.
-  if (role === "business_owner") {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role, created_at")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    const createdAt = profile ? Date.parse(profile.created_at) : NaN;
-    const isBrandNew = Number.isFinite(createdAt) && Date.now() - createdAt < 60_000;
-
-    if (profile?.role === "customer" && isBrandNew) {
-      await supabase
-        .from("profiles")
-        .update({ role: "business_owner" })
-        .eq("id", data.user.id);
-      await supabase.auth.updateUser({ data: { role: "business_owner" } });
-    }
-  }
+  // Invite-only beta: an OAuth sign-in is never promoted to a business here
+  // (any `role` query parameter is ignored). Staff grant business_owner.
 
   const { data: profile } = await supabase
     .from("profiles")

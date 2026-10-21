@@ -15,6 +15,7 @@ import { SetupNotice } from "@/components/shared/setup-notice";
 import { getSession } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isMockMode } from "@/lib/mock/config";
+import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
 
 export default async function LandingPage() {
   const configured = isSupabaseConfigured() || isMockMode();
@@ -87,7 +88,8 @@ export default async function LandingPage() {
             />
 
             <PortalCard
-              href="/sign-up?role=business_owner"
+              href={BETA_INVITE_HREF}
+              ctaLabel={BETA_INVITE_LABEL}
               signInHref="/sign-in?role=business_owner"
               eyebrow="I'm a business"
               title="Fill your calendar"
@@ -144,6 +146,7 @@ export default async function LandingPage() {
 
 function PortalCard({
   href,
+  ctaLabel = "Create an account",
   signInHref,
   eyebrow,
   title,
@@ -153,6 +156,7 @@ function PortalCard({
   points,
 }: {
   href: string;
+  ctaLabel?: string;
   signInHref: string;
   eyebrow: string;
   title: string;
@@ -193,7 +197,7 @@ function PortalCard({
       <div className="mt-6 flex flex-col gap-2 sm:mt-auto sm:pt-6">
         <Button asChild size="lg" block variant={tone === "accent" ? "accent" : "primary"}>
           <Link href={href}>
-            Create an account
+            {ctaLabel}
             <ArrowRight />
           </Link>
         </Button>

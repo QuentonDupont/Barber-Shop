@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
 import { LogOut, Store } from "lucide-react";
 import Link from "next/link";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
@@ -41,15 +42,15 @@ export default async function AccountPage() {
           <CardHeader>
             <CardTitle>Run a business?</CardTitle>
             <CardDescription>
-              Bookly is free for shops. Create a separate business account to
-              publish your own booking page.
+              Bookly is in an invite-only beta for shops. Request an invite and
+              we&rsquo;ll set up your business account with you.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" size="lg" block>
-              <Link href="/sign-up?role=business_owner">
+              <Link href={BETA_INVITE_HREF}>
                 <Store />
-                Set up a business
+                {BETA_INVITE_LABEL}
               </Link>
             </Button>
           </CardContent>
