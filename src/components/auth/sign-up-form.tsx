@@ -13,6 +13,8 @@ import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
 import { GoogleButton } from "./google-button";
 import { signUpAction } from "@/lib/actions/auth";
 import { idleState } from "@/lib/actions/types";
+import { useT } from "@/lib/i18n/context";
+import { PRIVACY_POLICY_ROUTE, PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -33,6 +35,7 @@ export function SignUpForm({
   const [state, formAction] = useActionState(signUpAction, idleState);
   const [showPassword, setShowPassword] = useState(false);
   const errors = state.fieldErrors ?? {};
+  const t = useT();
 
   return (
     <div className="space-y-5">
@@ -146,6 +149,37 @@ export function SignUpForm({
           </div>
         </Field>
 
+        {/* PDPA consent (legal-review.md §3): its own control, unticked by
+            default, kept structurally separate from the terms-of-service
+            sentence below — two distinct controls, never bundled. */}
+        <div className="space-y-1.5 rounded-lg border border-border-strong p-3">
+          <label htmlFor="consent" className="flex items-start gap-2.5 text-sm text-pretty">
+            <input
+              id="consent"
+              name="consent"
+              type="checkbox"
+              defaultChecked={false}
+              aria-invalid={Boolean(errors.consent)}
+              className="mt-0.5 size-4 shrink-0 rounded border-border-strong accent-[var(--accent)]"
+            />
+            <span>
+              {t("privacy.consentCheckboxLabel", { version: PRIVACY_POLICY_VERSION })}{" "}
+              <Link
+                href={PRIVACY_POLICY_ROUTE}
+                target="_blank"
+                className="font-semibold text-accent hover:underline"
+              >
+                {t("privacy.policyLinkLabel")}
+              </Link>
+            </span>
+          </label>
+          {errors.consent ? (
+            <p className="text-sm text-danger" role="alert">
+              {errors.consent}
+            </p>
+          ) : null}
+        </div>
+
         <SubmitButton />
       </form>
 
@@ -160,8 +194,11 @@ export function SignUpForm({
       <GoogleButton role="customer" />
 
       <p className="text-center text-xs leading-relaxed text-fg-subtle text-pretty">
-        By creating an account you agree to TatNat&rsquo;s terms of service and
-        privacy policy.
+        By creating an account you agree to TatNat&rsquo;s terms of service and{" "}
+        <Link href={PRIVACY_POLICY_ROUTE} target="_blank" className="underline hover:text-fg">
+          privacy policy
+        </Link>
+        .
       </p>
     </div>
   );

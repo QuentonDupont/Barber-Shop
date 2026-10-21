@@ -1,0 +1,53 @@
+/**
+ * Shared PDPA privacy-policy constants (handoff 07, legal-review.md §3
+ * "Clear with conditions"). The copy itself lives in `dictionaries.ts` under
+ * the `privacy` namespace (th/en, same shape) — this file holds only the
+ * values both the signup consent checkbox and the policy page need to agree
+ * on byte-for-byte: the version string recorded on every `consent_records`
+ * row, and the placeholder contact address.
+ *
+ * Bump `PRIVACY_POLICY_VERSION` whenever the policy's substance changes —
+ * every consent is tied to a specific version, so a changed policy must
+ * never be silently covered by an old agreement (item 4/10).
+ */
+
+export const PRIVACY_POLICY_VERSION = "2026-10-21-draft-1";
+
+/**
+ * Placeholder until Legal/the CEO names an actual data-protection contact
+ * (legal-review.md §3's DPO note, handoff 07 item 9). Marked as a placeholder
+ * in the policy page copy itself — not a real inbox yet.
+ */
+export const PRIVACY_CONTACT_EMAIL = "privacy@tatnat.app";
+
+/** Route for the bilingual, draft privacy-policy page (item 6). */
+export const PRIVACY_POLICY_ROUTE = "/privacy";
+
+/**
+ * Minimum extra retention window for records Thai law treats as financial
+ * (legal-review.md §3: "commonly ~5 years for financial records"), counted
+ * from account closure. Account-lifetime data itself has no separate fixed
+ * window — it lives as long as the account is open.
+ */
+export const FINANCIAL_RECORD_RETENTION_YEARS = 5;
+
+/**
+ * Pure retention-math helper (handoff 07 item 17, "unit tests cover any
+ * extractable pure logic"): is `isoDate` past the financial-record retention
+ * window, measured from `now`?
+ */
+export function isPastFinancialRetention(isoDate: string, now: Date = new Date()): boolean {
+  const then = new Date(isoDate);
+  const cutoff = new Date(then);
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() + FINANCIAL_RECORD_RETENTION_YEARS);
+  return cutoff.getTime() <= now.getTime();
+}
+
+/**
+ * Pure version-comparison helper: has the policy changed since a given
+ * consent was recorded? String identity is enough — versions are opaque,
+ * sortable-looking date-prefixed tags, not a semver scheme to parse.
+ */
+export function isCurrentPolicyVersion(version: string): boolean {
+  return version === PRIVACY_POLICY_VERSION;
+}

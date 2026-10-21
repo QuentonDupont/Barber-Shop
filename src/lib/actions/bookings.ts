@@ -68,6 +68,23 @@ export async function createBookingAction(
   const supabase = await createClient();
   const { businessId, serviceId, startsAt, notes, staffId: requestedStaffId } = parsed.data;
 
+  // PDPA item 15: once a customer withdraws consent, new bookings are
+  // blocked (not silently processed) until they consent again — this is the
+  // one place a booking comes into existence, so it is the one place this is
+  // checked. See src/lib/actions/privacy.ts for the withdraw/reconsent
+  // actions themselves.
+  const { data: latestConsent } = await supabase
+    .from("consent_records")
+    .select("withdrawn_at")
+    .eq("user_id", session.userId)
+    .order("consented_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestConsent?.withdrawn_at) {
+    return errorState(t(locale, "privacy.bookingBlockedConsentWithdrawn"));
+  }
+
   const { data: business } = await supabase
     .from("businesses")
     .select("*")
