@@ -43,13 +43,24 @@ export default async function CalendarPage({
   const rangeEnd = view === "week" ? shiftDateKey(weekStart, 7) : shiftDateKey(selectedDate, 18);
 
   const supabase = await createClient();
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("business_id", business.id)
-    .gte("starts_at", zonedDayMinutesToUtc(rangeStart, 0, business.timezone).toISOString())
-    .lt("starts_at", zonedDayMinutesToUtc(rangeEnd, 0, business.timezone).toISOString())
-    .order("starts_at", { ascending: true });
+  const [{ data: bookings }, { data: staff }] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("*")
+      .eq("business_id", business.id)
+      .gte("starts_at", zonedDayMinutesToUtc(rangeStart, 0, business.timezone).toISOString())
+      .lt("starts_at", zonedDayMinutesToUtc(rangeEnd, 0, business.timezone).toISOString())
+      .order("starts_at", { ascending: true }),
+    // Only active staff are offered as a filter — a deactivated barber's past
+    // bookings still show under "All staff", matching item 22's "past
+    // bookings are untouched" rule without resurrecting them as a filter choice.
+    supabase
+      .from("staff")
+      .select("id, name")
+      .eq("business_id", business.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true }),
+  ]);
 
   return (
     <PageContainer>
@@ -61,6 +72,7 @@ export default async function CalendarPage({
         <CalendarView
           business={business}
           bookings={bookings ?? []}
+          staff={staff ?? []}
           selectedDate={selectedDate}
           today={today}
           view={view}
