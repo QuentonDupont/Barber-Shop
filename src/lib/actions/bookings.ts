@@ -122,6 +122,12 @@ export async function createBookingAction(
     }
   }
 
+  // Name lookup for the candidate being tried, denormalised onto the booking
+  // row (same pattern as `service_name`/`customer_name`) so My bookings and
+  // the owner's calendar still read correctly even if this staff member is
+  // later renamed or deactivated.
+  const staffNameById = new Map(allStaff.map((s) => [s.id, s.name]));
+
   let booking: BookingRow | null = null;
   let lastError: { code?: string; message: string } | null = null;
 
@@ -139,6 +145,7 @@ export async function createBookingAction(
         service_id: serviceId,
         customer_id: session.userId,
         staff_id: candidateStaffId,
+        staff_name: candidateStaffId ? staffNameById.get(candidateStaffId) ?? null : null,
         starts_at: slot.startsAt,
         ends_at: slot.endsAt,
         status: business.auto_confirm ? "confirmed" : "pending",
@@ -177,6 +184,21 @@ export async function createBookingAction(
   revalidatePath(businessPath(business.slug));
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
+
+  // Only surface the assigned name when the customer didn't name one
+  // themselves ("any available") — a named choice already knows who it
+  // asked for, so repeating it back adds nothing.
+  const wasAnyAvailable = allStaff.length > 0 && (!requestedStaffId || requestedStaffId === "any");
+  if (wasAnyAvailable && booking.staff_name) {
+    return successState(
+      t(
+        locale,
+        business.auto_confirm ? "toast.bookedAutoConfirmWithStaff" : "toast.bookedManualConfirmWithStaff",
+        { name: booking.staff_name },
+      ),
+      { assignedStaffId: booking.staff_id ?? undefined, assignedStaffName: booking.staff_name },
+    );
+  }
 
   return successState(
     t(locale, business.auto_confirm ? "toast.bookedAutoConfirm" : "toast.bookedManualConfirm"),

@@ -143,7 +143,7 @@ redirect URI in the Google Cloud console.
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | for the map | Enable *Maps JavaScript API* and *Places API*. Restrict by HTTP referrer |
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | no | Map ID for advanced markers. Falls back to `DEMO_MAP_ID`, which is watermarked and rate limited — set a real one for production |
 | `RESEND_API_KEY` | no | Booking emails. Without it, sends are skipped and logged |
-| `RESEND_FROM` | no | e.g. `Bookly <bookings@yourdomain.com>` |
+| `RESEND_FROM` | no | e.g. `TatNat <bookings@yourdomain.com>` |
 | `NEXT_PUBLIC_SITE_URL` | no | Used for OAuth redirects and metadata |
 
 The app degrades rather than crashing: without Maps the location step becomes a

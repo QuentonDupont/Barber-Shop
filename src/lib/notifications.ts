@@ -156,6 +156,9 @@ export async function notifyBookingCreated(
 
   const rows: [string, string][] = [
     [e("email.rowService"), escapeHtml(booking.service_name)],
+    ...(booking.staff_name
+      ? ([[e("email.rowStaff"), escapeHtml(booking.staff_name)]] as [string, string][])
+      : []),
     [e("email.rowWhen"), when],
     [e("email.rowWhere"), escapeHtml(business.address ?? business.name)],
     [e("email.rowPrice"), formatMoney(booking.price, booking.currency)],

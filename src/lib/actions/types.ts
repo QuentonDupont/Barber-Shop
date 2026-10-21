@@ -7,6 +7,13 @@ export interface ActionState {
   message?: string;
   /** Field-level messages keyed by input name. */
   fieldErrors?: Record<string, string>;
+  /**
+   * Set only by `createBookingAction`, when the customer chose "any
+   * available": which staff member the server actually assigned. A named
+   * choice doesn't need this — the client already knows who it asked for.
+   */
+  assignedStaffId?: string;
+  assignedStaffName?: string;
 }
 
 export const idleState: ActionState = { status: "idle" };
@@ -18,8 +25,11 @@ export function errorState(
   return { status: "error", message, fieldErrors };
 }
 
-export function successState(message?: string): ActionState {
-  return { status: "success", message };
+export function successState(
+  message?: string,
+  extra?: Pick<ActionState, "assignedStaffId" | "assignedStaffName">,
+): ActionState {
+  return { status: "success", message, ...extra };
 }
 
 /** Turns a Zod `flatten()` result into `fieldErrors`. */

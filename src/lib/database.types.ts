@@ -131,6 +131,7 @@ export type BookingRow = {
   service_id: string;
   customer_id: string;
   staff_id: string | null;
+  staff_name: string | null;
   starts_at: string;
   ends_at: string;
   status: BookingStatus;

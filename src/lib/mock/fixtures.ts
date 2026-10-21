@@ -321,6 +321,7 @@ export function buildDB(): MockDB {
       service_id: args.service_id,
       customer_id: args.customer_id,
       staff_id: null,
+      staff_name: null,
       starts_at,
       ends_at,
       status: args.status,

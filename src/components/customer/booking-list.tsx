@@ -101,6 +101,7 @@ function BookingCard({
         <span className="block truncate text-sm text-fg-muted">
           {booking.service_name} ·{" "}
           {formatInBusinessTz(booking.starts_at, timezone, "h:mm a")}
+          {booking.staff_name ? ` · ${booking.staff_name}` : ""}
         </span>
         <span className="flex flex-wrap items-center gap-1.5 pt-0.5">
           <BookingStatusBadge status={booking.status} short />
@@ -160,6 +161,12 @@ function DetailSheet({
               <dt className="text-sm text-fg-muted">Service</dt>
               <dd className="text-right font-semibold">{booking.service_name}</dd>
             </div>
+            {booking.staff_name ? (
+              <div className="flex items-start justify-between gap-4 py-3">
+                <dt className="text-sm text-fg-muted">Barber</dt>
+                <dd className="text-right font-semibold">{booking.staff_name}</dd>
+              </div>
+            ) : null}
             <div className="flex items-start justify-between gap-4 py-3">
               <dt className="text-sm text-fg-muted">Time zone</dt>
               <dd className="text-right font-semibold">{timezone}</dd>
