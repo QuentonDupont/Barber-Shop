@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
   return (
     <div className="flex min-h-dvh flex-col bg-bg">
       <header className="pt-safe">
@@ -14,7 +17,7 @@ export default function AuthLayout({
             className="inline-flex h-11 items-center gap-1.5 -ml-2 px-2 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
           >
             <ArrowLeft className="size-4" />
-            Back
+            {t(locale, "common.back")}
           </Link>
           <Logo showWordmark={false} />
         </div>

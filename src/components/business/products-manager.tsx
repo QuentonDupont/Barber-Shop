@@ -28,10 +28,12 @@ import { idleState } from "@/lib/actions/types";
 import type { ProductRow } from "@/lib/database.types";
 import { formatMoney } from "@/lib/booking/time";
 import { accentTile } from "@/lib/shop";
+import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import { AccentPicker } from "./shop-fields";
 
 export function ProductsManager({ products }: { products: ProductRow[] }) {
+  const t = useT();
   const [editing, setEditing] = useState<ProductRow | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -40,12 +42,12 @@ export function ProductsManager({ products }: { products: ProductRow[] }) {
       {products.length === 0 ? (
         <EmptyState
           icon={ShoppingBag}
-          title="No products yet"
-          description="Sell merch, gift cards or take-home products straight from your page — customers pay and pick up, or you post it out."
+          title={t("shopfrontAdmin.productsEmptyTitle")}
+          description={t("shopfrontAdmin.productsEmptyDescription")}
           action={
             <Button variant="accent" size="lg" onClick={() => setCreating(true)}>
               <Plus />
-              Add your first product
+              {t("shopfrontAdmin.addFirstProduct")}
             </Button>
           }
         />
@@ -66,7 +68,7 @@ export function ProductsManager({ products }: { products: ProductRow[] }) {
             className="mt-4 hidden sm:inline-flex"
           >
             <Plus />
-            Add a product
+            {t("shopfrontAdmin.addProduct")}
           </Button>
           {/* Clearance so the last row can scroll clear of the sticky bar. */}
           <div className="h-[4.5rem] sm:hidden" aria-hidden />
@@ -78,7 +80,7 @@ export function ProductsManager({ products }: { products: ProductRow[] }) {
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-nav backdrop-blur-lg sm:hidden">
             <Button variant="accent" size="lg" block onClick={() => setCreating(true)}>
               <Plus />
-              Add a product
+              {t("shopfrontAdmin.addProduct")}
             </Button>
           </div>
         </>
@@ -106,6 +108,7 @@ function ProductCard({
   product: ProductRow;
   onEdit: (product: ProductRow) => void;
 }) {
+  const t = useT();
   return (
     <div
       className={cn(
@@ -130,12 +133,16 @@ function ProductCard({
       >
         <span className="flex flex-wrap items-center gap-2">
           <span className="truncate font-semibold">{product.name}</span>
-          {!product.is_active ? <Badge tone="neutral">Hidden</Badge> : null}
+          {!product.is_active ? <Badge tone="neutral">{t("shopfrontAdmin.hidden")}</Badge> : null}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-sm">
           <span className="font-semibold text-fg">{formatMoney(product.price, product.currency)}</span>
           <span className="text-fg-subtle">
-            {product.stock === null ? "In stock" : product.stock === 0 ? "Sold out" : `${product.stock} left`}
+            {product.stock === null
+              ? t("shopfrontAdmin.inStock")
+              : product.stock === 0
+                ? t("shopfrontAdmin.soldOut")
+                : t("shopfrontAdmin.stockLeft", { n: product.stock })}
           </span>
         </span>
       </button>
@@ -146,7 +153,7 @@ function ProductCard({
           type="button"
           onClick={() => onEdit(product)}
           className="flex size-11 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg"
-          aria-label={`Edit ${product.name}`}
+          aria-label={t("shopfrontAdmin.editName", { name: product.name })}
         >
           <Pencil className="size-4" />
         </button>
@@ -156,6 +163,7 @@ function ProductCard({
 }
 
 function ToggleForm({ product }: { product: ProductRow }) {
+  const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
   return (
     <form ref={formRef} action={toggleProductAction} className="flex items-center">
@@ -164,7 +172,11 @@ function ToggleForm({ product }: { product: ProductRow }) {
       <Switch
         checked={product.is_active}
         onCheckedChange={() => formRef.current?.requestSubmit()}
-        aria-label={`${product.is_active ? "Hide" : "Show"} ${product.name}`}
+        aria-label={
+          product.is_active
+            ? t("shopfrontAdmin.hideName", { name: product.name })
+            : t("shopfrontAdmin.showName", { name: product.name })
+        }
       />
     </form>
   );
@@ -179,6 +191,7 @@ function ProductSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveProductAction, idleState);
   const [deleteState, deleteAction] = useActionState(deleteProductAction, idleState);
   const [isActive, setIsActive] = useState(product?.is_active ?? true);
@@ -186,25 +199,25 @@ function ProductSheet({
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Saved.");
+      toast.success(state.message ?? t("common.saved"));
       onOpenChange(false);
     }
-  }, [state, onOpenChange]);
+  }, [state, onOpenChange, t]);
 
   useEffect(() => {
     if (deleteState.status === "success") {
-      toast.success(deleteState.message ?? "Deleted.");
+      toast.success(deleteState.message ?? t("common.deleted"));
       onOpenChange(false);
     }
     if (deleteState.status === "error" && deleteState.message) toast.error(deleteState.message);
-  }, [deleteState, onOpenChange]);
+  }, [deleteState, onOpenChange, t]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{product ? "Edit product" : "New product"}</SheetTitle>
-          <SheetDescription>Merch, gift cards or take-home products. Pick an emoji as its cover art.</SheetDescription>
+          <SheetTitle>{product ? t("shopfrontAdmin.editProduct") : t("shopfrontAdmin.newProduct")}</SheetTitle>
+          <SheetDescription>{t("shopfrontAdmin.productSheetDescription")}</SheetDescription>
         </SheetHeader>
 
         <form action={formAction}>
@@ -218,7 +231,7 @@ function ProductSheet({
             <input type="hidden" name="id" value={product?.id ?? ""} />
 
             <div className="grid grid-cols-[5rem_1fr] gap-3">
-              <Field label="Emoji" htmlFor="product-emoji">
+              <Field label={t("shopfrontAdmin.emojiLabel")} htmlFor="product-emoji">
                 <Input
                   id="product-emoji"
                   name="imageEmoji"
@@ -228,12 +241,12 @@ function ProductSheet({
                   maxLength={8}
                 />
               </Field>
-              <Field label="Name" htmlFor="product-name" error={errors.name} required>
+              <Field label={t("servicesAdmin.nameLabel")} htmlFor="product-name" error={errors.name} required>
                 <Input
                   id="product-name"
                   name="name"
                   defaultValue={product?.name ?? ""}
-                  placeholder="Nong Barber tee"
+                  placeholder={t("shopfrontAdmin.productNamePlaceholder")}
                   enterKeyHint="next"
                   autoFocus
                   required
@@ -242,7 +255,7 @@ function ProductSheet({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Price" htmlFor="product-price" error={errors.price} hint="THB">
+              <Field label={t("servicesAdmin.priceLabel")} htmlFor="product-price" error={errors.price} hint={t("servicesAdmin.priceHint")}>
                 <Input
                   id="product-price"
                   name="price"
@@ -253,7 +266,7 @@ function ProductSheet({
                   defaultValue={product?.price ?? 0}
                 />
               </Field>
-              <Field label="Stock" htmlFor="product-stock" hint="Blank = unlimited">
+              <Field label={t("shopfrontAdmin.stockLabel")} htmlFor="product-stock" hint={t("shopfrontAdmin.stockHint")}>
                 <Input
                   id="product-stock"
                   name="stock"
@@ -267,23 +280,23 @@ function ProductSheet({
               </Field>
             </div>
 
-            <Field label="Description" htmlFor="product-description" hint="Optional.">
+            <Field label={t("servicesAdmin.descriptionLabel")} htmlFor="product-description" hint={t("shopfrontAdmin.campaignDescriptionHint")}>
               <Textarea
                 id="product-description"
                 name="description"
                 defaultValue={product?.description ?? ""}
-                placeholder="Heavyweight cotton, shop logo on the chest."
+                placeholder={t("shopfrontAdmin.productDescriptionPlaceholder")}
                 maxLength={400}
               />
             </Field>
 
-            <Field label="Card colour">
+            <Field label={t("shopfrontAdmin.cardColour")}>
               <AccentPicker defaultValue={product?.accent ?? "amber"} />
             </Field>
 
             <div className="flex min-h-11 items-center justify-between gap-3 rounded-lg bg-surface-muted px-3.5">
               <label htmlFor="product-active" className="text-sm font-medium">
-                Visible to customers
+                {t("shopfrontAdmin.visibleToCustomers")}
               </label>
               <Switch id="product-active" checked={isActive} onCheckedChange={setIsActive} />
               <input type="hidden" name="isActive" value={isActive ? "on" : "off"} />
@@ -306,14 +319,16 @@ function ProductSheet({
 
 function SaveButton({ isNew }: { isNew: boolean }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" variant="accent" loading={pending} className="sm:w-auto">
-      {isNew ? "Add product" : "Save changes"}
+      {isNew ? t("shopfrontAdmin.addProductButton") : t("shopfrontAdmin.saveChanges")}
     </Button>
   );
 }
 
 function DeleteButton({ id, action }: { id: string; action: (formData: FormData) => void }) {
+  const t = useT();
   return (
     <Button
       type="button"
@@ -327,7 +342,7 @@ function DeleteButton({ id, action }: { id: string; action: (formData: FormData)
       }}
     >
       <Trash2 />
-      Delete
+      {t("shopfrontAdmin.delete")}
     </Button>
   );
 }

@@ -8,27 +8,33 @@ import { createClient } from "@/lib/supabase/server";
 import { isMockMode } from "@/lib/mock/config";
 import { setMockUserByRole } from "@/lib/mock/client";
 import { errorState, fieldErrorsFrom, type ActionState } from "./types";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 const roleSchema = z.enum(["customer", "business_owner"]);
 
 // Invite-only beta: self-sign-up creates customers only. Business accounts are
 // made by staff (see handoff 01); the database enforces the same rule, so this
 // is the friendly message, not the lock.
-const signUpSchema = z.object({
-  fullName: z.string().trim().min(2, "Please tell us your name"),
-  email: z.email("Enter a valid email address"),
-  phone: z
-    .string()
-    .trim()
-    .min(6, "Enter a phone number we can reach you on")
-    .max(24, "That phone number looks too long"),
-  password: z.string().min(8, "Use at least 8 characters"),
-});
+function signUpSchema(locale: Locale) {
+  return z.object({
+    fullName: z.string().trim().min(2, t(locale, "auth.errorNameRequired")),
+    email: z.email(t(locale, "auth.errorEmailInvalid")),
+    phone: z
+      .string()
+      .trim()
+      .min(6, t(locale, "auth.errorPhoneTooShort"))
+      .max(24, t(locale, "auth.errorPhoneTooLong")),
+    password: z.string().min(8, t(locale, "auth.errorPasswordTooShort")),
+  });
+}
 
-const signInSchema = z.object({
-  email: z.email("Enter a valid email address"),
-  password: z.string().min(1, "Enter your password"),
-});
+function signInSchema(locale: Locale) {
+  return z.object({
+    email: z.email(t(locale, "auth.errorEmailInvalid")),
+    password: z.string().min(1, t(locale, "auth.errorPasswordRequired")),
+  });
+}
 
 function safeNext(next: FormDataEntryValue | null, fallback: string): string {
   const value = typeof next === "string" ? next : "";
@@ -44,13 +50,13 @@ export async function signUpAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
+
   if (formData.get("role") === "business_owner") {
-    return errorState(
-      "Business accounts are invite-only during the beta. Request an invite from the home page.",
-    );
+    return errorState(t(locale, "auth.errorBusinessInviteOnly"));
   }
 
-  const parsed = signUpSchema.safeParse({
+  const parsed = signUpSchema(locale).safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     phone: formData.get("phone"),
@@ -59,7 +65,7 @@ export async function signUpAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "auth.errorCheckFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -81,7 +87,7 @@ export async function signUpAction(
   if (error) {
     return errorState(
       error.message.toLowerCase().includes("already registered")
-        ? "That email already has an account. Try signing in instead."
+        ? t(locale, "auth.errorEmailAlreadyRegistered")
         : error.message,
     );
   }
@@ -95,14 +101,15 @@ export async function signInAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = signInSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = signInSchema(locale).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "auth.errorCheckFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -112,7 +119,7 @@ export async function signInAction(
 
   if (error) {
     // Deliberately vague: do not confirm whether an address has an account.
-    return errorState("That email and password do not match an account.");
+    return errorState(t(locale, "auth.errorCredentialsMismatch"));
   }
 
   const role =
@@ -123,6 +130,7 @@ export async function signInAction(
 }
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
+  const locale = await getLocale();
   const role = roleSchema.catch("customer").parse(formData.get("role"));
 
   // Mock mode: no real OAuth. "Continue with Google" just drops you into the
@@ -146,7 +154,9 @@ export async function signInWithGoogleAction(formData: FormData): Promise<void> 
   });
 
   if (error || !data.url) {
-    redirect(`/sign-in?error=${encodeURIComponent(error?.message ?? "Google sign-in failed")}`);
+    redirect(
+      `/sign-in?error=${encodeURIComponent(error?.message ?? t(locale, "auth.errorGoogleSignInFailed"))}`,
+    );
   }
 
   redirect(data.url);

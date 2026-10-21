@@ -24,6 +24,8 @@ import {
   formatMoney,
   zonedDayMinutesToUtc,
 } from "@/lib/booking/time";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Today" };
 
@@ -34,6 +36,7 @@ export default async function DashboardHome({
 }) {
   const { welcome } = await searchParams;
   const ctx = await getOwnerContext();
+  const locale = await getLocale();
 
   if (!ctx.business) redirect("/dashboard/onboarding");
   if (ctx.business.onboarding_step < 3) redirect("/dashboard/onboarding");
@@ -76,12 +79,17 @@ export default async function DashboardHome({
   return (
     <PageContainer>
       <PageHeader
-        title={`Today, ${formatInBusinessTz(new Date(), business.timezone, "d MMMM")}`}
-        description={`${business.name} · times shown in ${business.timezone}`}
+        title={t(locale, "today.titleWithDate", {
+          date: formatInBusinessTz(new Date(), business.timezone, "d MMMM", locale),
+        })}
+        description={t(locale, "today.description", {
+          name: business.name,
+          timezone: business.timezone,
+        })}
         action={
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
             <Link href="/dashboard/calendar">
-              Open calendar
+              {t(locale, "today.openCalendar")}
               <ArrowRight />
             </Link>
           </Button>
@@ -89,9 +97,8 @@ export default async function DashboardHome({
       />
 
       {welcome ? (
-        <Alert tone="success" title="Setup complete" className="mb-5">
-          Your schedule is live. Add your services next, then switch your page on
-          from Settings so customers can find you.
+        <Alert tone="success" title={t(locale, "today.setupCompleteTitle")} className="mb-5">
+          {t(locale, "today.setupCompleteBody")}
         </Alert>
       ) : null}
 
@@ -102,15 +109,14 @@ export default async function DashboardHome({
             <div className="flex items-start gap-3">
               <Scissors className="mt-0.5 size-5 shrink-0 text-accent" />
               <div>
-                <p className="font-semibold">Add your first service</p>
+                <p className="font-semibold">{t(locale, "today.addFirstServiceTitle")}</p>
                 <p className="text-sm text-fg-muted text-pretty">
-                  Customers book a service, not just a time. Add one and TatNat
-                  builds the slots.
+                  {t(locale, "today.addFirstServiceBody")}
                 </p>
               </div>
             </div>
             <Button asChild variant="accent" size="md" className="shrink-0">
-              <Link href="/dashboard/services">Add a service</Link>
+              <Link href="/dashboard/services">{t(locale, "today.addAService")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -120,50 +126,59 @@ export default async function DashboardHome({
             <div className="flex items-start gap-3">
               <Rocket className="mt-0.5 size-5 shrink-0 text-accent" />
               <div>
-                <p className="font-semibold">You are not live yet</p>
+                <p className="font-semibold">{t(locale, "today.notLiveTitle")}</p>
                 <p className="text-sm text-fg-muted text-pretty">
-                  Everything is ready. Publish your page to start taking bookings.
+                  {t(locale, "today.notLiveBody")}
                 </p>
               </div>
             </div>
             <Button asChild variant="accent" size="md" className="shrink-0">
-              <Link href="/dashboard/settings">Go live</Link>
+              <Link href="/dashboard/settings">{t(locale, "today.goLive")}</Link>
             </Button>
           </CardContent>
         </Card>
       ) : null}
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <Stat icon={CalendarCheck} label="Today" value={String(live.length)} hint="bookings" />
+        <Stat
+          icon={CalendarCheck}
+          label={t(locale, "today.statToday")}
+          value={String(live.length)}
+          hint={t(locale, "today.statTodayHint")}
+        />
         <Stat
           icon={CalendarClock}
-          label="To confirm"
+          label={t(locale, "today.statToConfirm")}
           value={String(pending.length)}
-          hint={pending.length === 1 ? "request" : "requests"}
+          hint={
+            pending.length === 1
+              ? t(locale, "today.statToConfirmHintOne")
+              : t(locale, "today.statToConfirmHintMany")
+          }
           highlight={pending.length > 0}
         />
         <Stat
           icon={CircleDollarSign}
-          label="Expected"
+          label={t(locale, "today.statExpected")}
           value={formatMoney(expected, live[0]?.currency ?? "THB")}
-          hint="from today"
+          hint={t(locale, "today.statExpectedHint")}
           className="col-span-2 sm:col-span-1"
         />
       </div>
 
       <section className="space-y-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-fg-subtle">
-          Today&rsquo;s schedule
+          {t(locale, "today.todaysSchedule")}
         </h2>
 
         {bookings.length === 0 ? (
           <EmptyState
             icon={PartyPopper}
-            title="Nothing booked today"
+            title={t(locale, "today.nothingBookedTodayTitle")}
             description={
               business.is_published
-                ? "A clear day. New bookings will appear here the moment they come in."
-                : "Publish your page from Settings and bookings will start landing here."
+                ? t(locale, "today.nothingBookedPublishedBody")
+                : t(locale, "today.nothingBookedUnpublishedBody")
             }
           />
         ) : (
@@ -183,20 +198,20 @@ export default async function DashboardHome({
         <section className="mt-8 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold uppercase tracking-wide text-fg-subtle">
-              Coming up
+              {t(locale, "today.comingUp")}
             </h2>
             <Link
               href="/dashboard/calendar"
               className="text-sm font-semibold text-accent hover:underline"
             >
-              See all
+              {t(locale, "today.seeAll")}
             </Link>
           </div>
           <div className="space-y-2.5">
             {upcoming.map((booking) => (
               <div key={booking.id} className="space-y-1.5">
                 <p className="text-xs font-semibold text-fg-subtle">
-                  {formatInBusinessTz(booking.starts_at, business.timezone, "EEEE d MMM")}
+                  {formatInBusinessTz(booking.starts_at, business.timezone, "EEEE d MMM", locale)}
                 </p>
                 <OwnerBookingRow booking={booking} timezone={business.timezone} />
               </div>

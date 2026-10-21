@@ -259,9 +259,10 @@ export async function updateBookingStatusAction(
 ): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
   const parsedStatus = statusSchema.safeParse(formData.get("status"));
+  const locale = await getLocale();
 
   if (!id || !parsedStatus.success) {
-    return errorState("That update could not be applied.");
+    return errorState(t(locale, "bookingAdmin.errorUpdateFailed"));
   }
 
   const ctx = await requireBusiness();
@@ -275,7 +276,7 @@ export async function updateBookingStatusAction(
     .eq("business_id", ctx.business.id)
     .maybeSingle();
 
-  if (!booking) return errorState("That booking no longer exists.");
+  if (!booking) return errorState(t(locale, "toast.bookingGone"));
 
   const { error } = await supabase
     .from("bookings")
@@ -290,9 +291,7 @@ export async function updateBookingStatusAction(
 
   if (error) {
     if (error.code === "23P01") {
-      return errorState(
-        "Confirming this would clash with another booking at the same time.",
-      );
+      return errorState(t(locale, "bookingAdmin.errorConfirmClash"));
     }
     return errorState(error.message);
   }
@@ -306,10 +305,10 @@ export async function updateBookingStatusAction(
   revalidatePath("/app/bookings");
 
   const labels: Record<typeof status, string> = {
-    confirmed: "Booking confirmed.",
-    cancelled: "Booking cancelled.",
-    completed: "Marked as completed.",
-    no_show: "Marked as a no-show.",
+    confirmed: t(locale, "bookingAdmin.statusConfirmed"),
+    cancelled: t(locale, "toast.cancelled"),
+    completed: t(locale, "bookingAdmin.statusCompleted"),
+    no_show: t(locale, "bookingAdmin.statusNoShow"),
   };
   return successState(labels[status]);
 }
@@ -333,8 +332,9 @@ export async function rescheduleBookingAction(
     id: formData.get("id"),
     startsAt: formData.get("startsAt"),
   });
+  const locale = await getLocale();
 
-  if (!parsed.success) return errorState("That new time could not be read.");
+  if (!parsed.success) return errorState(t(locale, "bookingAdmin.errorTimeUnreadable"));
 
   const ctx = await requireBusiness();
   const supabase = await createClient();
@@ -346,9 +346,9 @@ export async function rescheduleBookingAction(
     .eq("business_id", ctx.business.id)
     .maybeSingle();
 
-  if (!booking) return errorState("That booking no longer exists.");
+  if (!booking) return errorState(t(locale, "toast.bookingGone"));
   if (booking.status !== "pending" && booking.status !== "confirmed") {
-    return errorState("Only a live booking can be moved.");
+    return errorState(t(locale, "bookingAdmin.errorOnlyLiveCanMove"));
   }
 
   const { data: service } = await supabase
@@ -357,7 +357,7 @@ export async function rescheduleBookingAction(
     .eq("id", booking.service_id)
     .maybeSingle();
 
-  if (!service) return errorState("The service for this booking no longer exists.");
+  if (!service) return errorState(t(locale, "bookingAdmin.errorServiceGone"));
 
   const date = toDateKey(new Date(parsed.data.startsAt), ctx.business.timezone);
   const sources = await loadAvailabilitySources(supabase, ctx.business, date, date, {
@@ -374,9 +374,7 @@ export async function rescheduleBookingAction(
   const slot = findSlot({ ...input, rules: { ...input.rules, minNoticeMin: 0 } }, parsed.data.startsAt);
 
   if (!slot) {
-    return errorState(
-      "That time is outside opening hours, inside a break, or already booked.",
-    );
+    return errorState(t(locale, "bookingAdmin.errorSlotUnavailable"));
   }
 
   const { error } = await supabase
@@ -387,7 +385,7 @@ export async function rescheduleBookingAction(
 
   if (error) {
     if (error.code === "23P01") {
-      return errorState("Another booking already occupies that time.");
+      return errorState(t(locale, "bookingAdmin.errorSlotClash"));
     }
     return errorState(error.message);
   }
@@ -395,7 +393,7 @@ export async function rescheduleBookingAction(
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
   revalidatePath("/app/bookings");
-  return successState("Booking moved.");
+  return successState(t(locale, "common.bookingMoved"));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -423,8 +421,10 @@ export async function getMoveOptionsAction(
   bookingId: string,
   date: string,
 ): Promise<MoveOptionsResult> {
+  const locale = await getLocale();
+
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return { status: "error", message: "That date could not be read." };
+    return { status: "error", message: t(locale, "bookingAdmin.errorDateUnreadable") };
   }
 
   const ctx = await requireBusiness();
@@ -437,7 +437,7 @@ export async function getMoveOptionsAction(
     .eq("business_id", ctx.business.id)
     .maybeSingle();
 
-  if (!booking) return { status: "error", message: "That booking no longer exists." };
+  if (!booking) return { status: "error", message: t(locale, "toast.bookingGone") };
 
   const { data: service } = await supabase
     .from("services")
@@ -445,7 +445,7 @@ export async function getMoveOptionsAction(
     .eq("id", booking.service_id)
     .maybeSingle();
 
-  if (!service) return { status: "error", message: "The service for this booking no longer exists." };
+  if (!service) return { status: "error", message: t(locale, "bookingAdmin.errorServiceGone") };
 
   const sources = await loadAvailabilitySources(supabase, ctx.business, date, date, {
     ignoreBookingId: booking.id,

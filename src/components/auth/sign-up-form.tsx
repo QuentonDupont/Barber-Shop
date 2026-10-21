@@ -9,16 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/misc";
-import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
+import { BETA_INVITE_HREF } from "@/lib/beta";
 import { GoogleButton } from "./google-button";
 import { signUpAction } from "@/lib/actions/auth";
 import { idleState } from "@/lib/actions/types";
+import { useT } from "@/lib/i18n/context";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" block loading={pending} variant="accent">
-      Create account
+      {t("auth.createAccountButton")}
     </Button>
   );
 }
@@ -30,6 +32,7 @@ export function SignUpForm({
   businessLinkUsed: boolean;
   next?: string;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(signUpAction, idleState);
   const [showPassword, setShowPassword] = useState(false);
   const errors = state.fieldErrors ?? {};
@@ -38,23 +41,23 @@ export function SignUpForm({
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Create your account
+          {t("auth.createYourAccount")}
         </h1>
         <p className="mt-1.5 text-sm text-fg-muted">
-          Already with us?{" "}
+          {t("auth.alreadyWithUs")}{" "}
           <Link href={next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"} className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">
-            Sign in
+            {t("auth.signIn")}
           </Link>
         </p>
       </div>
 
       {businessLinkUsed ? (
         <Alert tone="info">
-          TatNat is in an invite-only beta for businesses.{" "}
+          {t("auth.businessInviteNotice")}{" "}
           <Link href={BETA_INVITE_HREF} className="font-semibold underline">
-            {BETA_INVITE_LABEL}
-          </Link>{" "}
-          — or create a customer account below to book appointments.
+            {t("auth.requestBetaInvite")}
+          </Link>
+          {t("auth.businessInviteSuffix")}
         </Alert>
       ) : null}
 
@@ -65,7 +68,7 @@ export function SignUpForm({
       <form action={formAction} className="space-y-4" noValidate>
         {next ? <input type="hidden" name="next" value={next} /> : null}
         <Field
-          label="Full name"
+          label={t("auth.fullNameLabel")}
           htmlFor="fullName"
           error={errors.fullName}
           required
@@ -75,13 +78,13 @@ export function SignUpForm({
             name="fullName"
             autoComplete="name"
             enterKeyHint="next"
-            placeholder="Somchai Ratanakul"
+            placeholder={t("auth.fullNamePlaceholder")}
             aria-invalid={Boolean(errors.fullName)}
             required
           />
         </Field>
 
-        <Field label="Email" htmlFor="email" error={errors.email} required>
+        <Field label={t("auth.emailLabel")} htmlFor="email" error={errors.email} required>
           <Input
             id="email"
             name="email"
@@ -91,17 +94,17 @@ export function SignUpForm({
             autoCapitalize="none"
             spellCheck={false}
             enterKeyHint="next"
-            placeholder="you@example.com"
+            placeholder={t("auth.emailPlaceholder")}
             aria-invalid={Boolean(errors.email)}
             required
           />
         </Field>
 
         <Field
-          label="Mobile number"
+          label={t("auth.mobileNumberLabel")}
           htmlFor="phone"
           error={errors.phone}
-          hint="Used only so a shop can reach you about a booking."
+          hint={t("auth.mobileNumberHint")}
           required
         >
           <Input
@@ -111,17 +114,17 @@ export function SignUpForm({
             inputMode="tel"
             autoComplete="tel"
             enterKeyHint="next"
-            placeholder="081 234 5678"
+            placeholder={t("auth.mobileNumberPlaceholder")}
             aria-invalid={Boolean(errors.phone)}
             required
           />
         </Field>
 
         <Field
-          label="Password"
+          label={t("auth.passwordLabel")}
           htmlFor="password"
           error={errors.password}
-          hint="At least 8 characters."
+          hint={t("auth.passwordHint")}
           required
         >
           <div className="relative">
@@ -139,7 +142,7 @@ export function SignUpForm({
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-fg-subtle transition-colors hover:text-fg"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
             >
               {showPassword ? <EyeOff className="size-4.5" /> : <Eye className="size-4.5" />}
             </button>
@@ -152,7 +155,7 @@ export function SignUpForm({
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
         <span className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
-          or
+          {t("auth.or")}
         </span>
         <Separator className="flex-1" />
       </div>
@@ -160,8 +163,7 @@ export function SignUpForm({
       <GoogleButton role="customer" />
 
       <p className="text-center text-xs leading-relaxed text-fg-subtle text-pretty">
-        By creating an account you agree to TatNat&rsquo;s terms of service and
-        privacy policy.
+        {t("auth.termsNotice")}
       </p>
     </div>
   );

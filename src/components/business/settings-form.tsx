@@ -23,18 +23,21 @@ import { idleState } from "@/lib/actions/types";
 import type { BusinessRow } from "@/lib/database.types";
 import { formatDuration } from "@/lib/booking/time";
 import { businessPath } from "@/lib/routes";
+import { useT } from "@/lib/i18n/context";
 
 const SLOT_INTERVALS = [5, 10, 15, 20, 30, 60];
 
-const NOTICE_OPTIONS = [
-  { value: 0, label: "No minimum — book right up to the minute" },
-  { value: 30, label: "30 minutes" },
-  { value: 60, label: "1 hour" },
-  { value: 120, label: "2 hours" },
-  { value: 60 * 12, label: "12 hours" },
-  { value: 60 * 24, label: "1 day" },
-  { value: 60 * 48, label: "2 days" },
-];
+const NOTICE_VALUES = [0, 30, 60, 120, 60 * 12, 60 * 24, 60 * 48] as const;
+
+const NOTICE_KEYS: Record<number, string> = {
+  0: "settingsAdmin.notice0",
+  30: "settingsAdmin.notice30",
+  60: "settingsAdmin.notice60",
+  120: "settingsAdmin.notice120",
+  [60 * 12]: "settingsAdmin.notice720",
+  [60 * 24]: "settingsAdmin.notice1440",
+  [60 * 48]: "settingsAdmin.notice2880",
+};
 
 const TIMEZONES = [
   "Asia/Bangkok",
@@ -60,6 +63,7 @@ export function SettingsForm({
   business: BusinessRow;
   activeServiceCount: number;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveBusinessSettingsAction, idleState);
   const [published, setPublished] = useState(business.is_published);
   const [autoConfirm, setAutoConfirm] = useState(business.auto_confirm);
@@ -69,9 +73,9 @@ export function SettingsForm({
   const errors = state.fieldErrors ?? {};
 
   useEffect(() => {
-    if (state.status === "success") toast.success(state.message ?? "Saved.");
+    if (state.status === "success") toast.success(state.message ?? t("common.saved"));
     if (state.status === "error" && state.message) toast.error(state.message);
-  }, [state]);
+  }, [state, t]);
 
   const canPublish = activeServiceCount > 0;
 
@@ -84,17 +88,17 @@ export function SettingsForm({
       {/* ---- Going live ---------------------------------------------------- */}
       <Card className={published ? "border-success/35" : "border-accent/35"}>
         <CardHeader>
-          <CardTitle>Your booking page</CardTitle>
+          <CardTitle>{t("settingsAdmin.bookingPageTitle")}</CardTitle>
           <CardDescription>
             {published
-              ? "Live — customers can find and book you."
-              : "Hidden. Switch this on when you are ready to take bookings."}
+              ? t("settingsAdmin.bookingPageLive")
+              : t("settingsAdmin.bookingPageHidden")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex min-h-11 items-center justify-between gap-3">
             <label htmlFor="isPublished" className="text-sm font-medium">
-              Accept bookings
+              {t("settingsAdmin.acceptBookings")}
             </label>
             <Switch
               id="isPublished"
@@ -106,10 +110,7 @@ export function SettingsForm({
           </div>
 
           {!canPublish ? (
-            <Alert tone="warning">
-              Add at least one active service before going live — there has to be
-              something for a customer to book.
-            </Alert>
+            <Alert tone="warning">{t("settingsAdmin.needServiceWarning")}</Alert>
           ) : null}
 
           {published ? (
@@ -118,7 +119,7 @@ export function SettingsForm({
               target="_blank"
               className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
             >
-              View your public page
+              {t("settingsAdmin.viewPublicPage")}
               <ExternalLink className="size-4" />
             </Link>
           ) : null}
@@ -128,14 +129,14 @@ export function SettingsForm({
       {/* ---- Details ------------------------------------------------------- */}
       <Card>
         <CardHeader>
-          <CardTitle>Business details</CardTitle>
+          <CardTitle>{t("settingsAdmin.businessDetailsTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Field label="Name" htmlFor="name" error={errors.name} required>
+          <Field label={t("settingsAdmin.nameLabel")} htmlFor="name" error={errors.name} required>
             <Input id="name" name="name" defaultValue={business.name} required />
           </Field>
 
-          <Field label="Description" htmlFor="description" error={errors.description}>
+          <Field label={t("settingsAdmin.descriptionLabel")} htmlFor="description" error={errors.description}>
             <Textarea
               id="description"
               name="description"
@@ -144,7 +145,7 @@ export function SettingsForm({
             />
           </Field>
 
-          <Field label="Phone" htmlFor="phone" error={errors.phone} required>
+          <Field label={t("settingsAdmin.phoneLabel")} htmlFor="phone" error={errors.phone} required>
             <Input
               id="phone"
               name="phone"
@@ -155,7 +156,7 @@ export function SettingsForm({
             />
           </Field>
 
-          <Field label="LINE ID" htmlFor="lineId" error={errors.lineId}>
+          <Field label={t("settingsAdmin.lineIdLabel")} htmlFor="lineId" error={errors.lineId}>
             <Input
               id="lineId"
               name="lineId"
@@ -164,18 +165,18 @@ export function SettingsForm({
             />
           </Field>
 
-          <Field label="Address" htmlFor="address" error={errors.address}>
+          <Field label={t("settingsAdmin.addressLabel")} htmlFor="address" error={errors.address}>
             <Input id="address" name="address" defaultValue={business.address ?? ""} />
           </Field>
 
           <Field
-            label="Time zone"
+            label={t("settingsAdmin.timezoneLabel")}
             error={errors.timezone}
-            hint="Every time in TatNat is shown to customers in this zone, wherever they are."
+            hint={t("settingsAdmin.timezoneHint")}
             required
           >
             <Select value={timezone} onValueChange={setTimezone}>
-              <SelectTrigger aria-label="Time zone">
+              <SelectTrigger aria-label={t("settingsAdmin.timezoneLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -197,19 +198,15 @@ export function SettingsForm({
           more to configure here, by design (no fee calculator yet). */}
       <Card>
         <CardHeader>
-          <CardTitle>Cancellation / no-show policy</CardTitle>
-          <CardDescription>
-            Shown to customers on your listing page and booking confirmation, and
-            included in their confirmation email. Leave blank and customers see a
-            generic &quot;contact us&quot; line instead.
-          </CardDescription>
+          <CardTitle>{t("settingsAdmin.cancellationPolicyTitle")}</CardTitle>
+          <CardDescription>{t("settingsAdmin.cancellationPolicyDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Field
-            label="Policy"
+            label={t("settingsAdmin.policyLabel")}
             htmlFor="cancellationPolicy"
             error={errors.cancellationPolicy}
-            hint='e.g. "Free up to 24h before your appointment; 50% charge inside that window."'
+            hint={t("settingsAdmin.policyHint")}
           >
             <Textarea
               id="cancellationPolicy"
@@ -224,19 +221,17 @@ export function SettingsForm({
       {/* ---- Booking rules -------------------------------------------------- */}
       <Card>
         <CardHeader>
-          <CardTitle>Booking rules</CardTitle>
-          <CardDescription>
-            These decide which slots a customer is offered.
-          </CardDescription>
+          <CardTitle>{t("settingsAdmin.bookingRulesTitle")}</CardTitle>
+          <CardDescription>{t("settingsAdmin.bookingRulesDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Field
-            label="Offer start times every"
+            label={t("settingsAdmin.slotIntervalLabel")}
             error={errors.slotInterval}
-            hint="Smaller intervals mean more choice but a more fragmented day."
+            hint={t("settingsAdmin.slotIntervalHint")}
           >
             <Select value={slotInterval} onValueChange={setSlotInterval}>
-              <SelectTrigger aria-label="Slot interval">
+              <SelectTrigger aria-label={t("settingsAdmin.slotIntervalLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -251,18 +246,18 @@ export function SettingsForm({
           </Field>
 
           <Field
-            label="Minimum notice"
+            label={t("settingsAdmin.minNoticeLabel")}
             error={errors.minNotice}
-            hint="Stops someone booking for five minutes from now while you are mid-cut."
+            hint={t("settingsAdmin.minNoticeHint")}
           >
             <Select value={minNotice} onValueChange={setMinNotice}>
-              <SelectTrigger aria-label="Minimum notice">
+              <SelectTrigger aria-label={t("settingsAdmin.minNoticeLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {NOTICE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={String(option.value)}>
-                    {option.label}
+                {NOTICE_VALUES.map((value) => (
+                  <SelectItem key={value} value={String(value)}>
+                    {t(NOTICE_KEYS[value] ?? "")}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -271,10 +266,10 @@ export function SettingsForm({
           </Field>
 
           <Field
-            label="How far ahead customers can book"
+            label={t("settingsAdmin.maxAdvanceLabel")}
             htmlFor="maxAdvanceDays"
             error={errors.maxAdvanceDays}
-            hint="Days."
+            hint={t("settingsAdmin.maxAdvanceHint")}
           >
             <Input
               id="maxAdvanceDays"
@@ -290,11 +285,10 @@ export function SettingsForm({
           <div className="flex min-h-11 items-start justify-between gap-3 rounded-lg bg-surface-muted p-3.5">
             <div className="min-w-0">
               <label htmlFor="autoConfirm" className="text-sm font-medium">
-                Confirm bookings automatically
+                {t("settingsAdmin.autoConfirmLabel")}
               </label>
               <p className="mt-0.5 text-sm text-fg-subtle text-pretty">
-                Off means every booking arrives as a request for you to approve.
-                The slot is held either way.
+                {t("settingsAdmin.autoConfirmDescription")}
               </p>
             </div>
             <Switch
@@ -317,9 +311,10 @@ export function SettingsForm({
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" block variant="accent" loading={pending}>
-      Save settings
+      {t("settingsAdmin.saveSettings")}
     </Button>
   );
 }

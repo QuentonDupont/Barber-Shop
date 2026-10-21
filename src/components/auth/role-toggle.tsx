@@ -1,14 +1,10 @@
 "use client";
 
 import { Store, Users } from "lucide-react";
+import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 export type Role = "customer" | "business_owner";
-
-const OPTIONS: { value: Role; label: string; hint: string; icon: typeof Users }[] = [
-  { value: "customer", label: "Customer", hint: "I want to book", icon: Users },
-  { value: "business_owner", label: "Business", hint: "I take bookings", icon: Store },
-];
 
 /**
  * A segmented control rather than a `<select>`: both options stay visible, and
@@ -23,9 +19,14 @@ export function RoleToggle({
   onChange: (role: Role) => void;
   name?: string;
 }) {
+  const t = useT();
+  const OPTIONS: { value: Role; label: string; hint: string; icon: typeof Users }[] = [
+    { value: "customer", label: t("auth.customer"), hint: t("auth.iWantToBook"), icon: Users },
+    { value: "business_owner", label: t("auth.business"), hint: t("auth.iTakeBookings"), icon: Store },
+  ];
   return (
     <fieldset>
-      <legend className="mb-2 text-sm font-medium text-fg">I am signing up as</legend>
+      <legend className="mb-2 text-sm font-medium text-fg">{t("auth.iAmSigningUpAs")}</legend>
       <div
         role="radiogroup"
         className="grid grid-cols-2 gap-2 rounded-xl bg-surface-muted p-1.5"

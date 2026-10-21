@@ -4,12 +4,15 @@ import { SettingsForm } from "@/components/business/settings-form";
 import { InstallPrompt } from "@/components/shared/install-prompt";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   const ctx = await requireBusiness();
   const supabase = await createClient();
+  const locale = await getLocale();
 
   const { count } = await supabase
     .from("services")
@@ -20,8 +23,8 @@ export default async function SettingsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Settings"
-        description="Your details, your booking rules and whether your page is live."
+        title={t(locale, "settingsAdmin.pageTitle")}
+        description={t(locale, "settingsAdmin.pageDescription")}
       />
       <SettingsForm business={ctx.business} activeServiceCount={count ?? 0} />
 

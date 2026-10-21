@@ -9,14 +9,16 @@ import { HoursEditor } from "./hours-editor";
 import type { DayHours } from "@/lib/booking/hours";
 import { saveBusinessHoursAction } from "@/lib/actions/business";
 import { idleState } from "@/lib/actions/types";
+import { useT } from "@/lib/i18n/context";
 
 export function HoursForm({ initialHours }: { initialHours: DayHours[] }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveBusinessHoursAction, idleState);
   const [days, setDays] = useState<DayHours[]>(initialHours);
 
   useEffect(() => {
-    if (state.status === "success") toast.success(state.message ?? "Saved.");
-  }, [state]);
+    if (state.status === "success") toast.success(state.message ?? t("common.saved"));
+  }, [state, t]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -37,9 +39,10 @@ export function HoursForm({ initialHours }: { initialHours: DayHours[] }) {
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" block variant="accent" loading={pending}>
-      Save opening hours
+      {t("hoursAdmin.saveHours")}
     </Button>
   );
 }

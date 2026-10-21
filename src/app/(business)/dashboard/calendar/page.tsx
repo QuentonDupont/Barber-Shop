@@ -12,6 +12,8 @@ import {
   zonedDayMinutesToUtc,
   type DateKey,
 } from "@/lib/booking/time";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Calendar" };
 
@@ -25,6 +27,7 @@ export default async function CalendarPage({
   const params = await searchParams;
   const ctx = await requireBusiness();
   const business = ctx.business;
+  const locale = await getLocale();
 
   const today = businessToday(business.timezone);
   const selectedDate: DateKey =
@@ -65,8 +68,8 @@ export default async function CalendarPage({
   return (
     <PageContainer>
       <PageHeader
-        title="Calendar"
-        description={`All times in ${business.timezone}. Tap a booking to confirm, complete or cancel it.`}
+        title={t(locale, "calendarAdmin.pageTitle")}
+        description={t(locale, "calendarAdmin.pageDescription", { timezone: business.timezone })}
       />
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <CalendarView
