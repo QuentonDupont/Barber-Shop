@@ -1,0 +1,128 @@
+name: CI
+
+# roadmap.md §3: "build and test as code" — this is the only CI in the repo.
+# Both jobs gate merge to main (branch protection is a repo setting, not
+# something this file can set) and run on every PR and every push to main.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push/PR on the same branch cancels the first run's jobs instead of
+# queueing behind them — this is a small test suite, no reason to burn CI
+# minutes on a commit nobody will look at once a newer one lands.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1 — install, lint, typecheck, unit tests. No database involved: this
+  # is exactly `npm run lint && npm run typecheck && npm test` against mock
+  # data, same as every local verification pass in this project's handoffs.
+  # ---------------------------------------------------------------------------
+  lint-typecheck-test:
+    name: Lint, typecheck, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+  # ---------------------------------------------------------------------------
+  # Job 2 — the database test job roadmap.md §3 describes: a disposable
+  # Postgres service container, migrations applied fresh, then
+  # `supabase/tests/run.sh` (via `npm run db:test`) — which itself applies the
+  # Supabase auth-schema shim, every migration, the pre-seed test files, the
+  # mock seed data, then the seed-dependent test files, exactly as it does
+  # locally. See the note at the bottom of this file for what had to be
+  # assumed/verified about run.sh's actual requirements, since this job
+  # cannot be run in this sandbox (no outbound network, no Docker) to confirm
+  # directly before merge.
+  # ---------------------------------------------------------------------------
+  db-tests:
+    name: Database tests (RLS, availability, multi-staff)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # supabase/config.toml's `[db] major_version = 17` is what local dev
+        # and the eventual Supabase Cloud project both run — matched here so
+        # a migration that only breaks on a specific Postgres version doesn't
+        # pass here and fail there.
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # Postgres takes a moment to accept connections after the container
+        # starts; without this, the first migration step can race it.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # supabase/tests/run.sh and plain `psql` both read these standard PG*
+      # variables — nothing in the script sets them itself, it expects the
+      # caller to point it at a server (its own header comment shows
+      # `PGHOST=localhost PGPORT=54322 ./run.sh` as the local-dev example).
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      # run.sh talks to the `postgres` maintenance database first (`-d
+      # postgres`) to drop/create its own throwaway test database, so no
+      # PGDATABASE is needed here — every `psql` call in the script already
+      # names its target with `-d`.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # `npm run db:test` is `bash supabase/tests/run.sh` (package.json) —
+      # pure bash + psql, no node_modules involved. Node is set up anyway so
+      # the `npm run` wrapper resolves; `npm ci` is skipped in this job on
+      # purpose; nothing it would install is used here.
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client
+
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" && exit 0
+            sleep 1
+          done
+          echo "Postgres never became ready" >&2
+          exit 1
+
+      # run.sh applies every file in supabase/migrations/*.sql itself (lines
+      # 24-28) before running any assertion — there is no separate "apply
+      # migrations" step to run first; db:test is genuinely the one command.
+      - name: Run database tests
+        run: npm run db:test
