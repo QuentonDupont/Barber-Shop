@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" width="420" height="120" role="img" aria-label="TatNat — ตัดนัด">
+  <!--
+    TatNat wordmark lockup, for light backgrounds (transparent canvas — sits
+    on the app's existing token:bg). Mark (clock + scissor-hands) at left, Latin
+    "TatNat" set bold above the Thai "ตัดนัด" at smaller size beneath — Thai
+    script carries the brand's accent colour, Latin carries the ink colour.
+    Font: Anuphan (Google Fonts, bilingual Thai+Latin) weight 800 for the
+    logotype; see look-and-feel.md "TatNat brand" section for the full type
+    spec. NOTE for production (app-store/print assets): convert this text to
+    outlines once Anuphan is loaded, so the mark doesn't depend on the viewer
+    having the font installed.
+    Tokens: rim/pivot/"TatNat" #29231E (token:primary), hands/"ตัดนัด" #E18F14 (token:accent).
+  -->
+  <g stroke="#29231E" stroke-width="7" fill="none">
+    <circle cx="60" cy="60" r="29.5"/>
+  </g>
+  <g stroke="#E18F14" stroke-width="10" stroke-linecap="round">
+    <line x1="60" y1="60" x2="38.1" y2="47.3"/>
+    <line x1="60" y1="60" x2="82" y2="47.3"/>
+  </g>
+  <circle cx="60" cy="60" r="5" fill="#29231E"/>
+  <text x="130" y="58" font-family="Anuphan, 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="46" fill="#29231E">TatNat</text>
+  <text x="130" y="92" font-family="Anuphan, 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif" font-weight="600" font-size="28" fill="#E18F14">ตัดนัด</text>
+</svg>

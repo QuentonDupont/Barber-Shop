@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" width="420" height="120" role="img" aria-label="TatNat — ตัดนัด (dark)">
+  <!--
+    TatNat wordmark lockup, for dark backgrounds (transparent canvas — sits
+    on the app's existing dark token:bg). Same lockup as wordmark.svg; ink
+    elements invert to the warm canvas colour, accent stays brass in both.
+    Tokens: rim/pivot/"TatNat" #FCFAF8 (token:bg, reused), hands/"ตัดนัด" #E18F14 (token:accent).
+  -->
+  <g stroke="#FCFAF8" stroke-width="7" fill="none">
+    <circle cx="60" cy="60" r="29.5"/>
+  </g>
+  <g stroke="#E18F14" stroke-width="10" stroke-linecap="round">
+    <line x1="60" y1="60" x2="38.1" y2="47.3"/>
+    <line x1="60" y1="60" x2="82" y2="47.3"/>
+  </g>
+  <circle cx="60" cy="60" r="5" fill="#FCFAF8"/>
+  <text x="130" y="58" font-family="Anuphan, 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif" font-weight="800" font-size="46" fill="#FCFAF8">TatNat</text>
+  <text x="130" y="92" font-family="Anuphan, 'Noto Sans Thai', 'Plus Jakarta Sans', sans-serif" font-weight="600" font-size="28" fill="#E18F14">ตัดนัด</text>
+</svg>
