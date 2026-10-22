@@ -162,6 +162,37 @@ export type CustomerNoteRow = {
   updated_at: string;
 };
 
+/* ---- PDPA: consent capture, deletion requests (handoff 07) --------------- */
+
+/**
+ * One row per consent event — a fresh row each time someone agrees to a
+ * (possibly new) policy version, never overwritten in place. `withdrawn_at`
+ * records an opt-out without deleting the history of having once consented
+ * (handoff 07 items 4, 14-15). RLS: a user may only select/insert/update
+ * their own row (`user_id = auth.uid()`).
+ */
+export type ConsentRecordRow = {
+  id: string;
+  user_id: string;
+  policy_version: string;
+  consented_at: string;
+  withdrawn_at: string | null;
+};
+
+/**
+ * A customer's request to delete their account/data (handoff 07 items 13,
+ * 15-18). `status` starts at `"pending"`; completion is out of band for this
+ * handoff (no automated purge job yet) and stamps `completed_at`. RLS: a user
+ * may only select/insert their own row.
+ */
+export type DeletionRequestRow = {
+  id: string;
+  user_id: string;
+  requested_at: string;
+  status: string;
+  completed_at: string | null;
+};
+
 /* ---- Shopfront: merch, campaigns, orders, subscriptions ------------------ */
 
 /** A piece of merch a business sells from its shopfront. */
@@ -448,6 +479,42 @@ export type Database = {
           {
             foreignKeyName: "customer_notes_customer_id_fkey";
             columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      consent_records: {
+        Row: ConsentRecordRow;
+        Insert: Insertable<
+          ConsentRecordRow,
+          "user_id" | "policy_version",
+          "id" | "consented_at" | "withdrawn_at"
+        >;
+        Update: Partial<ConsentRecordRow>;
+        Relationships: [
+          {
+            foreignKeyName: "consent_records_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      deletion_requests: {
+        Row: DeletionRequestRow;
+        Insert: Insertable<
+          DeletionRequestRow,
+          "user_id",
+          "id" | "requested_at" | "status" | "completed_at"
+        >;
+        Update: Partial<DeletionRequestRow>;
+        Relationships: [
+          {
+            foreignKeyName: "deletion_requests_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];

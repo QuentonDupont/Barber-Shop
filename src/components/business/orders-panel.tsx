@@ -4,24 +4,24 @@ import { CreditCard, Package, QrCode, Ticket, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/misc";
 import type { CampaignRow, CampaignSubscriptionRow, OrderRow } from "@/lib/database.types";
-import { formatMoney } from "@/lib/booking/time";
-import { useT } from "@/lib/i18n/context";
+import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
+import { useLocale, useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
-
-function shortDate(iso: string): string {
-  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(iso));
-}
 
 export function OrdersPanel({
   orders,
   subscriptions,
   campaigns,
+  timezone,
 }: {
   orders: OrderRow[];
   subscriptions: CampaignSubscriptionRow[];
   campaigns: CampaignRow[];
+  timezone: string;
 }) {
   const t = useT();
+  const { locale } = useLocale();
+  const shortDate = (iso: string) => formatInBusinessTz(iso, timezone, "d MMM", locale);
   const paid = orders.filter((o) => o.status === "paid");
   const revenue = paid.reduce((sum, o) => sum + o.amount, 0);
   const going = subscriptions.filter((s) => s.status === "going");

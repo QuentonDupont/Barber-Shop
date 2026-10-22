@@ -202,6 +202,79 @@ export const dictionaries = {
       calendarFilterLabel: "กรองตามพนักงาน",
     },
 
+    privacy: {
+      consentCheckboxLabel: "ฉันยินยอมให้ TatNat เก็บและใช้ชื่อ เบอร์โทร และข้อมูลการจองของฉัน ตามนโยบายความเป็นส่วนตัวเวอร์ชัน {version} ที่อธิบายไว้ด้านล่าง",
+      consentRequiredError: "กรุณายืนยันความยินยอมเรื่องข้อมูลส่วนบุคคลก่อนสร้างบัญชี",
+      policyLinkLabel: "นโยบายความเป็นส่วนตัว",
+
+      pageTitle: "นโยบายความเป็นส่วนตัว",
+      draftBanner: "ฉบับร่าง — รอการตรวจสอบจากฝ่ายกฎหมาย เนื้อหานี้ยังไม่ผ่านการตรวจสอบจากทีมกฎหมายของ TatNat และอาจมีการเปลี่ยนแปลง",
+      versionLabel: "เวอร์ชันนโยบาย: {version}",
+      pageIntro: "นโยบายนี้อธิบายว่า TatNat เก็บ ใช้ และเปิดเผยข้อมูลส่วนบุคคลของคุณอย่างไร ตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล (PDPA)",
+
+      sectionCollectedTitle: "ข้อมูลที่เราเก็บ",
+      sectionCollectedBody: "ชื่อ-นามสกุล เบอร์โทรศัพท์ อีเมล ประวัติการจอง และข้อความที่คุณฝากไว้ให้ร้านตอนจอง",
+
+      sectionPurposeTitle: "วัตถุประสงค์",
+      sectionPurposeBody: "เพื่อให้คุณจองคิวกับร้านได้ แจ้งเตือนการจอง และให้ร้านติดต่อคุณเกี่ยวกับการจองของคุณเท่านั้น",
+
+      sectionDisclosedTitle: "ใครเห็นข้อมูลนี้บ้าง",
+      sectionDisclosedBody: "ร้านที่คุณจองด้วยเห็นชื่อและเบอร์โทรของคุณ ข้อมูลทั้งหมดถูกประมวลผลโดย Supabase (ผู้ให้บริการฐานข้อมูล) และในอนาคตจะรวมถึงผู้ให้บริการรับชำระเงินของเรา ทั้งสองเป็นผู้ประมวลผลข้อมูลให้เราเท่านั้น ไม่ใช่เจ้าของข้อมูล",
+
+      sectionTransferTitle: "ข้อมูลของคุณถูกเก็บที่ไหน",
+      sectionTransferBody: "ฐานข้อมูลของเราอยู่ที่สิงคโปร์ (Supabase) ซึ่งหมายความว่าข้อมูลของคุณถูกส่งออกนอกประเทศไทย เราใช้ข้อตกลงคุ้มครองข้อมูลมาตรฐาน (Standard Contractual Clauses) กับผู้ให้บริการ เพื่อให้การส่งข้อมูลนี้เป็นไปตามมาตรา 29 ของ PDPA",
+
+      sectionRetentionTitle: "ระยะเวลาที่เราเก็บข้อมูล",
+      sectionRetentionBody: "เราเก็บข้อมูลของคุณไว้ตราบเท่าที่บัญชีของคุณยังเปิดใช้งาน และเก็บบันทึกที่เกี่ยวกับการเงินต่ออีกอย่างน้อย 5 ปีตามที่กฎหมายไทยกำหนด หลังจากนั้นข้อมูลจะถูกลบหรือทำให้ไม่สามารถระบุตัวบุคคลได้",
+
+      sectionRightsTitle: "สิทธิของคุณ",
+      rightAccess: "เข้าถึงข้อมูลส่วนบุคคลของคุณ",
+      rightCorrection: "ขอแก้ไขข้อมูลที่ไม่ถูกต้อง",
+      rightDeletion: "ขอให้ลบหรือจำกัดการใช้ข้อมูลของคุณ",
+      rightObjection: "คัดค้านการใช้ข้อมูลของคุณในบางกรณี",
+      rightWithdraw: "ถอนความยินยอมเมื่อใดก็ได้",
+      rightComplain: "ร้องเรียนต่อสำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (PDPC)",
+
+      sectionContactTitle: "ติดต่อเรื่องข้อมูลส่วนบุคคล",
+      sectionContactBody: "อีเมล: {email} (ที่อยู่ชั่วคราว — จะระบุชื่อผู้รับผิดชอบก่อนนโยบายนี้มีผลบังคับใช้จริง)",
+
+      backLink: "กลับ",
+
+      yourDataTitle: "ข้อมูลของคุณ",
+      yourDataDescription: "สิทธิของคุณตาม PDPA เกี่ยวกับข้อมูลที่ TatNat เก็บไว้",
+      consentStatusLabel: "ให้ความยินยอมแล้ว",
+      consentVersionLabel: "นโยบายเวอร์ชัน {version} · ยินยอมเมื่อ {date}",
+      consentWithdrawnLabel: "ถอนความยินยอมเมื่อ {date}",
+      consentNoneLabel: "ยังไม่มีบันทึกความยินยอม",
+      viewPolicyLink: "ดูนโยบายความเป็นส่วนตัว",
+      downloadDataButton: "ดาวน์โหลดข้อมูลของฉัน",
+      downloadDataSuccess: "ดาวน์โหลดไฟล์ข้อมูลของคุณแล้ว",
+      downloadDataError: "ไม่สามารถเตรียมข้อมูลได้ในขณะนี้ กรุณาลองใหม่",
+      requestDeletionButton: "ขอลบบัญชี",
+      requestDeletionConfirm: "นี่คือการขอให้ TatNat ลบบัญชีและข้อมูลของคุณ เมื่อดำเนินการเสร็จแล้วจะไม่สามารถย้อนกลับได้ ดำเนินการต่อหรือไม่?",
+      requestDeletionPending: "ขอลบบัญชีเมื่อ {date} — อยู่ระหว่างดำเนินการ",
+      requestDeletionSuccess: "ส่งคำขอลบบัญชีแล้ว ทีมงานจะติดต่อคุณทางอีเมล",
+      requestDeletionError: "ไม่สามารถส่งคำขอลบบัญชีได้ กรุณาลองใหม่",
+      requestDeletionAlready: "คุณมีคำขอลบบัญชีที่อยู่ระหว่างดำเนินการอยู่แล้ว",
+      withdrawConsentButton: "ถอนความยินยอม",
+      withdrawConsentConfirm: "นี่คือการถอนความยินยอมในการประมวลผลข้อมูลของคุณ คุณยังใช้บัญชีได้ แต่จะจองคิวใหม่ไม่ได้จนกว่าจะให้ความยินยอมอีกครั้ง ดำเนินการต่อหรือไม่?",
+      withdrawConsentSuccess: "ถอนความยินยอมแล้ว",
+      withdrawConsentError: "ไม่สามารถถอนความยินยอมได้ กรุณาลองใหม่",
+      withdrawConsentAlready: "คุณถอนความยินยอมไปแล้ว",
+      reconsentButton: "ให้ความยินยอมอีกครั้ง",
+      reconsentSuccess: "บันทึกความยินยอมแล้ว ขอบคุณ",
+
+      bookingBlockedConsentWithdrawn: "คุณถอนความยินยอมเรื่องข้อมูลไว้ การจองใหม่จึงถูกหยุดไว้ชั่วคราว ไปที่หน้าบัญชี > ข้อมูลของคุณ เพื่อให้ความยินยอมอีกครั้ง",
+
+      settingsCardTitle: "ความเป็นส่วนตัวและข้อมูล",
+      settingsCardDescription: "อ่านนโยบายความเป็นส่วนตัวว่า TatNat เก็บและใช้ข้อมูลอย่างไร",
+      settingsCardButton: "ดูนโยบายความเป็นส่วนตัว",
+    },
+
+    campaign: {
+      fromPrefix: "เริ่ม",
+    },
+
     common: {
       saved: "บันทึกแล้ว",
       deleted: "ลบแล้ว",
@@ -624,8 +697,8 @@ export const dictionaries = {
       mobileNumberPlaceholder: "081 234 5678",
       passwordHint: "อย่างน้อย 8 ตัวอักษร",
       createAccountButton: "สร้างบัญชี",
-      termsNotice:
-        "การสร้างบัญชีถือว่าคุณยอมรับข้อกำหนดการใช้บริการและนโยบายความเป็นส่วนตัวของ TatNat",
+      termsNoticePrefix: "การสร้างบัญชีถือว่าคุณยอมรับข้อกำหนดการใช้บริการของ TatNat และ",
+      termsNoticeSuffix: "",
       iAmSigningUpAs: "ฉันกำลังลงทะเบียนเป็น",
       iWantToBook: "ฉันต้องการจอง",
       iTakeBookings: "ฉันรับการจอง",
@@ -833,6 +906,79 @@ export const dictionaries = {
       weekday6: "Sat",
       calendarFilterAllLabel: "All staff",
       calendarFilterLabel: "Filter by staff",
+    },
+
+    privacy: {
+      consentCheckboxLabel: "I consent to TatNat collecting and using my name, phone number and booking details, under privacy policy version {version} described below.",
+      consentRequiredError: "Please confirm your data consent before creating an account.",
+      policyLinkLabel: "Privacy policy",
+
+      pageTitle: "Privacy policy",
+      draftBanner: "Draft — pending Legal review. This has not yet been reviewed by TatNat's legal counsel and may change.",
+      versionLabel: "Policy version: {version}",
+      pageIntro: "This policy explains how TatNat collects, uses and discloses your personal data under Thailand's Personal Data Protection Act (PDPA).",
+
+      sectionCollectedTitle: "What we collect",
+      sectionCollectedBody: "Your full name, phone number, email address, booking history, and any note you leave for a shop when you book.",
+
+      sectionPurposeTitle: "Why we collect it",
+      sectionPurposeBody: "Solely so you can book with a shop, receive booking reminders, and let the shop reach you about your own booking.",
+
+      sectionDisclosedTitle: "Who sees this data",
+      sectionDisclosedBody: "The shop you book with sees your name and phone number. All of it is processed by Supabase (our database provider), and in future will also be processed by our payment processor. Both act only as processors for us — neither owns your data.",
+
+      sectionTransferTitle: "Where your data is stored",
+      sectionTransferBody: "Our database is hosted in Singapore (Supabase), so your data leaves Thailand. We rely on Standard Contractual Clauses with our provider so this transfer meets PDPA Section 29.",
+
+      sectionRetentionTitle: "How long we keep it",
+      sectionRetentionBody: "We keep your data for as long as your account is open, plus at least 5 years for records Thai law requires us to keep for financial purposes. After that it is deleted or anonymized.",
+
+      sectionRightsTitle: "Your rights",
+      rightAccess: "Access your personal data",
+      rightCorrection: "Ask us to correct inaccurate data",
+      rightDeletion: "Ask us to delete or restrict your data",
+      rightObjection: "Object to certain uses of your data",
+      rightWithdraw: "Withdraw your consent at any time",
+      rightComplain: "Complain to Thailand's Personal Data Protection Committee (PDPC)",
+
+      sectionContactTitle: "Data protection contact",
+      sectionContactBody: "Email: {email} (placeholder address — a named contact will be added before this policy leaves draft status)",
+
+      backLink: "Back",
+
+      yourDataTitle: "Your data",
+      yourDataDescription: "Your PDPA rights over what TatNat holds about you.",
+      consentStatusLabel: "Consent given",
+      consentVersionLabel: "Policy version {version} · agreed {date}",
+      consentWithdrawnLabel: "Withdrawn on {date}",
+      consentNoneLabel: "No consent on record yet.",
+      viewPolicyLink: "View the privacy policy",
+      downloadDataButton: "Download my data",
+      downloadDataSuccess: "Your data file has downloaded.",
+      downloadDataError: "Could not prepare your data right now. Please try again.",
+      requestDeletionButton: "Request deletion",
+      requestDeletionConfirm: "This asks TatNat to delete your account and data. It cannot be undone once completed. Continue?",
+      requestDeletionPending: "Deletion requested on {date} — pending.",
+      requestDeletionSuccess: "Deletion requested. We'll follow up by email.",
+      requestDeletionError: "Could not submit your deletion request. Please try again.",
+      requestDeletionAlready: "You already have a pending deletion request.",
+      withdrawConsentButton: "Withdraw consent",
+      withdrawConsentConfirm: "This withdraws your consent to data processing. You can still use your account, but you won't be able to make new bookings until you consent again. Continue?",
+      withdrawConsentSuccess: "Consent withdrawn.",
+      withdrawConsentError: "Could not withdraw consent. Please try again.",
+      withdrawConsentAlready: "Your consent is already withdrawn.",
+      reconsentButton: "Give consent again",
+      reconsentSuccess: "Thanks — your consent is recorded.",
+
+      bookingBlockedConsentWithdrawn: "Your data consent is withdrawn, so new bookings are paused. Visit Account > Your data to consent again.",
+
+      settingsCardTitle: "Privacy & data",
+      settingsCardDescription: "Read the privacy policy covering what TatNat collects and how it's used.",
+      settingsCardButton: "View privacy policy",
+    },
+
+    campaign: {
+      fromPrefix: "From",
     },
 
     common: {
@@ -1256,8 +1402,8 @@ export const dictionaries = {
       mobileNumberPlaceholder: "081 234 5678",
       passwordHint: "At least 8 characters.",
       createAccountButton: "Create account",
-      termsNotice:
-        "By creating an account you agree to TatNat's terms of service and privacy policy.",
+      termsNoticePrefix: "By creating an account you agree to TatNat's terms of service and",
+      termsNoticeSuffix: ".",
       iAmSigningUpAs: "I am signing up as",
       iWantToBook: "I want to book",
       iTakeBookings: "I take bookings",

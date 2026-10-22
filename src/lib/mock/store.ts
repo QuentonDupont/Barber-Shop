@@ -17,7 +17,9 @@ import { buildDB, type MockDB } from "./fixtures";
  * auto-rebuilds on a version mismatch, so schema additions don't require a
  * manual dev-server restart to clear a stale singleton.
  */
-const SCHEMA_VERSION = 2;
+// v3: handoff 07 — added consent_records, deletion_requests, and registered
+// the pre-existing customer_notes table in the mock store.
+const SCHEMA_VERSION = 3;
 
 const globalForMock = globalThis as unknown as {
   __booklyMockDB?: MockDB;

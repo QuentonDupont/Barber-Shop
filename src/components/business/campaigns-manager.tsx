@@ -28,7 +28,7 @@ import { idleState } from "@/lib/actions/types";
 import type { CampaignRow } from "@/lib/database.types";
 import { formatMoney } from "@/lib/booking/time";
 import { accentTile, formatCampaignWhen, zonedParts } from "@/lib/shop";
-import { useT } from "@/lib/i18n/context";
+import { useLocale, useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import { AccentPicker } from "./shop-fields";
 
@@ -113,6 +113,7 @@ function CampaignCard({
   onEdit: (campaign: CampaignRow) => void;
 }) {
   const t = useT();
+  const { locale } = useLocale();
   const isEvent = campaign.kind === "event";
   return (
     <div
@@ -150,7 +151,7 @@ function CampaignCard({
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-fg-muted">
           <span className="inline-flex items-center gap-1">
             <CalendarClock className="size-3.5" />
-            {formatCampaignWhen(campaign, timezone)}
+            {formatCampaignWhen(campaign, timezone, locale)}
           </span>
           {isEvent && campaign.price > 0 ? (
             <span className="font-semibold text-fg">{formatMoney(campaign.price, campaign.currency)}</span>

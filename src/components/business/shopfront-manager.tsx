@@ -49,7 +49,12 @@ export function ShopfrontManager({
         <CampaignsManager campaigns={campaigns} timezone={timezone} />
       </TabsContent>
       <TabsContent value="orders">
-        <OrdersPanel orders={orders} subscriptions={subscriptions} campaigns={campaigns} />
+        <OrdersPanel
+          orders={orders}
+          subscriptions={subscriptions}
+          campaigns={campaigns}
+          timezone={timezone}
+        />
       </TabsContent>
     </Tabs>
   );

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isMockMode } from "@/lib/mock/config";
 import { setMockUserByRole } from "@/lib/mock/client";
 import { errorState, fieldErrorsFrom, type ActionState } from "./types";
+import { recordConsentAction } from "./privacy";
 import { t, type Locale } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 
@@ -56,6 +57,15 @@ export async function signUpAction(
     return errorState(t(locale, "auth.errorBusinessInviteOnly"));
   }
 
+  // PDPA consent (handoff 07, legal-review.md §3): explicit, unticked by
+  // default, checked server-side too since client validation can be
+  // bypassed. Kept separate from the zod schema so it gets its own
+  // field-level error without affecting the other fields' messages.
+  if (formData.get("consent") !== "on") {
+    const message = t(locale, "privacy.consentRequiredError");
+    return errorState(message, { consent: message });
+  }
+
   const parsed = signUpSchema(locale).safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
@@ -74,7 +84,7 @@ export async function signUpAction(
   const role = "customer" as const;
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -90,6 +100,15 @@ export async function signUpAction(
         ? t(locale, "auth.errorEmailAlreadyRegistered")
         : error.message,
     );
+  }
+
+  // Record the consent captured above (item 4: user id + timestamp + the
+  // policy version in force now). Best-effort: the account already exists at
+  // this point, and a transient failure here shouldn't strand the new user
+  // on a dead-end sign-up page — the account page's consent status simply
+  // starts blank and they can re-consent from there.
+  if (data.user) {
+    await recordConsentAction(data.user.id);
   }
 
   // A customer who signed up from a shop's booking page goes straight back

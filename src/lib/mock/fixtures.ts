@@ -16,6 +16,9 @@ import type {
   BookingRow,
   CampaignRow,
   CampaignSubscriptionRow,
+  ConsentRecordRow,
+  CustomerNoteRow,
+  DeletionRequestRow,
   OrderRow,
   ProductRow,
   ProfileRow,
@@ -23,6 +26,7 @@ import type {
   StaffRow,
   UserRole,
 } from "@/lib/database.types";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
 
 export interface MockAuthUser {
   id: string;
@@ -51,6 +55,16 @@ export interface MockDB {
   campaigns: CampaignRow[];
   campaign_subscriptions: CampaignSubscriptionRow[];
   orders: OrderRow[];
+  /**
+   * Added for handoff 07 (PDPA). `customer_notes` was already in the real
+   * schema (stretch A, `20261020120000_stretch_a_notes_and_policy.sql`) but
+   * had never been registered here, so mock mode couldn't exercise it —
+   * closing that gap now since the data-export feature (item 12) needs to
+   * read it.
+   */
+  customer_notes: CustomerNoteRow[];
+  consent_records: ConsentRecordRow[];
+  deletion_requests: DeletionRequestRow[];
 }
 
 const TZ = "Asia/Bangkok"; // +07:00, no DST
@@ -542,6 +556,34 @@ export function buildDB(): MockDB {
     },
   ];
 
+  // The demo customer's only note from the barber shop — gives "Download my
+  // data" (item 12) something real to include.
+  const customer_notes: CustomerNoteRow[] = [
+    {
+      id: "note-1",
+      business_id: BARBER,
+      customer_id: CUSTOMER,
+      note: "Usual: skin fade, prefers quiet.",
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+
+  // The demo customer already consented under the current policy version, so
+  // the account page's "Your data" section (item 11) has something to show
+  // out of the box.
+  const consent_records: ConsentRecordRow[] = [
+    {
+      id: "consent-1",
+      user_id: CUSTOMER,
+      policy_version: PRIVACY_POLICY_VERSION,
+      consented_at: now,
+      withdrawn_at: null,
+    },
+  ];
+
+  const deletion_requests: DeletionRequestRow[] = [];
+
   return {
     authUsers,
     profiles,
@@ -556,5 +598,8 @@ export function buildDB(): MockDB {
     campaigns,
     campaign_subscriptions,
     orders,
+    customer_notes,
+    consent_records,
+    deletion_requests,
   };
 }

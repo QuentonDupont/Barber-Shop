@@ -4,16 +4,47 @@ import { LogOut, Store } from "lucide-react";
 import Link from "next/link";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { ProfileForm } from "@/components/customer/profile-form";
+import { DataRightsPanel } from "@/components/customer/data-rights-panel";
 import { InstallPrompt } from "@/components/shared/install-prompt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCustomer } from "@/lib/auth";
 import { signOutAction } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Account" };
 
 export default async function AccountPage() {
   const session = await requireCustomer();
+  const supabase = await createClient();
+
+  // Latest consent record and any still-pending deletion request (handoff 07,
+  // items 11 and 13) — scoped to the signed-in user only, same as every other
+  // read on this page.
+  const [{ data: consentRow }, { data: deletionRow }] = await Promise.all([
+    supabase
+      .from("consent_records")
+      .select("policy_version, consented_at, withdrawn_at")
+      .eq("user_id", session.userId)
+      .order("consented_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("deletion_requests")
+      .select("requested_at")
+      .eq("user_id", session.userId)
+      .eq("status", "pending")
+      .maybeSingle(),
+  ]);
+
+  const consent = consentRow
+    ? {
+        policyVersion: consentRow.policy_version,
+        consentedAt: consentRow.consented_at,
+        withdrawnAt: consentRow.withdrawn_at,
+      }
+    : null;
+  const deletionPending = deletionRow ? { requestedAt: deletionRow.requested_at } : null;
 
   return (
     <PageContainer className="max-w-2xl">
@@ -35,6 +66,8 @@ export default async function AccountPage() {
             />
           </CardContent>
         </Card>
+
+        <DataRightsPanel consent={consent} deletionPending={deletionPending} />
 
         <InstallPrompt />
 

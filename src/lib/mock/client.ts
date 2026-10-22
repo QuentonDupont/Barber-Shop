@@ -55,6 +55,7 @@ const TABLES_WITH_UPDATED_AT = new Set([
   "bookings",
   "products",
   "campaigns",
+  "customer_notes",
 ]);
 
 function insertDefaults(table: string): Row {
@@ -106,6 +107,12 @@ function insertDefaults(table: string): Row {
         quantity: 1, unit_price: 0, currency: "THB", payment_method: "stripe",
         status: "paid", customer_name: "", created_at: now,
       };
+    case "customer_notes":
+      return { note: "", created_at: now, updated_at: now };
+    case "consent_records":
+      return { consented_at: now, withdrawn_at: null };
+    case "deletion_requests":
+      return { requested_at: now, status: "pending", completed_at: null };
     default:
       return {};
   }
