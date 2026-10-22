@@ -11,14 +11,21 @@
  * never be silently covered by an old agreement (item 4/10).
  */
 
-export const PRIVACY_POLICY_VERSION = "2026-10-21-draft-1";
+// v2 (2026-10-22, legal-review.md 2026-10-22 section): the transfer, retention
+// and "who sees this data" sections all changed substance (SCC claim walked
+// back to "will put in place," retention wording corrected to match what the
+// deletion job actually does, Google added as a sign-in processor) — bumped
+// per this file's own rule above.
+export const PRIVACY_POLICY_VERSION = "2026-10-22-draft-2";
 
 /**
  * Placeholder until Legal/the CEO names an actual data-protection contact
  * (legal-review.md §3's DPO note, handoff 07 item 9). Marked as a placeholder
- * in the policy page copy itself — not a real inbox yet.
+ * in the policy page copy itself — not a real inbox yet. Domain corrected to
+ * `tatnat.com` (legal-review.md 2026-10-22 §2(d)) — `naming.md`/decision 6
+ * name `.com` as the domain to buy, not `.app`.
  */
-export const PRIVACY_CONTACT_EMAIL = "privacy@tatnat.app";
+export const PRIVACY_CONTACT_EMAIL = "privacy@tatnat.com";
 
 /** Route for the bilingual, draft privacy-policy page (item 6). */
 export const PRIVACY_POLICY_ROUTE = "/privacy";

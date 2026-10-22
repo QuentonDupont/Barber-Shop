@@ -14,6 +14,14 @@ export interface ActionState {
    */
   assignedStaffId?: string;
   assignedStaffName?: string;
+  /**
+   * Set only by `createBookingAction` when the booking is refused for a
+   * PDPA consent reason (never consented, withdrawn, or a superseded
+   * policy version) — lets the UI offer a direct way to act on it (a link
+   * to the account page's consent controls), not just a prose pointer
+   * (QA report #7 §5, handoff 07).
+   */
+  consentBlocked?: boolean;
 }
 
 export const idleState: ActionState = { status: "idle" };

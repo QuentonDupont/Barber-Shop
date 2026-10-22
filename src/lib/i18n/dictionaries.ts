@@ -219,13 +219,13 @@ export const dictionaries = {
       sectionPurposeBody: "เพื่อให้คุณจองคิวกับร้านได้ แจ้งเตือนการจอง และให้ร้านติดต่อคุณเกี่ยวกับการจองของคุณเท่านั้น",
 
       sectionDisclosedTitle: "ใครเห็นข้อมูลนี้บ้าง",
-      sectionDisclosedBody: "ร้านที่คุณจองด้วยเห็นชื่อและเบอร์โทรของคุณ ข้อมูลทั้งหมดถูกประมวลผลโดย Supabase (ผู้ให้บริการฐานข้อมูล) และในอนาคตจะรวมถึงผู้ให้บริการรับชำระเงินของเรา ทั้งสองเป็นผู้ประมวลผลข้อมูลให้เราเท่านั้น ไม่ใช่เจ้าของข้อมูล",
+      sectionDisclosedBody: "ร้านที่คุณจองด้วยเห็นชื่อและเบอร์โทรของคุณ หากคุณเข้าสู่ระบบด้วย Google, Google จะประมวลผลข้อมูลที่จำเป็นสำหรับการเข้าสู่ระบบของคุณ ข้อมูลทั้งหมดถูกประมวลผลโดย Supabase (ผู้ให้บริการฐานข้อมูล) และในอนาคตจะรวมถึงผู้ให้บริการรับชำระเงินของเรา ผู้ให้บริการเหล่านี้เป็นผู้ประมวลผลข้อมูลให้เราเท่านั้น ไม่ใช่เจ้าของข้อมูล",
 
       sectionTransferTitle: "ข้อมูลของคุณถูกเก็บที่ไหน",
-      sectionTransferBody: "ฐานข้อมูลของเราอยู่ที่สิงคโปร์ (Supabase) ซึ่งหมายความว่าข้อมูลของคุณถูกส่งออกนอกประเทศไทย เราใช้ข้อตกลงคุ้มครองข้อมูลมาตรฐาน (Standard Contractual Clauses) กับผู้ให้บริการ เพื่อให้การส่งข้อมูลนี้เป็นไปตามมาตรา 29 ของ PDPA",
+      sectionTransferBody: "ฐานข้อมูลของเราจะถูกตั้งอยู่ที่สิงคโปร์ (Supabase) ซึ่งหมายความว่าข้อมูลของคุณจะถูกส่งออกนอกประเทศไทย ก่อนที่เราจะเก็บข้อมูลลูกค้าจริงไว้ที่นั่น เราจะจัดทำข้อตกลงคุ้มครองข้อมูลมาตรฐาน (Standard Contractual Clauses) หรือมาตรการคุ้มครองอื่นที่สำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) ยอมรับ กับผู้ให้บริการฐานข้อมูลของเรา ตามที่มาตรา 29 ของ PDPA กำหนด",
 
       sectionRetentionTitle: "ระยะเวลาที่เราเก็บข้อมูล",
-      sectionRetentionBody: "เราเก็บข้อมูลของคุณไว้ตราบเท่าที่บัญชีของคุณยังเปิดใช้งาน และเก็บบันทึกที่เกี่ยวกับการเงินต่ออีกอย่างน้อย 5 ปีตามที่กฎหมายไทยกำหนด หลังจากนั้นข้อมูลจะถูกลบหรือทำให้ไม่สามารถระบุตัวบุคคลได้",
+      sectionRetentionBody: "เราเก็บข้อมูลของคุณไว้ตราบเท่าที่บัญชีของคุณยังเปิดใช้งาน หากคุณขอให้เราลบบัญชี เราจะเก็บข้อมูลไว้อีก 30 วันเพื่อให้คุณเปลี่ยนใจได้ จากนั้นจะลบหรือทำให้ข้อมูลส่วนบุคคลของคุณไม่สามารถระบุตัวบุคคลได้ ส่วนประวัติการจองอาจถูกเก็บไว้นานกว่านั้นในรูปแบบที่ไม่สามารถระบุตัวบุคคลได้ สูงสุด 5 ปี ตามที่กฎหมายไทยกำหนดไว้สำหรับการเก็บบันทึกทางการเงิน",
 
       sectionRightsTitle: "สิทธิของคุณ",
       rightAccess: "เข้าถึงข้อมูลส่วนบุคคลของคุณ",
@@ -265,6 +265,9 @@ export const dictionaries = {
       reconsentSuccess: "บันทึกความยินยอมแล้ว ขอบคุณ",
 
       bookingBlockedConsentWithdrawn: "คุณถอนความยินยอมเรื่องข้อมูลไว้ การจองใหม่จึงถูกหยุดไว้ชั่วคราว ไปที่หน้าบัญชี > ข้อมูลของคุณ เพื่อให้ความยินยอมอีกครั้ง",
+      bookingBlockedNeverConsented: "คุณยังไม่ได้ให้ความยินยอมเรื่องข้อมูลส่วนบุคคล การจองใหม่จึงถูกหยุดไว้ชั่วคราว ไปที่หน้าบัญชี > ข้อมูลของคุณ เพื่อให้ความยินยอม",
+      bookingBlockedPolicyUpdated: "นโยบายความเป็นส่วนตัวของเรามีการปรับปรุงนับตั้งแต่คุณให้ความยินยอมครั้งล่าสุด การจองใหม่จึงถูกหยุดไว้ชั่วคราวจนกว่าคุณจะตรวจสอบและให้ความยินยอมอีกครั้ง ไปที่หน้าบัญชี > ข้อมูลของคุณ เพื่อดำเนินการต่อ",
+      goToAccountAction: "ไปที่บัญชี",
 
       settingsCardTitle: "ความเป็นส่วนตัวและข้อมูล",
       settingsCardDescription: "อ่านนโยบายความเป็นส่วนตัวว่า TatNat เก็บและใช้ข้อมูลอย่างไร",
@@ -925,13 +928,13 @@ export const dictionaries = {
       sectionPurposeBody: "Solely so you can book with a shop, receive booking reminders, and let the shop reach you about your own booking.",
 
       sectionDisclosedTitle: "Who sees this data",
-      sectionDisclosedBody: "The shop you book with sees your name and phone number. All of it is processed by Supabase (our database provider), and in future will also be processed by our payment processor. Both act only as processors for us — neither owns your data.",
+      sectionDisclosedBody: "The shop you book with sees your name and phone number. If you sign in with Google, Google processes the details needed to sign you in. All of it is processed by Supabase (our database provider), and in future will also be processed by our payment processor. These providers act only as processors for us — none of them own your data.",
 
       sectionTransferTitle: "Where your data is stored",
-      sectionTransferBody: "Our database is hosted in Singapore (Supabase), so your data leaves Thailand. We rely on Standard Contractual Clauses with our provider so this transfer meets PDPA Section 29.",
+      sectionTransferBody: "Our database will be hosted in Singapore (Supabase), so your data will leave Thailand. Before we store any real customer data there, we will put a Standard Contractual Clauses agreement (or an equivalent safeguard the PDPC recognizes) in place with our database provider, as PDPA Section 29 requires for this kind of transfer.",
 
       sectionRetentionTitle: "How long we keep it",
-      sectionRetentionBody: "We keep your data for as long as your account is open, plus at least 5 years for records Thai law requires us to keep for financial purposes. After that it is deleted or anonymized.",
+      sectionRetentionBody: "We keep your data for as long as your account stays active. If you ask us to delete your account, we keep it for a further 30 days in case you change your mind, then remove or anonymize your personal details. Records of your bookings may be kept longer, in a form that no longer identifies you, for up to 5 years, because Thai law requires this for financial record-keeping.",
 
       sectionRightsTitle: "Your rights",
       rightAccess: "Access your personal data",
@@ -971,6 +974,9 @@ export const dictionaries = {
       reconsentSuccess: "Thanks — your consent is recorded.",
 
       bookingBlockedConsentWithdrawn: "Your data consent is withdrawn, so new bookings are paused. Visit Account > Your data to consent again.",
+      bookingBlockedNeverConsented: "You haven't given consent to use your data yet, so new bookings are paused. Visit Account > Your data to consent.",
+      bookingBlockedPolicyUpdated: "Our privacy policy has been updated since you last agreed to it, so new bookings are paused until you review and agree again. Visit Account > Your data to continue.",
+      goToAccountAction: "Go to account",
 
       settingsCardTitle: "Privacy & data",
       settingsCardDescription: "Read the privacy policy covering what TatNat collects and how it's used.",

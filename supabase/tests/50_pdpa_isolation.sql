@@ -18,6 +18,24 @@ values
   ('33333333-3333-3333-3333-333333333333', '2026-10-21-draft-1', now()),
   ('44444444-4444-4444-4444-444444444444', '2026-10-21-draft-1', now());
 
+-- A booking of Ben's, owned by Nong Barber, so the financial-retention fix
+-- (20261022000000_pdpa_financial_retention.sql) has a real row to anonymize
+-- without touching — never deleting — the booking itself. `status =
+-- 'completed'` deliberately sits outside the no-overlap exclusion
+-- constraint's `where (status in ('pending', 'confirmed'))` clause, so this
+-- fixture can't collide with any other test file's bookings regardless of
+-- timing. Own id, not reused from 10_booking_invariants.sql, so this file
+-- stays self-contained if that fixture ever changes.
+insert into public.bookings
+  (id, business_id, service_id, customer_id, starts_at, ends_at, status,
+   service_name, price, customer_name, customer_phone)
+values
+  ('eeeeeeee-0000-0000-0000-000000000001',
+   'aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001',
+   '44444444-4444-4444-4444-444444444444',
+   '2026-01-10T03:00:00Z', '2026-01-10T04:00:00Z', 'completed',
+   'Cut', 300, 'Ben Customer', '0899999999');
+
 set role authenticated;
 
 -- --- consent_records: select isolation --------------------------------
@@ -163,15 +181,42 @@ select test_assert(
 
 reset role;
 
+-- Within-grace negative control (QA report #7 §6): Ann files a request too,
+-- only 5 days ago — well inside the 30-day grace window. Without this
+-- second, recent, pending row, the "exactly 1" assertion below can't
+-- distinguish "the function correctly filters by grace period" from "the
+-- function returns every pending row regardless of age," since there would
+-- be nothing else pending in the table to wrongly include.
+insert into public.deletion_requests (user_id, requested_at)
+values ('33333333-3333-3333-3333-333333333333', now() - interval '5 days');
+
 -- --- retention functions: functional run, as service_role ---------------
 
 select test_assert(
   (select count(*) from public.pdpa_accounts_past_retention(30)) = 1,
-  'exactly Ben''s 45-day-old request is past the 30-day grace window');
+  'exactly one request is past the 30-day grace window, with two pending');
+
+select test_assert(
+  (select deletion_request_id from public.pdpa_accounts_past_retention(30)) in
+    (select id from public.deletion_requests
+      where user_id = '44444444-4444-4444-4444-444444444444' and status = 'pending'),
+  'the one past-grace request is specifically Ben''s 45-day-old one, not Ann''s 5-day-old one');
+
+select test_assert(
+  not exists (
+    select 1 from public.pdpa_accounts_past_retention(30)
+    where user_id = '33333333-3333-3333-3333-333333333333'
+  ),
+  'Ann''s 5-day-old (within-grace) request is correctly excluded');
 
 set role service_role;
 select public.pdpa_process_deletion_requests(30);
 reset role;
+
+select test_assert(
+  (select status from public.deletion_requests
+    where user_id = '33333333-3333-3333-3333-333333333333') = 'pending',
+  'Ann''s within-grace request is untouched by processing Ben''s — still pending, not completed');
 
 select test_assert(
   (select status from public.deletion_requests
@@ -193,6 +238,29 @@ select test_assert(
   (select full_name from public.profiles
     where id = '33333333-3333-3333-3333-333333333333') <> '',
   'Ann''s profile is untouched by processing Ben''s request');
+
+-- Financial retention (legal-review.md 2026-10-22; 20261022000000_pdpa_financial_retention.sql):
+-- Ben's booking is anonymized, but still exists — "kept, but no longer
+-- identifies you," never deleted.
+select test_assert(
+  (select count(*) from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001') = 1,
+  'Ben''s booking record still exists — financial records are kept, not purged, by this function');
+
+select test_assert(
+  (select customer_name from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001') = '',
+  'Ben''s booking is anonymized (customer_name cleared)');
+
+select test_assert(
+  (select customer_phone is null from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001'),
+  'Ben''s booking is anonymized (customer_phone cleared)');
+
+select test_assert(
+  (select service_name from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001') = 'Cut',
+  'Ben''s booking keeps its non-identifying transaction facts (service, price, dates)');
 
 select test_assert(
   (select count(*) from public.pdpa_accounts_past_retention(30)) = 0,

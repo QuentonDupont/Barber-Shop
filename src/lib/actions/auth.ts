@@ -103,10 +103,15 @@ export async function signUpAction(
   }
 
   // Record the consent captured above (item 4: user id + timestamp + the
-  // policy version in force now). Best-effort: the account already exists at
-  // this point, and a transient failure here shouldn't strand the new user
-  // on a dead-end sign-up page — the account page's consent status simply
-  // starts blank and they can re-consent from there.
+  // policy version in force now). Deliberately best-effort: the account
+  // already exists at this point, and a transient failure here shouldn't
+  // strand the new user on a dead-end sign-up page. This is safe — not a
+  // silent PDPA gap — only because `createBookingAction`'s consent gate
+  // (QA report #7 §5) independently re-checks `hasCurrentConsent` at
+  // booking time and blocks a customer with no consent record at all, not
+  // just a withdrawn one. So a failed insert here just means they're
+  // prompted to consent before their first booking, not that they book
+  // freely with no consent ever recorded.
   if (data.user) {
     await recordConsentAction(data.user.id);
   }

@@ -432,6 +432,7 @@ function ConfirmSheet({
   const [state, formAction] = useActionState(createBookingAction, idleState);
   const t = useT();
   const { locale } = useLocale();
+  const router = useRouter();
 
   useEffect(() => {
     if (state.status === "success") {
@@ -439,9 +440,21 @@ function ConfirmSheet({
       onBooked();
     }
     if (state.status === "error" && state.message) {
-      toast.error(state.message);
+      // PDPA consent gate (QA report #7 §5): give a direct way to act on
+      // the blocked state, not just a prose pointer to the account page.
+      toast.error(
+        state.message,
+        state.consentBlocked
+          ? {
+              action: {
+                label: t("privacy.goToAccountAction"),
+                onClick: () => router.push("/app/account"),
+              },
+            }
+          : undefined,
+      );
     }
-  }, [state, onBooked, t]);
+  }, [state, onBooked, t, router]);
 
   const endsAt = new Date(
     new Date(startsAt).getTime() + (service.duration_min + service.buffer_min) * 60_000,

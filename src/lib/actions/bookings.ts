@@ -18,6 +18,8 @@ import type { BookingRow } from "@/lib/database.types";
 import { businessPath } from "@/lib/routes";
 import { t } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
+import { hasCurrentConsent } from "@/lib/privacy/retention";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
 
 const createSchema = z.object({
   businessId: z.uuid(),
@@ -68,21 +70,48 @@ export async function createBookingAction(
   const supabase = await createClient();
   const { businessId, serviceId, startsAt, notes, staffId: requestedStaffId } = parsed.data;
 
-  // PDPA item 15: once a customer withdraws consent, new bookings are
-  // blocked (not silently processed) until they consent again — this is the
-  // one place a booking comes into existence, so it is the one place this is
-  // checked. See src/lib/actions/privacy.ts for the withdraw/reconsent
-  // actions themselves.
-  const { data: latestConsent } = await supabase
+  // PDPA item 15 (QA report #7 §5 fix): gated on the project's own
+  // hasCurrentConsent helper, not a narrower inline check — this is the one
+  // place a booking comes into existence, so it is the one place this is
+  // checked, and it must catch all three "not currently consented" cases,
+  // not just withdrawal:
+  //  - withdrawn (the original, narrower check already caught this)
+  //  - no consent record at all — reachable because signUpAction's own
+  //    consent insert is deliberately best-effort (a transient DB failure
+  //    shouldn't strand someone on a dead-end sign-up page); this gate is
+  //    the actual backstop that makes that best-effort choice safe, by
+  //    blocking booking (not account use) until they do consent
+  //  - consented, never withdrawn, but under a since-superseded policy
+  //    version (dormant today — only one version exists yet — but a
+  //    certainty the moment PRIVACY_POLICY_VERSION is next bumped)
+  // See src/lib/actions/privacy.ts for the withdraw/reconsent actions
+  // themselves, and src/lib/privacy/retention.ts for hasCurrentConsent's
+  // own unit tests covering exactly these three cases.
+  const { data: latestConsentRow } = await supabase
     .from("consent_records")
-    .select("withdrawn_at")
+    .select("policy_version, withdrawn_at")
     .eq("user_id", session.userId)
     .order("consented_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (latestConsent?.withdrawn_at) {
-    return errorState(t(locale, "privacy.bookingBlockedConsentWithdrawn"));
+  const consent = latestConsentRow
+    ? {
+        policyVersion: latestConsentRow.policy_version,
+        withdrawnAt: latestConsentRow.withdrawn_at ? new Date(latestConsentRow.withdrawn_at) : null,
+      }
+    : null;
+
+  if (!hasCurrentConsent(consent, PRIVACY_POLICY_VERSION)) {
+    const messageKey = !consent
+      ? "privacy.bookingBlockedNeverConsented"
+      : consent.withdrawnAt
+        ? "privacy.bookingBlockedConsentWithdrawn"
+        : "privacy.bookingBlockedPolicyUpdated";
+    // `consentBlocked: true` lets the UI (ConfirmSheet in booking-flow.tsx)
+    // offer a direct way to act on this from the blocked state itself,
+    // instead of just naming the account page in prose (QA report #7 §5).
+    return { status: "error", message: t(locale, messageKey), consentBlocked: true };
   }
 
   const { data: business } = await supabase
