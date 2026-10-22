@@ -16,7 +16,18 @@
 // back to "will put in place," retention wording corrected to match what the
 // deletion job actually does, Google added as a sign-in processor) — bumped
 // per this file's own rule above.
-export const PRIVACY_POLICY_VERSION = "2026-10-22-draft-2";
+//
+// v3 (2026-10-22, decision #21 / QA report #8): ONE sentence changed —
+// `sectionRetentionBody`'s financial-records clause now ends "...and are
+// then deleted" instead of stopping at "up to 5 years," because decision
+// #21 committed to actually building the 5-year purge
+// (pdpa_purge_financial_records_past_retention), not just describing
+// anonymization. Everything else in the policy is unchanged from v2.
+// **Flag for Legal's full re-review before real data** (per their own
+// 2026-10-22 note that they re-review the whole policy anyway before the
+// Draft banner comes off): only this one sentence needs a fresh look this
+// time, not the full document.
+export const PRIVACY_POLICY_VERSION = "2026-10-22-draft-3";
 
 /**
  * Placeholder until Legal/the CEO names an actual data-protection contact

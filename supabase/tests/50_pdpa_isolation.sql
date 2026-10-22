@@ -25,16 +25,33 @@ values
 -- constraint's `where (status in ('pending', 'confirmed'))` clause, so this
 -- fixture can't collide with any other test file's bookings regardless of
 -- timing. Own id, not reused from 10_booking_invariants.sql, so this file
--- stays self-contained if that fixture ever changes.
+-- stays self-contained if that fixture ever changes. `notes` is a real
+-- freeform value (QA report #8 §4: a customer can write anything there —
+-- an allergy, a callback number, a name — so it is personal data too, not
+-- a financial fact worth keeping).
 insert into public.bookings
   (id, business_id, service_id, customer_id, starts_at, ends_at, status,
-   service_name, price, customer_name, customer_phone)
+   service_name, price, customer_name, customer_phone, notes)
 values
   ('eeeeeeee-0000-0000-0000-000000000001',
    'aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001',
    '44444444-4444-4444-4444-444444444444',
    '2026-01-10T03:00:00Z', '2026-01-10T04:00:00Z', 'completed',
-   'Cut', 300, 'Ben Customer', '0899999999');
+   'Cut', 300, 'Ben Customer', '0899999999', 'Allergic to lavender oil, call ahead');
+
+-- Nong Barber's owner has a note *about* Ben (stretch A's customer_notes —
+-- a business's private record about a customer, not the customer's own
+-- booking data). Ann already has one of her own, seeded by
+-- 25_customer_notes_isolation.sql earlier in this same run — reused below
+-- as the negative control for the delete-on-deletion-request fix (decision
+-- #21, QA report #8 §1), rather than inserting a second row for the same
+-- (business, customer) pair, which `customer_notes`'s own unique
+-- constraint would reject.
+insert into public.customer_notes (business_id, customer_id, note)
+values
+  ('aaaaaaaa-0000-0000-0000-000000000001',
+   '44444444-4444-4444-4444-444444444444',
+   'Ben: prefers a #2 fade, chatty, allergic to lavender oil');
 
 set role authenticated;
 
@@ -257,11 +274,96 @@ select test_assert(
     where id = 'eeeeeeee-0000-0000-0000-000000000001'),
   'Ben''s booking is anonymized (customer_phone cleared)');
 
+-- QA report #8 §4: the customer's own freeform notes field is personal
+-- data too (an allergy, a callback number, a name — anything they typed).
 select test_assert(
-  (select service_name from public.bookings
-    where id = 'eeeeeeee-0000-0000-0000-000000000001') = 'Cut',
-  'Ben''s booking keeps its non-identifying transaction facts (service, price, dates)');
+  (select notes is null from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001'),
+  'Ben''s booking notes are cleared');
+
+-- QA report #8 §4: tightened label — actually asserts each fact claimed,
+-- not just service_name (report #8's finding: the old label overclaimed).
+select test_assert(
+  (select service_name = 'Cut' and price = 300
+     and starts_at = '2026-01-10T03:00:00Z'::timestamptz
+     and ends_at = '2026-01-10T04:00:00Z'::timestamptz
+    from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001'),
+  'Ben''s booking keeps its non-identifying transaction facts: service_name, price, starts_at and ends_at all survive');
+
+-- Decision #21 / QA report #8 §1: a barber's private note *about* Ben is
+-- deleted outright (not anonymized — it has no financial-record purpose),
+-- scoped to Ben only.
+select test_assert(
+  (select count(*) from public.customer_notes
+    where customer_id = '44444444-4444-4444-4444-444444444444') = 0,
+  'Ben''s customer_notes row is deleted, not just anonymized');
+
+select test_assert(
+  (select count(*) from public.customer_notes
+    where customer_id = '33333333-3333-3333-3333-333333333333') = 1,
+  'Ann''s customer_notes row is untouched by processing Ben''s request');
 
 select test_assert(
   (select count(*) from public.pdpa_accounts_past_retention(30)) = 0,
   'nothing left to process — the job is idempotent, not re-processing a completed request');
+
+-- ---------------------------------------------------------------------------
+-- Decision #21, "then deletes them" half: pdpa_purge_financial_records_past_retention
+-- ---------------------------------------------------------------------------
+
+set role authenticated;
+select test_assert(
+  test_sqlstate('44444444-4444-4444-4444-444444444444',
+    'select * from public.pdpa_purge_financial_records_past_retention()') = '42501',
+  'an ordinary authenticated user cannot run the financial-records purge job');
+reset role;
+
+-- Positive control: Carol, a customer whose account deletion completed 6
+-- years ago — well past the 5-year financial-retention window — with one
+-- booking. 55555555... is free to reuse: 10_booking_invariants.sql
+-- creates then deletes it (its own "sneaky self-sign-up" probe), so by the
+-- time this file runs it no longer exists.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('55555555-5555-5555-5555-555555555555', 'carol@example.test',
+   '{"role":"customer","full_name":"Carol Customer","phone":"0855555555"}');
+
+insert into public.deletion_requests (user_id, requested_at, status, completed_at)
+values
+  ('55555555-5555-5555-5555-555555555555',
+   now() - interval '6 years' - interval '30 days',
+   'completed', now() - interval '6 years');
+
+insert into public.bookings
+  (id, business_id, service_id, customer_id, starts_at, ends_at, status,
+   service_name, price, customer_name, customer_phone)
+values
+  ('eeeeeeee-0000-0000-0000-000000000002',
+   'aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001',
+   '55555555-5555-5555-5555-555555555555',
+   '2019-01-10T03:00:00Z', '2019-01-10T04:00:00Z', 'completed',
+   'Cut', 300, '', null);
+
+select test_assert(
+  (select count(*) from public.pdpa_bookings_past_financial_retention(5)
+    where booking_id = 'eeeeeeee-0000-0000-0000-000000000002') = 1,
+  'Carol''s booking is correctly identified as past the 5-year financial-retention window');
+
+select test_assert(
+  (select count(*) from public.pdpa_bookings_past_financial_retention(5)
+    where booking_id = 'eeeeeeee-0000-0000-0000-000000000001') = 0,
+  'Ben''s booking (deletion completed moments ago, this same test run) is not — the negative control');
+
+set role service_role;
+select public.pdpa_purge_financial_records_past_retention(5);
+reset role;
+
+select test_assert(
+  (select count(*) from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000002') = 0,
+  'positive control: Carol''s 6-year-old booking is actually deleted');
+
+select test_assert(
+  (select count(*) from public.bookings
+    where id = 'eeeeeeee-0000-0000-0000-000000000001') = 1,
+  'negative control: Ben''s recent booking survives the same purge call');

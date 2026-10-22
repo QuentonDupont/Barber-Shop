@@ -225,7 +225,7 @@ export const dictionaries = {
       sectionTransferBody: "ฐานข้อมูลของเราจะถูกตั้งอยู่ที่สิงคโปร์ (Supabase) ซึ่งหมายความว่าข้อมูลของคุณจะถูกส่งออกนอกประเทศไทย ก่อนที่เราจะเก็บข้อมูลลูกค้าจริงไว้ที่นั่น เราจะจัดทำข้อตกลงคุ้มครองข้อมูลมาตรฐาน (Standard Contractual Clauses) หรือมาตรการคุ้มครองอื่นที่สำนักงานคณะกรรมการคุ้มครองข้อมูลส่วนบุคคล (สคส.) ยอมรับ กับผู้ให้บริการฐานข้อมูลของเรา ตามที่มาตรา 29 ของ PDPA กำหนด",
 
       sectionRetentionTitle: "ระยะเวลาที่เราเก็บข้อมูล",
-      sectionRetentionBody: "เราเก็บข้อมูลของคุณไว้ตราบเท่าที่บัญชีของคุณยังเปิดใช้งาน หากคุณขอให้เราลบบัญชี เราจะเก็บข้อมูลไว้อีก 30 วันเพื่อให้คุณเปลี่ยนใจได้ จากนั้นจะลบหรือทำให้ข้อมูลส่วนบุคคลของคุณไม่สามารถระบุตัวบุคคลได้ ส่วนประวัติการจองอาจถูกเก็บไว้นานกว่านั้นในรูปแบบที่ไม่สามารถระบุตัวบุคคลได้ สูงสุด 5 ปี ตามที่กฎหมายไทยกำหนดไว้สำหรับการเก็บบันทึกทางการเงิน",
+      sectionRetentionBody: "เราเก็บข้อมูลของคุณไว้ตราบเท่าที่บัญชีของคุณยังเปิดใช้งาน หากคุณขอให้เราลบบัญชี เราจะเก็บข้อมูลไว้อีก 30 วันเพื่อให้คุณเปลี่ยนใจได้ จากนั้นจะลบหรือทำให้ข้อมูลส่วนบุคคลของคุณไม่สามารถระบุตัวบุคคลได้ ส่วนประวัติการจองอาจถูกเก็บไว้นานกว่านั้นในรูปแบบที่ไม่สามารถระบุตัวบุคคลได้ สูงสุด 5 ปี ตามที่กฎหมายไทยกำหนดไว้สำหรับการเก็บบันทึกทางการเงิน จากนั้นจะถูกลบออก",
 
       sectionRightsTitle: "สิทธิของคุณ",
       rightAccess: "เข้าถึงข้อมูลส่วนบุคคลของคุณ",
@@ -934,7 +934,7 @@ export const dictionaries = {
       sectionTransferBody: "Our database will be hosted in Singapore (Supabase), so your data will leave Thailand. Before we store any real customer data there, we will put a Standard Contractual Clauses agreement (or an equivalent safeguard the PDPC recognizes) in place with our database provider, as PDPA Section 29 requires for this kind of transfer.",
 
       sectionRetentionTitle: "How long we keep it",
-      sectionRetentionBody: "We keep your data for as long as your account stays active. If you ask us to delete your account, we keep it for a further 30 days in case you change your mind, then remove or anonymize your personal details. Records of your bookings may be kept longer, in a form that no longer identifies you, for up to 5 years, because Thai law requires this for financial record-keeping.",
+      sectionRetentionBody: "We keep your data for as long as your account stays active. If you ask us to delete your account, we keep it for a further 30 days in case you change your mind, then remove or anonymize your personal details. Records of your bookings may be kept longer, in a form that no longer identifies you, for up to 5 years, because Thai law requires this for financial record-keeping, and are then deleted.",
 
       sectionRightsTitle: "Your rights",
       rightAccess: "Access your personal data",
