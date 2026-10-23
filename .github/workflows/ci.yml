@@ -57,6 +57,121 @@ jobs:
   # cannot be run in this sandbox (no outbound network, no Docker) to confirm
   # directly before merge.
   # ---------------------------------------------------------------------------
+  # Job 3 — smoke test (handoff 08). Every QA pass before this one was code
+  # reading plus unit tests, and three real runtime bugs slipped through
+  # anyway: a "use server" file exporting a non-function (breaks /sign-in and
+  # /sign-up outright), a mock-mode 500 on any shop with staff (staff_services
+  # was never registered in the mock store), and a client component importing
+  # a `server-only` module (breaks the build). None of those show up in lint,
+  # typecheck or unit tests — they only show up when the app actually runs.
+  # This job builds and starts the app for real, in mock mode (no Supabase,
+  # no Docker needed), and fetches the routes that cover every portal
+  # (public, customer, business owner) and the three bugs above.
+  # ---------------------------------------------------------------------------
+  smoke:
+    name: Smoke test (build, start, fetch key routes)
+    runs-on: ubuntu-latest
+    env:
+      # Mock mode end to end: the whole data layer is in-memory fixtures, no
+      # Supabase project needed. NEXT_PUBLIC_* vars are inlined at build
+      # time, so this has to be set for both `next build` and `next start`.
+      NEXT_PUBLIC_USE_MOCK: "1"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # next/font/google needs to reach Google Fonts at build time — GitHub's
+      # runners have normal outbound internet access, so this works unstubbed.
+      - name: Build (mock mode)
+        run: npm run build
+
+      - name: Start server (mock mode)
+        run: nohup npm run start -- -p 3000 > server.log 2>&1 &
+
+      - name: Wait for server to come up
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://localhost:3000/"; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server never became ready" >&2
+          cat server.log
+          exit 1
+
+      # Fetch the routes that cover every portal plus the three bugs fixed in
+      # this handoff, and fail on a non-200 status or on the root error
+      # boundary's own text (`src/app/error.tsx`) — Next can still answer 200
+      # while streaming an error page, so status alone isn't enough.
+      #
+      # Mock auth cookie format is `role:id` (`src/lib/mock/config.ts`); the
+      # seeded owner and customer ids are fixed in `src/lib/mock/fixtures.ts`.
+      - name: Fetch key routes
+        run: |
+          OWNER_COOKIE="bookly_mock_user=business_owner:a0000000-0000-4000-8000-000000000001"
+          CUSTOMER_COOKIE="bookly_mock_user=customer:a0000000-0000-4000-8000-000000000002"
+          BARBER_SLUG="nong-barber"
+
+          check() {
+            local path="$1" cookie="${2:-}"
+            local body="/tmp/smoke-body.html"
+            local code
+            if [ -n "$cookie" ]; then
+              code=$(curl -s -o "$body" -w "%{http_code}" -b "$cookie" "http://localhost:3000$path")
+            else
+              code=$(curl -s -o "$body" -w "%{http_code}" "http://localhost:3000$path")
+            fi
+            if [ "$code" != "200" ]; then
+              echo "FAIL $path -> HTTP $code"
+              cat "$body"
+              exit 1
+            fi
+            if grep -q "Something went wrong on our side" "$body"; then
+              echo "FAIL $path -> rendered the root error boundary"
+              exit 1
+            fi
+            echo "OK   $path -> HTTP $code"
+          }
+
+          # Public routes.
+          check "/"
+          check "/app" "$CUSTOMER_COOKIE"          # the discover/search screen
+          check "/b/$BARBER_SLUG"
+          check "/sign-in"
+          check "/sign-up"
+          check "/privacy"
+
+          # Customer portal (bug 1 and bug 3 both sit on this path: sign-in's
+          # page transitively imports privacy.ts, and the data-rights panel
+          # on this page uses i18n's client context).
+          check "/app/account" "$CUSTOMER_COOKIE"
+
+          # Business owner / dashboard routes — /dashboard/staff exercises
+          # bug 2 directly (loadStaffWithServices -> staff_services).
+          check "/dashboard" "$OWNER_COOKIE"
+          check "/dashboard/calendar" "$OWNER_COOKIE"
+          check "/dashboard/services" "$OWNER_COOKIE"
+          check "/dashboard/staff" "$OWNER_COOKIE"
+          check "/dashboard/hours" "$OWNER_COOKIE"
+          check "/dashboard/shopfront" "$OWNER_COOKIE"
+          check "/dashboard/settings" "$OWNER_COOKIE"
+
+      - name: Server log (always, for debugging)
+        if: always()
+        run: cat server.log || true
+
   db-tests:
     name: Database tests (RLS, availability, multi-staff)
     runs-on: ubuntu-latest

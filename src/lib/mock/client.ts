@@ -81,6 +81,8 @@ function insertDefaults(table: string): Row {
       };
     case "staff":
       return { avatar_url: null, works_weekdays: [0, 1, 2, 3, 4, 5, 6], is_active: true, created_at: now };
+    case "staff_services":
+      return { created_at: now };
     case "availability_overrides":
       return { is_closed: true, open_time: null, close_time: null, note: null };
     case "bookings":

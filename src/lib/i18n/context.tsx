@@ -1,8 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { t as translate, type Locale } from "./dictionaries";
-import { LOCALE_COOKIE } from "./server";
+import { LOCALE_COOKIE, t as translate, type Locale } from "./dictionaries";
 
 interface LocaleContextValue {
   locale: Locale;

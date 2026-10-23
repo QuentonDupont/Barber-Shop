@@ -24,6 +24,7 @@ import type {
   ProfileRow,
   ServiceRow,
   StaffRow,
+  StaffServiceRow,
   UserRole,
 } from "@/lib/database.types";
 import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
@@ -49,6 +50,15 @@ export interface MockDB {
   business_breaks: BusinessBreakRow[];
   services: ServiceRow[];
   staff: StaffRow[];
+  /**
+   * Registered for handoff 08 (runtime fix): `loadStaffWithServices`
+   * (`src/lib/booking/availability.ts`) always queries this table once a
+   * business has any `staff` rows at all — leaving it off `MockDB` made
+   * `table_()` in `mock/client.ts` throw `unknown table "staff_services"`
+   * the moment a seeded shop had barbers, a 500 that stayed hidden only
+   * because no fixture business had staff yet.
+   */
+  staff_services: StaffServiceRow[];
   availability_overrides: AvailabilityOverrideRow[];
   bookings: BookingRow[];
   products: ProductRow[];
@@ -120,6 +130,11 @@ const SVC_COMBO = "c0000000-0000-4000-8000-000000000004";
 const SVC_THAI60 = "c0000000-0000-4000-8000-000000000005";
 const SVC_THAI120 = "c0000000-0000-4000-8000-000000000006";
 const SVC_AROMA = "c0000000-0000-4000-8000-000000000007";
+
+// Barber staff (roadmap.md §1 row 4 — multi-staff booking needs the demo
+// shop to actually have barbers).
+const STAFF_NONG = "d0000000-0000-4000-8000-000000000001";
+const STAFF_PLOY = "d0000000-0000-4000-8000-000000000002";
 
 /* -------------------------------------------------------------------------- */
 /* Builder                                                                     */
@@ -294,6 +309,37 @@ export function buildDB(): MockDB {
     service(SVC_THAI60, SPA, "Thai massage (60 min)", null, 60, 15, 600, 1),
     service(SVC_THAI120, SPA, "Thai massage (120 min)", null, 120, 15, 1100, 2),
     service(SVC_AROMA, SPA, "Aromatherapy", "Oil massage with a scent of your choosing.", 90, 15, 1400, 3),
+  ];
+
+  /* ---- staff (multi-staff booking) --------------------------------------- */
+
+  // Nong performs everything (no `staff_services` rows = default-open, see
+  // `staffCanPerform`). Ploy is narrowed to cuts and fades only, so the
+  // demo shows the "choose your barber" step actually filtering by service.
+  const staff: StaffRow[] = [
+    {
+      id: STAFF_NONG,
+      business_id: BARBER,
+      name: "Nong",
+      avatar_url: null,
+      works_weekdays: [0, 1, 2, 3, 4, 5, 6],
+      is_active: true,
+      created_at: now,
+    },
+    {
+      id: STAFF_PLOY,
+      business_id: BARBER,
+      name: "Ploy",
+      avatar_url: null,
+      works_weekdays: [1, 2, 3, 4, 5],
+      is_active: true,
+      created_at: now,
+    },
+  ];
+
+  const staff_services: StaffServiceRow[] = [
+    { staff_id: STAFF_PLOY, service_id: SVC_CUT, created_at: now },
+    { staff_id: STAFF_PLOY, service_id: SVC_FADE, created_at: now },
   ];
 
   const availability_overrides: AvailabilityOverrideRow[] = [
@@ -591,7 +637,8 @@ export function buildDB(): MockDB {
     business_hours: [...barberHours, ...spaHours],
     business_breaks: barberBreaks,
     services,
-    staff: [],
+    staff,
+    staff_services,
     availability_overrides,
     bookings,
     products,

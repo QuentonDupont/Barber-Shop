@@ -1,9 +1,9 @@
 import "server-only";
 
 import { cookies } from "next/headers";
-import { DEFAULT_LOCALE, type Locale } from "./dictionaries";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, type Locale } from "./dictionaries";
 
-export const LOCALE_COOKIE = "bookly-locale";
+export { LOCALE_COOKIE };
 
 /** Reads the visitor's locale preference from the cookie `LocaleProvider` writes. */
 export async function getLocale(): Promise<Locale> {

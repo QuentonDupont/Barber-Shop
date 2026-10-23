@@ -26,6 +26,28 @@ export interface ActionState {
 
 export const idleState: ActionState = { status: "idle" };
 
+/**
+ * Result shape for `exportMyDataAction` (`./privacy.ts`, PDPA item 12).
+ *
+ * Lives here rather than in `privacy.ts` because `privacy.ts` is a
+ * `"use server"` file — Next only allows async function exports from those,
+ * and throws "A 'use server' file can only export async functions" the
+ * moment any client component imports it transitively (sign-in/sign-up's
+ * pages import `auth.ts`, which imports `privacy.ts`) if a plain value like
+ * `idleExportState` is exported alongside the actions. Every non-function
+ * export a "use server" module needs belongs in a plain module like this
+ * one instead.
+ */
+export interface ExportDataState {
+  status: "idle" | "error" | "success";
+  message?: string;
+  /** Pretty-printed JSON payload; the client turns this into a downloadable file. */
+  json?: string;
+  filename?: string;
+}
+
+export const idleExportState: ExportDataState = { status: "idle" };
+
 export function errorState(
   message: string,
   fieldErrors?: Record<string, string>,

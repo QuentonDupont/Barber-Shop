@@ -19,7 +19,10 @@ import { buildDB, type MockDB } from "./fixtures";
  */
 // v3: handoff 07 — added consent_records, deletion_requests, and registered
 // the pre-existing customer_notes table in the mock store.
-const SCHEMA_VERSION = 3;
+// v4: handoff 08 (runtime fix) — registered staff_services and seeded
+// staff for the barber shop, so multi-staff booking is exercisable in mock
+// mode instead of 500ing the moment a shop has barbers.
+const SCHEMA_VERSION = 4;
 
 const globalForMock = globalThis as unknown as {
   __booklyMockDB?: MockDB;

@@ -11,6 +11,16 @@ export type Locale = "th" | "en";
 
 export const DEFAULT_LOCALE: Locale = "th";
 
+/**
+ * Name of the cookie that carries the visitor's locale choice. Lives here —
+ * a plain module with no `server-only` import — rather than in `server.ts`,
+ * because `context.tsx` (`"use client"`) needs the same literal to write the
+ * cookie client-side. Importing it from `server.ts` would pull that file's
+ * `server-only` guard into the client bundle and break the build (a real
+ * Server/Client boundary violation, not a mock-mode issue).
+ */
+export const LOCALE_COOKIE = "bookly-locale";
+
 export const dictionaries = {
   th: {
     localeToggle: { th: "ไทย", en: "EN" },

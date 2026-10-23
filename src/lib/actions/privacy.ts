@@ -6,7 +6,12 @@ import { requireCustomer } from "@/lib/auth";
 import { t } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
-import { errorState, successState, type ActionState } from "./types";
+import {
+  errorState,
+  successState,
+  type ActionState,
+  type ExportDataState,
+} from "./types";
 
 /**
  * PDPA data-subject-rights actions (handoff 07, legal-review.md §3).
@@ -40,16 +45,6 @@ export async function recordConsentAction(userId?: string): Promise<{ error: str
   if (!error) revalidatePath("/app/account");
   return { error: error?.message ?? null };
 }
-
-export interface ExportDataState {
-  status: "idle" | "error" | "success";
-  message?: string;
-  /** Pretty-printed JSON payload; the client turns this into a downloadable file. */
-  json?: string;
-  filename?: string;
-}
-
-export const idleExportState: ExportDataState = { status: "idle" };
 
 /**
  * Item 12: the signed-in user's own profile, bookings, consent history and
