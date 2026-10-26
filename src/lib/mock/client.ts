@@ -87,7 +87,7 @@ function insertDefaults(table: string): Row {
       return { is_closed: true, open_time: null, close_time: null, note: null };
     case "bookings":
       return {
-        staff_id: null, status: "pending", notes: null, price: 0, currency: "THB",
+        staff_id: null, status: "pending", source: "customer", notes: null, price: 0, currency: "THB",
         customer_name: "", customer_phone: null, cancelled_at: null, cancelled_by: null,
         created_at: now, updated_at: now,
       };
@@ -387,6 +387,9 @@ function rpc(db: MockDB, name: string, args: any): Promise<{ data: any; error: a
       .sort((a, b) => (a.starts_at < b.starts_at ? -1 : a.starts_at > b.starts_at ? 1 : 0))
       .map((b) => ({ starts_at: b.starts_at, ends_at: b.ends_at }));
     return Promise.resolve({ data, error: null });
+  }
+  if (name === "health_check") {
+    return Promise.resolve({ data: { ok: true, checked_at: nowIso() }, error: null });
   }
   if (name === "unique_business_slug") {
     const slug = uniqueSlug(args?.desired ?? "", db.businesses.map((b) => b.slug));

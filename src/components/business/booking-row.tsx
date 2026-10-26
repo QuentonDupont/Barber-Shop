@@ -9,6 +9,7 @@ import {
   Check,
   CircleSlash,
   MessageSquare,
+  Undo2,
   MoreVertical,
   NotebookPen,
   Phone,
@@ -30,6 +31,7 @@ import {
 import { updateBookingStatusAction } from "@/lib/actions/bookings";
 import { getCustomerNote, saveCustomerNoteAction } from "@/lib/actions/customer-notes";
 import { MoveBookingSheet } from "./move-booking-sheet";
+import { canMarkNoShow } from "@/lib/booking/no-show";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow, BookingStatus } from "@/lib/database.types";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
@@ -43,6 +45,7 @@ export type OwnerBooking = Pick<
   | "starts_at"
   | "ends_at"
   | "status"
+  | "source"
   | "service_name"
   | "customer_name"
   | "customer_phone"
@@ -72,10 +75,16 @@ export function OwnerBookingRow({
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const live = booking.status === "pending" || booking.status === "confirmed";
+  // Re-evaluated on each render; the server action and the database check the
+  // same rule again, so a stale button can only produce a polite error.
+  const noShowAllowed = canMarkNoShow(booking);
 
   return (
     <>
       <div
+        data-testid="owner-booking-row"
+        data-booking-id={booking.id}
+        data-status={booking.status}
         className={cn(
           "flex items-stretch gap-3 rounded-xl border border-border bg-surface p-3 sm:p-3.5",
           booking.status === "cancelled" && "opacity-60",
@@ -113,8 +122,13 @@ export function OwnerBookingRow({
           </span>
         </button>
 
+        {noShowAllowed ? <QuickNoShow bookingId={booking.id} /> : null}
         {live ? (
-          <QuickActions bookingId={booking.id} status={booking.status} />
+          <QuickActions
+            bookingId={booking.id}
+            status={booking.status}
+            noShowAllowed={noShowAllowed}
+          />
         ) : null}
       </div>
 
@@ -141,8 +155,48 @@ export function OwnerBookingRow({
   );
 }
 
+/**
+ * One-tap no-show, visible on phones too (the overflow menu below is
+ * desktop-only). Shown only once the appointment time has passed.
+ */
+function QuickNoShow({ bookingId }: { bookingId: string }) {
+  const t = useT();
+  const [, formAction] = useActionState(withToast(updateBookingStatusAction), idleState);
+  return (
+    <form action={formAction} className="flex shrink-0 items-center">
+      <input type="hidden" name="id" value={bookingId} />
+      <input type="hidden" name="status" value="no_show" />
+      <NoShowQuickButton label={t("bookingAdmin.noShowQuick")} />
+    </form>
+  );
+}
+
+function NoShowQuickButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      type="submit"
+      size="sm"
+      variant="outline"
+      loading={pending}
+      data-testid="booking-no-show-quick"
+    >
+      <CircleSlash />
+      {label}
+    </Button>
+  );
+}
+
 /** Desktop-friendly overflow menu; hidden on phones where the sheet rules. */
-function QuickActions({ bookingId, status }: { bookingId: string; status: BookingStatus }) {
+function QuickActions({
+  bookingId,
+  status,
+  noShowAllowed,
+}: {
+  bookingId: string;
+  status: BookingStatus;
+  noShowAllowed: boolean;
+}) {
   const t = useT();
   return (
     <DropdownMenu.Root>
@@ -168,9 +222,11 @@ function QuickActions({ bookingId, status }: { bookingId: string; status: Bookin
           <StatusMenuItem id={bookingId} status="completed" icon={Check}>
             {t("bookingAdmin.markCompleted")}
           </StatusMenuItem>
-          <StatusMenuItem id={bookingId} status="no_show" icon={CircleSlash}>
-            {t("bookingAdmin.markNoShow")}
-          </StatusMenuItem>
+          {noShowAllowed ? (
+            <StatusMenuItem id={bookingId} status="no_show" icon={CircleSlash}>
+              {t("bookingAdmin.markNoShow")}
+            </StatusMenuItem>
+          ) : null}
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <StatusMenuItem id={bookingId} status="cancelled" icon={Ban} danger>
             {t("bookingAdmin.cancelBooking")}
@@ -236,6 +292,7 @@ export function OwnerBookingSheet({
   const { locale } = useLocale();
   const [, formAction] = useActionState(withToast(updateBookingStatusAction), idleState);
   const live = booking.status === "pending" || booking.status === "confirmed";
+  const noShowAllowed = canMarkNoShow(booking);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -254,6 +311,14 @@ export function OwnerBookingSheet({
             <BookingStatusBadge status={booking.status} />
             <span className="text-sm font-semibold">
               {formatMoney(booking.price, booking.currency)}
+            </span>
+            <span
+              className="text-xs text-fg-subtle"
+              data-testid="booking-source"
+              data-source={booking.source}
+            >
+              {t("bookingAdmin.sourceLabel")}:{" "}
+              {t(booking.source === "shop" ? "bookingAdmin.sourceShop" : "bookingAdmin.sourceCustomer")}
             </span>
           </div>
 
@@ -327,24 +392,42 @@ export function OwnerBookingSheet({
                     {t("bookingAdmin.confirm")}
                   </SubmitButton>
                 </form>
-              ) : (
-                <>
-                  <form action={formAction} className="flex-1">
-                    <input type="hidden" name="id" value={booking.id} />
-                    <input type="hidden" name="status" value="no_show" />
-                    <SubmitButton variant="outline">{t("bookingAdmin.noShow")}</SubmitButton>
-                  </form>
-                  <form action={formAction} className="flex-1">
-                    <input type="hidden" name="id" value={booking.id} />
-                    <input type="hidden" name="status" value="completed" />
-                    <SubmitButton variant="primary">
-                      <Check />
-                      {t("bookingAdmin.done")}
-                    </SubmitButton>
-                  </form>
-                </>
-              )}
+              ) : null}
+              {noShowAllowed ? (
+                <form action={formAction} className="flex-1">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="status" value="no_show" />
+                  <SubmitButton variant="outline" testId="booking-no-show">
+                    {t("bookingAdmin.noShow")}
+                  </SubmitButton>
+                </form>
+              ) : null}
+              {booking.status === "confirmed" ? (
+                <form action={formAction} className="flex-1">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="status" value="completed" />
+                  <SubmitButton variant="primary" testId="booking-done">
+                    <Check />
+                    {t("bookingAdmin.done")}
+                  </SubmitButton>
+                </form>
+              ) : null}
             </div>
+          </SheetFooter>
+        ) : null}
+
+        {/* A mis-tapped no-show must be reversible, or one slip corrupts the
+            beta numbers for good. Puts the booking back to confirmed. */}
+        {booking.status === "no_show" ? (
+          <SheetFooter>
+            <form action={formAction} className="w-full">
+              <input type="hidden" name="id" value={booking.id} />
+              <input type="hidden" name="status" value="confirmed" />
+              <SubmitButton variant="outline" testId="booking-undo-no-show">
+                <Undo2 />
+                {t("bookingAdmin.undoNoShow")}
+              </SubmitButton>
+            </form>
           </SheetFooter>
         ) : null}
       </SheetContent>
@@ -417,13 +500,15 @@ function SaveNoteButton() {
 function SubmitButton({
   variant,
   children,
+  testId,
 }: {
   variant: "accent" | "primary" | "outline";
   children: React.ReactNode;
+  testId?: string;
 }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="md" block variant={variant} loading={pending}>
+    <Button type="submit" size="md" block variant={variant} loading={pending} data-testid={testId}>
       {children}
     </Button>
   );

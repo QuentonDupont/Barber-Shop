@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BarChart3,
   CalendarDays,
   Clock3,
   ExternalLink,
@@ -39,6 +40,7 @@ export default async function DashboardLayout({
     { href: "/dashboard/staff", label: t(locale, "nav.staff"), icon: <Users />, matchPrefix: true },
     { href: "/dashboard/hours", label: t(locale, "nav.hours"), icon: <Clock3 />, matchPrefix: true },
     { href: "/dashboard/shopfront", label: t(locale, "nav.shopfront"), icon: <Store />, matchPrefix: true },
+    { href: "/dashboard/numbers", label: t(locale, "nav.numbers"), icon: <BarChart3 />, matchPrefix: true },
     { href: "/dashboard/settings", label: t(locale, "nav.settings"), icon: <Settings />, matchPrefix: true },
   ];
 

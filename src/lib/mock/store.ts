@@ -22,7 +22,7 @@ import { buildDB, type MockDB } from "./fixtures";
 // v4: handoff 08 (runtime fix) — registered staff_services and seeded
 // staff for the barber shop, so multi-staff booking is exercisable in mock
 // mode instead of 500ing the moment a shop has barbers.
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 
 const globalForMock = globalThis as unknown as {
   __booklyMockDB?: MockDB;

@@ -12,6 +12,7 @@ import {
 } from "@/lib/booking/availability";
 import { findSlot, getDayAvailability } from "@/lib/booking/slots";
 import { toDateKey } from "@/lib/booking/time";
+import { canMarkNoShow } from "@/lib/booking/no-show";
 import { notifyBookingCancelled, notifyBookingCreated } from "@/lib/notifications";
 import { errorState, successState, type ActionState } from "./types";
 import type { BookingRow } from "@/lib/database.types";
@@ -323,6 +324,13 @@ export async function updateBookingStatusAction(
     .maybeSingle();
 
   if (!booking) return errorState(t(locale, "toast.bookingGone"));
+
+  // Beta ops: no-shows feed the kill/pivot gate numbers, so only a live
+  // booking whose time has come can become one (the database trigger
+  // `bookings_guard_no_show` enforces the same rule underneath).
+  if (status === "no_show" && !canMarkNoShow(booking)) {
+    return errorState(t(locale, "bookingAdmin.errorNoShowTooEarly"));
+  }
 
   const { error } = await supabase
     .from("bookings")

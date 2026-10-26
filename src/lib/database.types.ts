@@ -20,6 +20,9 @@ export type BusinessCategory =
   | "event"
   | "other";
 
+/** Who created a booking; stamped by the database (see 20261026000000_beta_ops.sql). */
+export type BookingSource = "customer" | "shop";
+
 export type BookingStatus =
   | "pending"
   | "confirmed"
@@ -135,6 +138,7 @@ export type BookingRow = {
   starts_at: string;
   ends_at: string;
   status: BookingStatus;
+  source: BookingSource;
   notes: string | null;
   service_name: string;
   price: number;
@@ -419,7 +423,7 @@ export type Database = {
           | "starts_at"
           | "ends_at"
           | "service_name",
-          "id" | "created_at" | "updated_at"
+          "id" | "created_at" | "updated_at" | "source"
         >;
         Update: Partial<BookingRow>;
         Relationships: [
@@ -573,6 +577,10 @@ export type Database = {
         Args: { desired: string };
         Returns: string;
       };
+      health_check: {
+        Args: Record<string, never>;
+        Returns: { ok: boolean; checked_at: string };
+      };
       busy_intervals: {
         Args: {
           target_business: string;
@@ -588,6 +596,7 @@ export type Database = {
       user_role: UserRole;
       business_category: BusinessCategory;
       booking_status: BookingStatus;
+      booking_source: BookingSource;
       campaign_kind: CampaignKind;
       subscription_status: SubscriptionStatus;
       order_status: OrderStatus;
