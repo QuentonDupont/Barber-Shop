@@ -365,6 +365,7 @@ export function buildDB(): MockDB {
     time: string;
     duration_min: number;
     status: BookingRow["status"];
+    source?: BookingRow["source"];
     service_name: string;
     price: number;
     customer_name: string;
@@ -385,6 +386,7 @@ export function buildDB(): MockDB {
       starts_at,
       ends_at,
       status: args.status,
+      source: args.source ?? "customer",
       notes: args.notes ?? null,
       service_name: args.service_name,
       price: args.price,
@@ -459,6 +461,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_SHAVE,
       customer_id: WALK_IN_1,
+      source: "shop",
       dateKey: today,
       time: "10:15",
       duration_min: 30,
@@ -472,6 +475,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_COMBO,
       customer_id: WALK_IN_2,
+      source: "shop",
       dateKey: today,
       time: "14:30",
       duration_min: 90,
@@ -485,6 +489,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_CUT,
       customer_id: WALK_IN_3,
+      source: "shop",
       dateKey: today,
       time: "17:00",
       duration_min: 45,
@@ -498,6 +503,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_FADE,
       customer_id: WALK_IN_1,
+      source: "shop",
       dateKey: shiftDate(today, 2),
       time: "11:30",
       duration_min: 60,
@@ -507,6 +513,37 @@ export function buildDB(): MockDB {
       customer_name: "Somchai Prasert",
       customer_phone: "081 111 2222",
     }),
+
+    // --- Recent history at the barber, so the owner's weekly numbers page
+    // (and the no-show button's undo) has something to show. Mostly
+    // customer-made, a few shop-entered, a couple of no-shows. ---
+    ...[
+      // [days ago, time, status, source, customer]
+      [-2, "10:00", "completed", "customer", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-2, "14:00", "no_show", "customer", WALK_IN_2, "Malee Thongdee", "081 333 4444"],
+      [-3, "11:00", "completed", "customer", WALK_IN_3, "Anucha Kitti", "081 555 6666"],
+      [-4, "16:00", "completed", "shop", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-9, "10:00", "completed", "customer", WALK_IN_2, "Malee Thongdee", "081 333 4444"],
+      [-9, "13:00", "completed", "customer", WALK_IN_3, "Anucha Kitti", "081 555 6666"],
+      [-10, "15:00", "no_show", "shop", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-16, "10:00", "completed", "customer", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-17, "12:00", "cancelled", "customer", WALK_IN_2, "Malee Thongdee", "081 333 4444"],
+    ].map(([offset, time, status, source, customer_id, customer_name, customer_phone]) =>
+      booking({
+        business_id: BARBER,
+        service_id: SVC_CUT,
+        customer_id: customer_id as string,
+        dateKey: shiftDate(today, offset as number),
+        time: time as string,
+        duration_min: 45,
+        status: status as BookingRow["status"],
+        source: source as BookingRow["source"],
+        service_name: "Men's cut",
+        price: 350,
+        customer_name: customer_name as string,
+        customer_phone: customer_phone as string,
+      }),
+    ),
   ];
 
   /* ---- products (merch) ------------------------------------------------- */
