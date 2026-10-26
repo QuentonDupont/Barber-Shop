@@ -1,10 +1,57 @@
-import { test, expect, open, signInAs, newVisitor, toast, expectHealthy, SHOP, STAFF_PLOY } from "./fixtures";
+import { test, expect, open, signInAs, newVisitor, toast, expectHealthy, expectNothingAboveSheet, bangkokToday, SHOP, STAFF_PLOY } from "./fixtures";
 import { chooseBarber, openShop, pickNextOpenDay, reviewFirstSlot } from "./booking";
 import type { Page } from "@playwright/test";
 
 /** Shop owner flow: Today, Calendar, Staff, Services, Hours, Settings. English labels. */
 
 const stamp = () => String(Date.now()).slice(-7);
+
+/** Add a day to a yyyy-MM-dd key (calendar arithmetic, no time zone involved). */
+function plusDays(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Open the owner's "add booking" sheet and choose service and barber. Then walk
+ * forward from today until a day has free times (today's own depend on the hour
+ * the suite runs), and return that date. Today is always tried first.
+ */
+async function openAddBooking(page: Page, opts: { service: string; barber: string }) {
+  await page.getByTestId("add-booking-button").click();
+  const sheet = page.getByTestId("add-booking-sheet");
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByText("Add a booking for a customer")).toBeVisible();
+
+  const serviceSelect = sheet.getByTestId("add-booking-service");
+  await serviceSelect.selectOption(await serviceSelect.locator("option", { hasText: opts.service }).first().getAttribute("value") as string);
+  const staffSelect = sheet.getByTestId("add-booking-staff");
+  await staffSelect.selectOption(await staffSelect.locator("option", { hasText: opts.barber }).first().getAttribute("value") as string);
+
+  const today = bangkokToday();
+  for (let i = 0; i < 10; i += 1) {
+    const date = plusDays(today, i);
+    await sheet.getByTestId("add-booking-date").fill(date);
+    const outcome = sheet.getByTestId("add-booking-slot").first().or(sheet.getByTestId("add-booking-no-times"));
+    await expect(outcome).toBeVisible();
+    if ((await sheet.getByTestId("add-booking-slot").count()) > 0) return { sheet, date };
+  }
+  throw new Error("No day with free times in the next ten days");
+}
+
+async function fillCustomer(sheet: ReturnType<Page["getByTestId"]>, name: string, phone: string) {
+  await sheet.getByTestId("add-booking-name").fill(name);
+  await sheet.getByTestId("add-booking-phone").fill(phone);
+}
+
+/** Cancel a booking from its row on the page that is showing it. */
+async function cancelRow(page: Page, customerName: string) {
+  await page.getByText(customerName).filter({ visible: true }).first().click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("button", { name: "Cancel this booking" }).click();
+  await expect(toast(page).filter({ hasText: "Booking cancelled." })).toBeVisible();
+}
 
 test.describe("owner", () => {
   test.beforeEach(async ({ context, baseURL }) => {
@@ -26,6 +73,99 @@ test.describe("owner", () => {
     }
     await expect(page.getByText("Coming up")).toBeVisible();
     await snap(page, "today");
+  });
+
+
+  test("Add booking: a phone or walk-in customer with no account appears on Today", async ({ page, snap }) => {
+    const customer = `E2E Phone ${stamp()}`;
+    await open(page, "/dashboard");
+    await expectHealthy(page);
+    await snap(page, "today, before adding");
+
+    const { sheet, date } = await openAddBooking(page, { service: "Men's cut", barber: "Nong" });
+    await expectNothingAboveSheet(page);
+    await snap(page, "add booking sheet");
+    const slot = sheet.getByTestId("add-booking-slot").first();
+    const startsAt = (await slot.getAttribute("data-starts-at")) as string;
+    await slot.click();
+    await fillCustomer(sheet, customer, "0812345678");
+    await snap(page, "add booking filled in");
+    await sheet.getByTestId("add-booking-submit").click();
+    await expect(toast(page).filter({ hasText: "Booking added." })).toBeVisible();
+    await expect(page.getByTestId("add-booking-sheet")).toHaveCount(0);
+
+    // It shows on Today (when the first free day is today) or on the calendar for that day.
+    if (date === bangkokToday()) {
+      await expect(page.getByText(customer).filter({ visible: true }).first()).toBeVisible();
+      await snap(page, "today shows the new booking");
+    } else {
+      await open(page, `/dashboard/calendar?date=${date}`);
+      await expect(page.getByText(customer).filter({ visible: true }).first()).toBeVisible();
+      await snap(page, `calendar shows the new booking on ${date}`);
+    }
+
+    // It is recorded as shop-entered, with the phone number the owner typed.
+    await page.getByText(customer).filter({ visible: true }).first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByText("Booked by")).toBeVisible();
+    await expect(dialog.getByText("Shop entered")).toBeVisible();
+    await expect(dialog.getByText("0812345678").first()).toBeVisible();
+    await snap(page, "the booking sheet says shop entered");
+    expect(startsAt).toBeTruthy();
+
+    // Tidy up so the shop is as we found it.
+    await dialog.getByRole("button", { name: "Cancel this booking" }).click();
+    await expect(toast(page).filter({ hasText: "Booking cancelled." })).toBeVisible();
+  });
+
+  test("Add booking: a time that is taken cannot be booked again", async ({ page, browser, baseURL, snap }) => {
+    const first = `E2E First ${stamp()}`;
+    const second = `E2E Second ${stamp()}`;
+    const other = await newVisitor(browser, baseURL!, "en", "owner");
+    try {
+      await open(page, "/dashboard");
+      await open(other.page, "/dashboard");
+
+      // A second owner screen opens the sheet and sees the time as free.
+      const { sheet: staleSheet, date } = await openAddBooking(other.page, { service: "Men's cut", barber: "Nong" });
+      const target = staleSheet.getByTestId("add-booking-slot").first();
+      const startsAt = (await target.getAttribute("data-starts-at")) as string;
+      await target.click();
+      await fillCustomer(staleSheet, second, "0899999999");
+
+      // The first screen books that same time for Nong.
+      const { sheet } = await openAddBooking(page, { service: "Men's cut", barber: "Nong" });
+      await page.getByTestId("add-booking-date").fill(date);
+      const slot = sheet.locator(`[data-testid="add-booking-slot"][data-starts-at="${startsAt}"]`);
+      await expect(slot).toBeVisible();
+      await slot.click();
+      await fillCustomer(sheet, first, "0811111111");
+      await sheet.getByTestId("add-booking-submit").click();
+      await expect(toast(page).filter({ hasText: "Booking added." })).toBeVisible();
+
+      // Opening the sheet again: that time is gone for Nong (and nothing overlapping it is offered).
+      const again = await openAddBooking(page, { service: "Men's cut", barber: "Nong" }).catch(() => null);
+      if (again) {
+        await again.sheet.getByTestId("add-booking-date").fill(date);
+        await expect(again.sheet.getByTestId("add-booking-slots").or(again.sheet.getByTestId("add-booking-no-times"))).toBeVisible();
+        await expect(again.sheet.locator(`[data-testid="add-booking-slot"][data-starts-at="${startsAt}"]`)).toHaveCount(0);
+        await snap(page, "the taken time is no longer offered");
+      }
+
+      // The stale screen still shows it and tries anyway: the server refuses.
+      await staleSheet.getByTestId("add-booking-submit").click();
+      await expect(toast(other.page).filter({ hasText: "That time is no longer free" })).toBeVisible();
+      await snap(other.page, "the clash is refused");
+
+      // Exactly one booking exists in that slot.
+      await open(page, `/dashboard/calendar?date=${date}`);
+      await expect(page.getByText(first).filter({ visible: true }).first()).toBeVisible();
+      await expect(page.getByText(second)).toHaveCount(0);
+
+      await cancelRow(page, first);
+    } finally {
+      await other.context.close();
+    }
   });
 
   test("Calendar: the barber filter narrows the bookings, and a customer's named booking shows under that barber", async ({ page, browser, baseURL, snap }) => {

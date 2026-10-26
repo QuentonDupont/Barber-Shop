@@ -4,11 +4,14 @@ import { WhatsOnFeed } from "@/components/customer/whats-on-feed";
 import { type FeedCampaign } from "@/components/customer/campaign-card";
 import { requireCustomer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "What's on" };
 
 export default async function WhatsOnPage() {
   const session = await requireCustomer();
+  const locale = await getLocale();
   const supabase = await createClient();
 
   const [{ data: campaigns }, { data: businesses }, { data: mySubs }] = await Promise.all([
@@ -46,8 +49,8 @@ export default async function WhatsOnPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="What's on"
-        description="Events to join and sales worth catching, from places near you."
+        title={t(locale, "customer.whatsOnTitle")}
+        description={t(locale, "customer.whatsOnIntro")}
       />
       <WhatsOnFeed campaigns={feed} subscribedIds={subscribedIds} />
     </PageContainer>

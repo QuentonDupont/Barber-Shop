@@ -15,9 +15,12 @@ import { SetupNotice } from "@/components/shared/setup-notice";
 import { getSession } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isMockMode } from "@/lib/mock/config";
-import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
+import { BETA_INVITE_HREF } from "@/lib/beta";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export default async function LandingPage() {
+  const locale = await getLocale();
   const configured = isSupabaseConfigured() || isMockMode();
   const session = configured ? await getSession().catch(() => null) : null;
   const signedInHome =
@@ -31,13 +34,13 @@ export default async function LandingPage() {
           {session ? (
             <Button asChild size="sm" variant="primary">
               <Link href={signedInHome}>
-                Open TatNat
+                {t(locale, "landing.openApp")}
                 <ArrowRight />
               </Link>
             </Button>
           ) : (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/sign-in">Sign in</Link>
+              <Link href="/sign-in">{t(locale, "landing.signIn")}</Link>
             </Button>
           )}
         </div>
@@ -50,16 +53,14 @@ export default async function LandingPage() {
         <section className="pt-10 pb-4 sm:pt-16 sm:pb-8">
           <p className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent">
             <Clock3 className="size-3.5" />
-            Real availability, not a callback request
+            {t(locale, "landing.badge")}
           </p>
           <h1 className="mt-4 text-balance text-[2rem] font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-            Book your next appointment in{" "}
-            <span className="text-accent">under a minute</span>.
+            {t(locale, "landing.headlineStart")}{" "}
+            <span className="text-accent">{t(locale, "landing.headlineAccent")}</span>
           </h1>
           <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-fg-muted sm:text-lg">
-            TatNat shows you the times a salon, barber, clinic or studio can
-            genuinely see you — then holds the slot the moment you tap it. No
-            phone calls, no waiting for a reply.
+            {t(locale, "landing.intro")}
           </p>
         </section>
 
@@ -68,38 +69,40 @@ export default async function LandingPage() {
             a phone screen rather than being buried in a nav menu. ---------- */}
         <section aria-labelledby="choose-portal" className="mt-4 sm:mt-8">
           <h2 id="choose-portal" className="sr-only">
-            Choose how you want to use TatNat
+            {t(locale, "landing.chooseSr")}
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
             <PortalCard
               href="/sign-up?role=customer"
               signInHref="/sign-in?role=customer"
-              eyebrow="I'm a customer"
-              title="Find a place and book it"
-              description="Browse shops near you, pick a service, choose a time that is actually free."
+              locale={locale}
+              eyebrow={t(locale, "landing.custEyebrow")}
+              title={t(locale, "landing.custTitle")}
+              description={t(locale, "landing.custDesc")}
               icon={Users}
               tone="accent"
               points={[
-                { icon: MapPin, text: "Shops near you, sorted by distance" },
-                { icon: CalendarCheck, text: "Live slots — never double-booked" },
-                { icon: Smartphone, text: "Manage and cancel from your phone" },
+                { icon: MapPin, text: t(locale, "landing.custPoint1") },
+                { icon: CalendarCheck, text: t(locale, "landing.custPoint2") },
+                { icon: Smartphone, text: t(locale, "landing.custPoint3") },
               ]}
             />
 
             <PortalCard
               href={BETA_INVITE_HREF}
-              ctaLabel={BETA_INVITE_LABEL}
+              ctaLabel={t(locale, "landing.requestInvite")}
               signInHref="/sign-in?role=business_owner"
-              eyebrow="I'm a business"
-              title="Fill your calendar"
-              description="Publish your opening hours once. TatNat turns them into bookable slots and keeps your day organised."
+              locale={locale}
+              eyebrow={t(locale, "landing.bizEyebrow")}
+              title={t(locale, "landing.bizTitle")}
+              description={t(locale, "landing.bizDesc")}
               icon={Store}
               tone="primary"
               points={[
-                { icon: Clock3, text: "Opening hours, breaks and holidays" },
-                { icon: Scissors, text: "Your services, durations and prices" },
-                { icon: CalendarCheck, text: "Day and week calendar of bookings" },
+                { icon: Clock3, text: t(locale, "landing.bizPoint1") },
+                { icon: Scissors, text: t(locale, "landing.bizPoint2") },
+                { icon: CalendarCheck, text: t(locale, "landing.bizPoint3") },
               ]}
             />
           </div>
@@ -109,16 +112,16 @@ export default async function LandingPage() {
         <section className="mt-12 grid gap-4 sm:mt-16 sm:grid-cols-3">
           {[
             {
-              title: "Built for the phone in your hand",
-              body: "Every screen is designed at 360px first. Big targets, thumb-reach buttons, works one-handed on the bus.",
+              title: t(locale, "landing.r1Title"),
+              body: t(locale, "landing.r1Body"),
             },
             {
-              title: "Install it, skip the app store",
-              body: "Add TatNat to your home screen and it opens full-screen like a native app — no download, no updates.",
+              title: t(locale, "landing.r2Title"),
+              body: t(locale, "landing.r2Body"),
             },
             {
-              title: "Your time zone, their time zone",
-              body: "Times always show in the shop's local clock, so a booking made abroad still means 2pm on the day.",
+              title: t(locale, "landing.r3Title"),
+              body: t(locale, "landing.r3Body"),
             },
           ].map((item) => (
             <div
@@ -146,7 +149,8 @@ export default async function LandingPage() {
 
 function PortalCard({
   href,
-  ctaLabel = "Create an account",
+  ctaLabel,
+  locale,
   signInHref,
   eyebrow,
   title,
@@ -157,6 +161,7 @@ function PortalCard({
 }: {
   href: string;
   ctaLabel?: string;
+  locale: Locale;
   signInHref: string;
   eyebrow: string;
   title: string;
@@ -197,12 +202,12 @@ function PortalCard({
       <div className="mt-6 flex flex-col gap-2 sm:mt-auto sm:pt-6">
         <Button asChild size="lg" block variant={tone === "accent" ? "accent" : "primary"}>
           <Link href={href}>
-            {ctaLabel}
+            {ctaLabel ?? t(locale, "landing.createAccount")}
             <ArrowRight />
           </Link>
         </Button>
         <Button asChild size="md" block variant="ghost">
-          <Link href={signInHref}>I already have one</Link>
+          <Link href={signInHref}>{t(locale, "landing.haveOne")}</Link>
         </Button>
       </div>
     </div>

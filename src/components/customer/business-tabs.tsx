@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/misc";
 import type { CampaignRow, ProductRow } from "@/lib/database.types";
 import { ProductBuyCard } from "./product-buy-card";
 import { CampaignCard } from "./campaign-card";
+import { useT } from "@/lib/i18n/context";
 
 /**
  * A business page is a shopfront: book a service, buy merch, or see what's on.
@@ -26,14 +27,19 @@ export function BusinessTabs({
   subscribedIds: string[];
 }) {
   const subscribed = new Set(subscribedIds);
+  const t = useT();
 
   return (
     <Tabs defaultValue="book">
       <TabsList className="w-full max-w-md">
-        <TabsTrigger value="book">Book</TabsTrigger>
-        <TabsTrigger value="shop">Shop{products.length > 0 ? ` (${products.length})` : ""}</TabsTrigger>
+        <TabsTrigger value="book">{t("ui.tabBook")}</TabsTrigger>
+        <TabsTrigger value="shop">
+          {t("ui.tabShop")}
+          {products.length > 0 ? ` (${products.length})` : ""}
+        </TabsTrigger>
         <TabsTrigger value="whatson">
-          What&rsquo;s on{campaigns.length > 0 ? ` (${campaigns.length})` : ""}
+          {t("ui.tabWhatsOn")}
+          {campaigns.length > 0 ? ` (${campaigns.length})` : ""}
         </TabsTrigger>
       </TabsList>
 
@@ -43,8 +49,8 @@ export function BusinessTabs({
         {products.length === 0 ? (
           <EmptyState
             icon={ShoppingBag}
-            title="Nothing in the shop yet"
-            description="This place hasn't listed any products. Check back soon."
+            title={t("ui.shopEmptyTitle")}
+            description={t("ui.shopEmptyDescription")}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -59,8 +65,8 @@ export function BusinessTabs({
         {campaigns.length === 0 ? (
           <EmptyState
             icon={Ticket}
-            title="Nothing on right now"
-            description="No events or sales here at the moment. Follow along for what's next."
+            title={t("ui.whatsOnEmptyTitle")}
+            description={t("ui.whatsOnEmptyDescription")}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">

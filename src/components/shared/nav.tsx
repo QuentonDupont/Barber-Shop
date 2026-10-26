@@ -4,6 +4,7 @@ import { cloneElement, isValidElement, type ReactElement } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 
 export interface NavItem {
   href: string;
@@ -43,11 +44,12 @@ function useIsActive() {
  * stretching for it one-handed. Padded for the home indicator.
  */
 export function MobileTabBar({ items }: { items: NavItem[] }) {
+  const t = useT();
   const isActive = useIsActive();
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t("customer.primaryNav")}
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95",
         "backdrop-blur-lg pb-safe md:hidden",
@@ -93,12 +95,13 @@ export function DesktopSidebar({
   footer?: React.ReactNode;
 }) {
   const isActive = useIsActive();
+  const t = useT();
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border bg-surface md:flex md:flex-col">
       {header ? <div className="border-b border-border p-4">{header}</div> : null}
 
-      <nav aria-label="Primary" className="flex-1 overflow-y-auto p-3">
+      <nav aria-label={t("customer.primaryNav")} className="flex-1 overflow-y-auto p-3">
         <ul className="space-y-1">
           {items.map((item) => {
             const active = isActive(item);

@@ -1,9 +1,47 @@
-import { test, expect, open, signInAs, toast } from "./fixtures";
+import { test, expect, open, signInAs, toast, SHOP } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /** Language toggle, brand logo, and "no untranslated English on Thai pages". */
 
 test.describe("language toggle", () => {
+  // QA 11 BUG 2: the switch used to sit on top of the landing page's "Sign in".
+  // Every header that has a button or link on its right must stay clear of it.
+  for (const row of [
+    { name: "landing page", path: "/", as: undefined },
+    { name: "public shop page", path: `/b/${SHOP}`, as: undefined },
+    { name: "customer app", path: "/app", as: "customer" as const },
+    { name: "owner dashboard", path: "/dashboard", as: "owner" as const },
+  ]) {
+    test(`the language switch never covers a header button (${row.name})`, async ({ page, context, baseURL, snap }) => {
+      if (row.as) await signInAs(context, row.as, baseURL!);
+      await open(page, row.path);
+      const switchBox = await page.locator('[data-testid="locale-bar"] [role="group"]').boundingBox();
+      expect(switchBox, "language switch is on screen").not.toBeNull();
+      const targets = page.locator("header a, header button");
+      const count = await targets.count();
+      expect(count, "the header has something to tap").toBeGreaterThan(0);
+      for (let i = 0; i < count; i += 1) {
+        const target = targets.nth(i);
+        if (!(await target.isVisible())) continue;
+        const box = (await target.boundingBox())!;
+        const overlap =
+          box.x < switchBox!.x + switchBox!.width &&
+          box.x + box.width > switchBox!.x &&
+          box.y < switchBox!.y + switchBox!.height &&
+          box.y + box.height > switchBox!.y;
+        expect.soft(overlap, `header control "${(await target.innerText()).trim()}" overlaps the language switch`).toBe(false);
+        // Tappable: the topmost thing at its centre is the control itself.
+        const tappable = await target.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return !!hit && el.contains(hit);
+        });
+        expect.soft(tappable, `header control "${(await target.innerText()).trim()}" can be tapped`).toBe(true);
+      }
+      await snap(page, `${row.name} header`);
+    });
+  }
+
   test("the TH/EN choice persists across reloads and pages", async ({ page, context, baseURL, snap }) => {
     await context.addCookies([{ name: "bookly-locale", value: "th", url: baseURL! }]); // Thai is the default
     await open(page, "/sign-in");

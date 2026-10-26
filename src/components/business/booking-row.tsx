@@ -363,7 +363,9 @@ export function OwnerBookingSheet({
               this customer across every booking at this business, not just
               the one-off note above tied to a single booking. Never shown to
               the customer — see the RLS policy in the matching migration. */}
-          <CustomerNoteSection customerId={booking.customer_id} open={open} />
+          {booking.customer_id ? (
+            <CustomerNoteSection customerId={booking.customer_id} open={open} />
+          ) : null}
         </SheetBody>
 
         {live ? (

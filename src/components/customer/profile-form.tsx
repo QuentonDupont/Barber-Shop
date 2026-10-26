@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
 import { saveProfileAction } from "@/lib/actions/profile";
 import { idleState } from "@/lib/actions/types";
+import { useT } from "@/lib/i18n/context";
 
 export function ProfileForm({
   fullName,
@@ -21,10 +22,11 @@ export function ProfileForm({
 }) {
   const [state, formAction] = useActionState(saveProfileAction, idleState);
   const errors = state.fieldErrors ?? {};
+  const t = useT();
 
   useEffect(() => {
-    if (state.status === "success") toast.success(state.message ?? "Saved.");
-  }, [state]);
+    if (state.status === "success") toast.success(state.message ?? t("account.saved"));
+  }, [state, t]);
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -32,7 +34,7 @@ export function ProfileForm({
         <Alert tone="error">{state.message}</Alert>
       ) : null}
 
-      <Field label="Full name" htmlFor="fullName" error={errors.fullName} required>
+      <Field label={t("account.fullName")} htmlFor="fullName" error={errors.fullName} required>
         <Input
           id="fullName"
           name="fullName"
@@ -43,10 +45,10 @@ export function ProfileForm({
       </Field>
 
       <Field
-        label="Mobile number"
+        label={t("account.mobile")}
         htmlFor="phone"
         error={errors.phone}
-        hint="Shared with a shop only when you book with them."
+        hint={t("account.mobileHint")}
         required
       >
         <Input
@@ -61,9 +63,9 @@ export function ProfileForm({
       </Field>
 
       <Field
-        label="Email"
+        label={t("account.email")}
         htmlFor="email"
-        hint="Changing your sign-in email is not available yet."
+        hint={t("account.emailHint")}
       >
         <Input id="email" value={email ?? ""} disabled readOnly />
       </Field>
@@ -75,9 +77,10 @@ export function ProfileForm({
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" block variant="accent" loading={pending}>
-      Save changes
+      {t("account.save")}
     </Button>
   );
 }

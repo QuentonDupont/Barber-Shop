@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { CalendarView } from "@/components/business/calendar-view";
+import { AddBookingSheet } from "@/components/business/add-booking-sheet";
 import { Skeleton } from "@/components/ui/misc";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -46,7 +47,7 @@ export default async function CalendarPage({
   const rangeEnd = view === "week" ? shiftDateKey(weekStart, 7) : shiftDateKey(selectedDate, 18);
 
   const supabase = await createClient();
-  const [{ data: bookings }, { data: staff }] = await Promise.all([
+  const [{ data: bookings }, { data: staff }, { data: services }] = await Promise.all([
     supabase
       .from("bookings")
       .select("*")
@@ -63,6 +64,12 @@ export default async function CalendarPage({
       .eq("business_id", business.id)
       .eq("is_active", true)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("services")
+      .select("id, name, duration_min, price, currency")
+      .eq("business_id", business.id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
   ]);
 
   return (
@@ -70,6 +77,7 @@ export default async function CalendarPage({
       <PageHeader
         title={t(locale, "calendarAdmin.pageTitle")}
         description={t(locale, "calendarAdmin.pageDescription", { timezone: business.timezone })}
+        action={<AddBookingSheet services={services ?? []} staff={staff ?? []} today={today} />}
       />
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <CalendarView

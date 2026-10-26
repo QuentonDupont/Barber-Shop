@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { OwnerBookingRow } from "@/components/business/booking-row";
+import { AddBookingSheet } from "@/components/business/add-booking-sheet";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +49,7 @@ export default async function DashboardHome({
   const dayStart = zonedDayMinutesToUtc(today, 0, business.timezone);
   const dayEnd = zonedDayMinutesToUtc(today, 1440, business.timezone);
 
-  const [{ data: todays }, { data: upcoming }, { count: serviceCount }] = await Promise.all([
+  const [{ data: todays }, { data: upcoming }, { count: serviceCount }, { data: services }, { data: staff }] = await Promise.all([
     supabase
       .from("bookings")
       .select("*")
@@ -69,6 +70,18 @@ export default async function DashboardHome({
       .select("id", { count: "exact", head: true })
       .eq("business_id", business.id)
       .eq("is_active", true),
+    supabase
+      .from("services")
+      .select("id, name, duration_min, price, currency")
+      .eq("business_id", business.id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("staff")
+      .select("id, name")
+      .eq("business_id", business.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true }),
   ]);
 
   const bookings = todays ?? [];
@@ -87,12 +100,15 @@ export default async function DashboardHome({
           timezone: business.timezone,
         })}
         action={
-          <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
-            <Link href="/dashboard/calendar">
-              {t(locale, "today.openCalendar")}
-              <ArrowRight />
-            </Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <AddBookingSheet services={services ?? []} staff={staff ?? []} today={today} />
+            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
+              <Link href="/dashboard/calendar">
+                {t(locale, "today.openCalendar")}
+                <ArrowRight />
+              </Link>
+            </Button>
+          </div>
         }
       />
 

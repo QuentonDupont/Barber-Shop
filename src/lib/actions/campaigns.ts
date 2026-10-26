@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getSession, requireBusiness } from "@/lib/auth";
 import { parseTimeToMinutes, zonedDayMinutesToUtc } from "@/lib/booking/time";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 // Not exported: a "use server" module may only export async functions.
 const CAMPAIGN_ACCENTS = ["amber", "rose", "emerald", "sky", "violet"] as const;
@@ -16,29 +18,31 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 /* Owner: manage campaigns (events & sales)                                    */
 /* -------------------------------------------------------------------------- */
 
-const campaignSchema = z.object({
-  id: z.string().trim().optional(),
-  kind: z.enum(["event", "sale"]),
-  title: z.string().trim().min(2, "Give it a title").max(100),
-  description: z.string().trim().max(800).optional().or(z.literal("")),
-  date: z.string().regex(DATE_RE, "Pick a date"),
-  time: z.string().optional().or(z.literal("")),
-  endDate: z.string().optional().or(z.literal("")),
-  endTime: z.string().optional().or(z.literal("")),
-  location: z.string().trim().max(240).optional().or(z.literal("")),
-  price: z.coerce.number().min(0).max(1_000_000),
-  capacity: z.string().trim().optional(),
-  discountLabel: z.string().trim().max(60).optional().or(z.literal("")),
-  imageEmoji: z.string().trim().max(8).optional().or(z.literal("")),
-  accent: z.enum(CAMPAIGN_ACCENTS).catch("amber"),
-  isPublished: z.boolean(),
-});
+const campaignSchema = (locale: Locale) =>
+  z.object({
+    id: z.string().trim().optional(),
+    kind: z.enum(["event", "sale"]),
+    title: z.string().trim().min(2, t(locale, "msg.campaignTitleRequired")).max(100),
+    description: z.string().trim().max(800).optional().or(z.literal("")),
+    date: z.string().regex(DATE_RE, t(locale, "msg.pickDate")),
+    time: z.string().optional().or(z.literal("")),
+    endDate: z.string().optional().or(z.literal("")),
+    endTime: z.string().optional().or(z.literal("")),
+    location: z.string().trim().max(240).optional().or(z.literal("")),
+    price: z.coerce.number().min(0).max(1_000_000),
+    capacity: z.string().trim().optional(),
+    discountLabel: z.string().trim().max(60).optional().or(z.literal("")),
+    imageEmoji: z.string().trim().max(8).optional().or(z.literal("")),
+    accent: z.enum(CAMPAIGN_ACCENTS).catch("amber"),
+    isPublished: z.boolean(),
+  });
 
 export async function saveCampaignAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = campaignSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = campaignSchema(locale).safeParse({
     id: formData.get("id") ?? "",
     kind: formData.get("kind"),
     title: formData.get("title"),
@@ -58,7 +62,7 @@ export async function saveCampaignAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -75,7 +79,7 @@ export async function saveCampaignAction(
     const endMinutes = p.endTime ? parseTimeToMinutes(p.endTime) : 1439; // end of day
     const end = zonedDayMinutesToUtc(p.endDate, endMinutes, tz);
     if (end.getTime() < zonedDayMinutesToUtc(p.date, startMinutes, tz).getTime()) {
-      return errorState("The end date is before the start.", { endDate: "Must be on or after the start" });
+      return errorState(t(locale, "msg.endBeforeStart"), { endDate: t(locale, "msg.endBeforeStartField") });
     }
     ends_at = end.toISOString();
   }
@@ -118,7 +122,9 @@ export async function saveCampaignAction(
   revalidatePath("/dashboard/shopfront");
   revalidatePath("/app/whats-on");
   revalidatePath(`/b/${ctx.business.slug}`);
-  return successState(p.id ? "Campaign updated." : p.isPublished ? "Campaign published." : "Draft saved.");
+  return successState(
+    t(locale, p.id ? "msg.campaignUpdated" : p.isPublished ? "msg.campaignPublished" : "msg.draftSaved"),
+  );
 }
 
 export async function togglePublishCampaignAction(formData: FormData): Promise<void> {
@@ -144,8 +150,9 @@ export async function deleteCampaignAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const id = String(formData.get("id") ?? "");
-  if (!id) return errorState("That campaign no longer exists.");
+  if (!id) return errorState(t(locale, "msg.campaignGone"));
 
   const ctx = await requireBusiness();
   const supabase = await createClient();
@@ -163,7 +170,7 @@ export async function deleteCampaignAction(
   revalidatePath("/dashboard/shopfront");
   revalidatePath("/app/whats-on");
   revalidatePath(`/b/${ctx.business.slug}`);
-  return successState("Campaign deleted.");
+  return successState(t(locale, "msg.campaignDeleted"));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -180,16 +187,17 @@ export async function subscribeCampaignAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const parsed = subscribeSchema.safeParse({
     campaignId: formData.get("campaignId"),
     paymentMethod: formData.get("paymentMethod") || undefined,
   });
-  if (!parsed.success) return errorState("That could not be read. Please try again.");
+  if (!parsed.success) return errorState(t(locale, "msg.unreadable"));
 
   const session = await getSession();
-  if (!session) return errorState("Please sign in to subscribe.");
+  if (!session) return errorState(t(locale, "msg.signInSubscribe"));
   if (session.profile.role !== "customer") {
-    return errorState("Business accounts cannot subscribe. Sign in as a customer.");
+    return errorState(t(locale, "msg.businessCannotSubscribe"));
   }
 
   const supabase = await createClient();
@@ -202,8 +210,8 @@ export async function subscribeCampaignAction(
     .eq("is_published", true)
     .maybeSingle();
 
-  if (!campaign) return errorState("That event is no longer available.");
-  if (campaign.kind !== "event") return errorState("Only events can be subscribed to.");
+  if (!campaign) return errorState(t(locale, "msg.eventUnavailable"));
+  if (campaign.kind !== "event") return errorState(t(locale, "msg.onlyEvents"));
 
   // Already going?
   const { data: existing } = await supabase
@@ -214,7 +222,7 @@ export async function subscribeCampaignAction(
     .maybeSingle();
 
   if (existing && existing.status === "going") {
-    return successState("You're already on the list for this one.");
+    return successState(t(locale, "msg.alreadyOnList"));
   }
 
   // Capacity check (count active subscribers other than a returning one).
@@ -225,7 +233,7 @@ export async function subscribeCampaignAction(
       .eq("campaign_id", campaignId);
     const going = (subs ?? []).filter((s) => s.status === "going").length;
     if (going >= campaign.capacity) {
-      return errorState("Sorry — this event is fully booked.");
+      return errorState(t(locale, "msg.eventFull"));
     }
   }
 
@@ -250,9 +258,7 @@ export async function subscribeCampaignAction(
   revalidatePath("/app/whats-on");
 
   return successState(
-    campaign.price > 0
-      ? "Payment received — you're booked in. (Demo: no real charge.)"
-      : "You're in — we've added you to this event.",
+    t(locale, campaign.price > 0 ? "msg.eventPaid" : "msg.eventJoined"),
   );
 }
 
@@ -260,11 +266,12 @@ export async function unsubscribeCampaignAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const campaignId = String(formData.get("campaignId") ?? "");
-  if (!campaignId) return errorState("That event no longer exists.");
+  if (!campaignId) return errorState(t(locale, "msg.eventGone"));
 
   const session = await getSession();
-  if (!session) return errorState("Please sign in.");
+  if (!session) return errorState(t(locale, "msg.pleaseSignIn"));
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -276,5 +283,5 @@ export async function unsubscribeCampaignAction(
 
   revalidatePath("/dashboard/shopfront");
   revalidatePath("/app/whats-on");
-  return successState("You're no longer subscribed to this event.");
+  return successState(t(locale, "msg.unsubscribed"));
 }

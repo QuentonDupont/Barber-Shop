@@ -140,7 +140,12 @@ export default async function RootLayout({
       </head>
       <body className="min-h-dvh antialiased">
         <LocaleProvider initialLocale={locale}>
-          <div className="fixed right-3 top-[max(0.75rem,env(safe-area-inset-top))] z-50 sm:right-4">
+          {/* In normal page flow (not fixed): it can never sit on top of a header
+              button, and sheets/dialogs (z-50) always cover it. */}
+          <div
+            data-testid="locale-bar"
+            className="flex justify-end px-3 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4"
+          >
             <LocaleToggle />
           </div>
           {children}

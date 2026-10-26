@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { WifiOff } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Offline" };
 
-export default function OfflinePage() {
+export default async function OfflinePage() {
+  const locale = await getLocale();
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
       <Logo />
@@ -12,11 +15,8 @@ export default function OfflinePage() {
         <WifiOff className="size-7 text-fg-subtle" />
       </span>
       <div className="space-y-1.5">
-        <h1 className="text-xl font-bold tracking-tight">You&rsquo;re offline</h1>
-        <p className="max-w-sm text-sm text-fg-muted text-pretty">
-          TatNat needs a connection to show live availability — a cached time
-          slot could already be taken. Reconnect and this page will reload.
-        </p>
+        <h1 className="text-xl font-bold tracking-tight">{t(locale, "ui.offlineTitle")}</h1>
+        <p className="max-w-sm text-sm text-fg-muted text-pretty">{t(locale, "ui.offlineBody")}</p>
       </div>
     </div>
   );

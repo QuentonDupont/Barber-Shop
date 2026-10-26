@@ -5,6 +5,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireBusiness } from "@/lib/auth";
 import { errorState, successState, type ActionState } from "./types";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 const schema = z.object({
   customerId: z.uuid(),
@@ -24,13 +26,14 @@ export async function saveCustomerNoteAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const parsed = schema.safeParse({
     customerId: formData.get("customerId"),
     note: formData.get("note"),
   });
 
   if (!parsed.success) {
-    return errorState("That note could not be saved.");
+    return errorState(t(locale, "msg.noteNotSaved"));
   }
 
   const ctx = await requireBusiness();
@@ -49,7 +52,7 @@ export async function saveCustomerNoteAction(
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/calendar");
-  return successState("Note saved.");
+  return successState(t(locale, "msg.noteSaved"));
 }
 
 /**

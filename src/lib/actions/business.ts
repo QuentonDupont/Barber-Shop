@@ -8,6 +8,8 @@ import { getOwnerContext, requireBusiness } from "@/lib/auth";
 import { minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
 import { businessPath } from "@/lib/routes";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 const CATEGORIES = [
   "salon",
@@ -19,20 +21,31 @@ const CATEGORIES = [
   "other",
 ] as const;
 
-const basicsSchema = z.object({
-  name: z.string().trim().min(2, "Give your business a name").max(80, "That name is too long"),
-  category: z.enum(CATEGORIES),
-  phone: z.string().trim().min(6, "Add a phone number customers can call").max(24),
-  lineId: z.string().trim().max(60).optional().or(z.literal("")),
-  description: z.string().trim().max(600, "Keep it under 600 characters").optional().or(z.literal("")),
-});
+const basicsSchema = (locale: Locale) =>
+  z.object({
+    name: z
+      .string()
+      .trim()
+      .min(2, t(locale, "msg.bizNameRequired"))
+      .max(80, t(locale, "msg.bizNameTooLong")),
+    category: z.enum(CATEGORIES),
+    phone: z.string().trim().min(6, t(locale, "msg.bizPhoneRequired")).max(24),
+    lineId: z.string().trim().max(60).optional().or(z.literal("")),
+    description: z
+      .string()
+      .trim()
+      .max(600, t(locale, "msg.bizDescTooLong"))
+      .optional()
+      .or(z.literal("")),
+  });
 
 /** Step 1 — identity. Creates the business row the first time through. */
 export async function saveBusinessBasicsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = basicsSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = basicsSchema(locale).safeParse({
     name: formData.get("name"),
     category: formData.get("category"),
     phone: formData.get("phone"),
@@ -42,7 +55,7 @@ export async function saveBusinessBasicsAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -99,23 +112,25 @@ export async function saveBusinessBasicsAction(
   redirect("/dashboard/onboarding?step=2");
 }
 
-const locationSchema = z.object({
-  address: z.string().trim().min(4, "Search for your address, or type it in"),
-  placeId: z.string().trim().optional().or(z.literal("")),
-  lat: z.coerce.number().min(-90).max(90).optional(),
-  lng: z.coerce.number().min(-180).max(180).optional(),
-  timezone: z.string().trim().min(1).default("Asia/Bangkok"),
-});
+const locationSchema = (locale: Locale) =>
+  z.object({
+    address: z.string().trim().min(4, t(locale, "msg.addressRequired")),
+    placeId: z.string().trim().optional().or(z.literal("")),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    timezone: z.string().trim().min(1).default("Asia/Bangkok"),
+  });
 
 /** Step 2 — where the business is. */
 export async function saveBusinessLocationAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const rawLat = formData.get("lat");
   const rawLng = formData.get("lng");
 
-  const parsed = locationSchema.safeParse({
+  const parsed = locationSchema(locale).safeParse({
     address: formData.get("address"),
     placeId: formData.get("placeId"),
     lat: rawLat === "" || rawLat === null ? undefined : rawLat,
@@ -125,7 +140,7 @@ export async function saveBusinessLocationAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -176,17 +191,18 @@ export async function saveBusinessHoursAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const raw = formData.get("payload");
   let parsedJson: unknown;
   try {
     parsedJson = JSON.parse(typeof raw === "string" ? raw : "null");
   } catch {
-    return errorState("Could not read the opening hours. Please try again.");
+    return errorState(t(locale, "msg.hoursUnreadable"));
   }
 
   const parsed = hoursSchema.safeParse(parsedJson);
   if (!parsed.success) {
-    return errorState("Could not read the opening hours. Please try again.");
+    return errorState(t(locale, "msg.hoursUnreadable"));
   }
 
   // Validate the windows before touching the database so the owner sees which
@@ -197,17 +213,17 @@ export async function saveBusinessHoursAction(
     const open = parseTimeToMinutes(day.open);
     const close = parseTimeToMinutes(day.close);
     if (open >= close) {
-      return errorState(`${dayName(day.weekday)}: closing time must be after opening time.`);
+      return errorState(t(locale, "msg.dayCloseAfterOpen", { day: dayName(locale, day.weekday) }));
     }
 
     if (day.breakEnabled) {
       const bStart = parseTimeToMinutes(day.breakStart);
       const bEnd = parseTimeToMinutes(day.breakEnd);
       if (bStart >= bEnd) {
-        return errorState(`${dayName(day.weekday)}: the break must end after it starts.`);
+        return errorState(t(locale, "msg.dayBreakEnd", { day: dayName(locale, day.weekday) }));
       }
       if (bStart < open || bEnd > close) {
-        return errorState(`${dayName(day.weekday)}: the break has to sit inside opening hours.`);
+        return errorState(t(locale, "msg.dayBreakInside", { day: dayName(locale, day.weekday) }));
       }
     }
   }
@@ -264,31 +280,33 @@ export async function saveBusinessHoursAction(
   revalidatePath(businessPath(ctx.business.slug));
 
   if (finishing) redirect("/dashboard?welcome=1");
-  return successState("Opening hours saved.");
+  return successState(t(locale, "msg.hoursSaved"));
 }
 
-const settingsSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  description: z.string().trim().max(600).optional().or(z.literal("")),
-  phone: z.string().trim().min(6).max(24),
-  lineId: z.string().trim().max(60).optional().or(z.literal("")),
-  address: z.string().trim().max(240).optional().or(z.literal("")),
-  timezone: z.string().trim().min(1),
-  cancellationPolicy: z.string().trim().max(500).optional().or(z.literal("")),
-  slotInterval: z.coerce.number().int().refine((v) => [5, 10, 15, 20, 30, 60].includes(v), {
-    message: "Pick one of the offered intervals",
-  }),
-  minNotice: z.coerce.number().int().min(0).max(60 * 24 * 7),
-  maxAdvanceDays: z.coerce.number().int().min(1).max(365),
-  autoConfirm: z.boolean(),
-  isPublished: z.boolean(),
-});
+const settingsSchema = (locale: Locale) =>
+  z.object({
+    name: z.string().trim().min(2).max(80),
+    description: z.string().trim().max(600).optional().or(z.literal("")),
+    phone: z.string().trim().min(6).max(24),
+    lineId: z.string().trim().max(60).optional().or(z.literal("")),
+    address: z.string().trim().max(240).optional().or(z.literal("")),
+    timezone: z.string().trim().min(1),
+    cancellationPolicy: z.string().trim().max(500).optional().or(z.literal("")),
+    slotInterval: z.coerce.number().int().refine((v) => [5, 10, 15, 20, 30, 60].includes(v), {
+      message: t(locale, "msg.intervalOffered"),
+    }),
+    minNotice: z.coerce.number().int().min(0).max(60 * 24 * 7),
+    maxAdvanceDays: z.coerce.number().int().min(1).max(365),
+    autoConfirm: z.boolean(),
+    isPublished: z.boolean(),
+  });
 
 export async function saveBusinessSettingsAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = settingsSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = settingsSchema(locale).safeParse({
     name: formData.get("name"),
     description: formData.get("description"),
     phone: formData.get("phone"),
@@ -305,7 +323,7 @@ export async function saveBusinessSettingsAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -323,9 +341,7 @@ export async function saveBusinessSettingsAction(
       .eq("is_active", true);
 
     if (!count) {
-      return errorState(
-        "Add at least one active service before going live — customers need something to book.",
-      );
+      return errorState(t(locale, "msg.needActiveService"));
     }
   }
 
@@ -351,13 +367,10 @@ export async function saveBusinessSettingsAction(
 
   revalidatePath("/dashboard", "layout");
   revalidatePath(businessPath(ctx.business.slug));
-  return successState("Settings saved.");
+  return successState(t(locale, "msg.settingsSaved"));
 }
 
-function dayName(weekday: number): string {
-  return (
-    ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][
-      weekday
-    ] ?? "That day"
-  );
+function dayName(locale: Locale, weekday: number): string {
+  const keys = ["daySun", "dayMon", "dayTue", "dayWed", "dayThu", "dayFri", "daySat"];
+  return t(locale, `msg.${keys[weekday] ?? "dayThat"}`);
 }

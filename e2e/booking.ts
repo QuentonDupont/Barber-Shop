@@ -1,4 +1,4 @@
-import { expect, bangkokToday, open, SHOP } from "./fixtures";
+import { expect, bangkokToday, expectNothingAboveSheet, open, SHOP } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /** Open the shop page for a given service (English labels). */
@@ -57,6 +57,8 @@ export async function reviewFirstSlot(page: Page) {
   await page.getByRole("button", { name: /^Review/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Confirm your booking")).toBeVisible();
+  // The sheet must cover the header, the logo and the language switch.
+  await expectNothingAboveSheet(page);
   return dialog;
 }
 

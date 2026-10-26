@@ -81,7 +81,10 @@ async function recipientsFor(
     const admin = createAdminClient();
 
     const [{ data: customer }, { data: business }] = await Promise.all([
-      admin.from("profiles").select("email").eq("id", booking.customer_id).maybeSingle(),
+      // A shop-entered booking has no customer account, so no customer email.
+      booking.customer_id
+        ? admin.from("profiles").select("email").eq("id", booking.customer_id).maybeSingle()
+        : Promise.resolve({ data: null }),
       admin.from("businesses").select("owner_id").eq("id", booking.business_id).maybeSingle(),
     ]);
 

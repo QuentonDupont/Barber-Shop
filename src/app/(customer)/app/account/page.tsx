@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BETA_INVITE_HREF, BETA_INVITE_LABEL } from "@/lib/beta";
+import { BETA_INVITE_HREF } from "@/lib/beta";
 import { LogOut, Store } from "lucide-react";
 import Link from "next/link";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
@@ -11,11 +11,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireCustomer } from "@/lib/auth";
 import { signOutAction } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Account" };
 
 export default async function AccountPage() {
   const session = await requireCustomer();
+  const locale = await getLocale();
   const supabase = await createClient();
 
   // Latest consent record and any still-pending deletion request (handoff 07,
@@ -48,14 +51,14 @@ export default async function AccountPage() {
 
   return (
     <PageContainer className="max-w-2xl">
-      <PageHeader title="Account" description="Your details and app settings." />
+      <PageHeader title={t(locale, "account.title")} description={t(locale, "account.description")} />
 
       <div className="space-y-5">
         <Card>
           <CardHeader>
-            <CardTitle>Your details</CardTitle>
+            <CardTitle>{t(locale, "account.detailsTitle")}</CardTitle>
             <CardDescription>
-              Shops see your name and number on the bookings you make with them.
+              {t(locale, "account.detailsDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -73,17 +76,16 @@ export default async function AccountPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Run a business?</CardTitle>
+            <CardTitle>{t(locale, "account.businessTitle")}</CardTitle>
             <CardDescription>
-              TatNat is in an invite-only beta for shops. Request an invite and
-              we&rsquo;ll set up your business account with you.
+              {t(locale, "account.businessDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" size="lg" block>
               <Link href={BETA_INVITE_HREF}>
                 <Store />
-                {BETA_INVITE_LABEL}
+                {t(locale, "landing.requestInvite")}
               </Link>
             </Button>
           </CardContent>
@@ -92,7 +94,7 @@ export default async function AccountPage() {
         <form action={signOutAction}>
           <Button type="submit" variant="ghost" size="lg" block className="text-danger">
             <LogOut />
-            Sign out
+            {t(locale, "account.signOut")}
           </Button>
         </form>
       </div>

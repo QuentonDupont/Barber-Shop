@@ -132,7 +132,8 @@ export type BookingRow = {
   id: string;
   business_id: string;
   service_id: string;
-  customer_id: string;
+  /** Null for a shop-entered booking (phone / LINE / walk-in customer with no account). */
+  customer_id: string | null;
   staff_id: string | null;
   staff_name: string | null;
   starts_at: string;

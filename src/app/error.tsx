@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/misc";
+import { useT } from "@/lib/i18n/context";
 
 /**
  * Root error boundary. Without it any thrown error rendered Next.js's own
@@ -16,6 +17,8 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useT();
+
   useEffect(() => {
     // No error reporting service is wired up yet, so the console is the only
     // place this survives.
@@ -27,11 +30,11 @@ export default function Error({
       <EmptyState
         className="w-full"
         icon={AlertTriangle}
-        title="Something went wrong on our side"
-        description="Nothing you did caused this. Try again — if it keeps happening, come back in a few minutes."
+        title={t("pages.errorTitle")}
+        description={t("pages.errorDescription")}
         action={
           <Button variant="accent" size="lg" onClick={reset}>
-            Try again
+            {t("pages.tryAgain")}
           </Button>
         }
       />

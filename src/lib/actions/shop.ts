@@ -5,6 +5,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getSession, requireBusiness } from "@/lib/auth";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 // Not exported: a "use server" module may only export async functions.
 const PRODUCT_ACCENTS = ["amber", "rose", "emerald", "sky", "violet"] as const;
@@ -13,23 +15,25 @@ const PRODUCT_ACCENTS = ["amber", "rose", "emerald", "sky", "violet"] as const;
 /* Owner: manage merch                                                         */
 /* -------------------------------------------------------------------------- */
 
-const productSchema = z.object({
-  // Mock ids are not UUIDs, so keep this a plain string. Empty means "create".
-  id: z.string().trim().optional(),
-  name: z.string().trim().min(2, "Give the product a name").max(80),
-  description: z.string().trim().max(400).optional().or(z.literal("")),
-  price: z.coerce.number().min(0, "Price cannot be negative").max(1_000_000),
-  stock: z.string().trim().optional(),
-  imageEmoji: z.string().trim().max(8).optional().or(z.literal("")),
-  accent: z.enum(PRODUCT_ACCENTS).catch("amber"),
-  isActive: z.boolean(),
-});
+const productSchema = (locale: Locale) =>
+  z.object({
+    // Mock ids are not UUIDs, so keep this a plain string. Empty means "create".
+    id: z.string().trim().optional(),
+    name: z.string().trim().min(2, t(locale, "msg.productNameRequired")).max(80),
+    description: z.string().trim().max(400).optional().or(z.literal("")),
+    price: z.coerce.number().min(0, t(locale, "msg.priceNegative")).max(1_000_000),
+    stock: z.string().trim().optional(),
+    imageEmoji: z.string().trim().max(8).optional().or(z.literal("")),
+    accent: z.enum(PRODUCT_ACCENTS).catch("amber"),
+    isActive: z.boolean(),
+  });
 
 export async function saveProductAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = productSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = productSchema(locale).safeParse({
     id: formData.get("id") ?? "",
     name: formData.get("name"),
     description: formData.get("description"),
@@ -42,7 +46,7 @@ export async function saveProductAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -80,7 +84,7 @@ export async function saveProductAction(
 
   revalidatePath("/dashboard/shopfront");
   revalidatePath(`/b/${ctx.business.slug}`);
-  return successState(id ? "Product updated." : "Product added.");
+  return successState(t(locale, id ? "msg.productUpdated" : "msg.productAdded"));
 }
 
 export async function toggleProductAction(formData: FormData): Promise<void> {
@@ -105,8 +109,9 @@ export async function deleteProductAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const id = String(formData.get("id") ?? "");
-  if (!id) return errorState("That product no longer exists.");
+  if (!id) return errorState(t(locale, "msg.productGone"));
 
   const ctx = await requireBusiness();
   const supabase = await createClient();
@@ -126,7 +131,7 @@ export async function deleteProductAction(
       .eq("business_id", ctx.business.id);
     if (error) return errorState(error.message);
     revalidatePath("/dashboard/shopfront");
-    return successState("This product has orders against it, so it was hidden rather than deleted.");
+    return successState(t(locale, "msg.productHidden"));
   }
 
   const { error } = await supabase
@@ -138,7 +143,7 @@ export async function deleteProductAction(
 
   revalidatePath("/dashboard/shopfront");
   revalidatePath(`/b/${ctx.business.slug}`);
-  return successState("Product deleted.");
+  return successState(t(locale, "msg.productDeleted"));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -155,18 +160,19 @@ export async function purchaseProductAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const parsed = purchaseSchema.safeParse({
     productId: formData.get("productId"),
     quantity: formData.get("quantity") || 1,
     paymentMethod: formData.get("paymentMethod") || "stripe",
   });
 
-  if (!parsed.success) return errorState("That order could not be read. Please try again.");
+  if (!parsed.success) return errorState(t(locale, "msg.orderUnreadable"));
 
   const session = await getSession();
-  if (!session) return errorState("Please sign in to buy.");
+  if (!session) return errorState(t(locale, "msg.signInBuy"));
   if (session.profile.role !== "customer") {
-    return errorState("Business accounts cannot buy. Sign in as a customer.");
+    return errorState(t(locale, "msg.businessCannotBuy"));
   }
 
   const supabase = await createClient();
@@ -179,10 +185,12 @@ export async function purchaseProductAction(
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!product) return errorState("That product is no longer available.");
+  if (!product) return errorState(t(locale, "msg.productUnavailable"));
   if (product.stock !== null && product.stock < quantity) {
     return errorState(
-      product.stock === 0 ? "Sorry — that item just sold out." : `Only ${product.stock} left in stock.`,
+      product.stock === 0
+        ? t(locale, "msg.soldOutNow")
+        : t(locale, "msg.onlyLeft", { n: product.stock }),
     );
   }
 
@@ -221,8 +229,6 @@ export async function purchaseProductAction(
   if (business?.slug) revalidatePath(`/b/${business.slug}`);
 
   return successState(
-    paymentMethod === "scan"
-      ? "Payment received via QR — your order is confirmed. (Demo: no real charge.)"
-      : "Payment received — your order is confirmed. (Demo: no real charge.)",
+    t(locale, paymentMethod === "scan" ? "msg.orderPaidQr" : "msg.orderPaid"),
   );
 }

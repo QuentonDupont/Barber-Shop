@@ -22,6 +22,7 @@ import { idleState } from "@/lib/actions/types";
 import type { BookingRow } from "@/lib/database.types";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
+import { useLocale, useT } from "@/lib/i18n/context";
 import { businessPath } from "@/lib/routes";
 
 export interface CustomerBooking extends BookingRow {
@@ -69,6 +70,8 @@ function BookingCard({
   booking: CustomerBooking;
   onOpen: (booking: CustomerBooking) => void;
 }) {
+  const { locale } = useLocale();
+  const t = useT();
   const timezone = booking.business?.timezone ?? "Asia/Bangkok";
   const past = booking.status === "cancelled" || new Date(booking.ends_at) < new Date();
 
@@ -84,23 +87,23 @@ function BookingCard({
     >
       <span className="flex w-14 shrink-0 flex-col items-center rounded-lg bg-surface-muted py-2">
         <span className="text-[0.625rem] font-semibold uppercase text-fg-subtle">
-          {formatInBusinessTz(booking.starts_at, timezone, "MMM")}
+          {formatInBusinessTz(booking.starts_at, timezone, "MMM", locale)}
         </span>
         <span className="text-xl font-bold leading-none tabular-nums">
           {formatInBusinessTz(booking.starts_at, timezone, "d")}
         </span>
         <span className="mt-0.5 text-[0.625rem] font-medium text-fg-subtle">
-          {formatInBusinessTz(booking.starts_at, timezone, "EEE")}
+          {formatInBusinessTz(booking.starts_at, timezone, "EEE", locale)}
         </span>
       </span>
 
       <span className="min-w-0 flex-1 space-y-1">
         <span className="block truncate font-semibold">
-          {booking.business?.name ?? "Business"}
+          {booking.business?.name ?? t("bookingDetail.business")}
         </span>
         <span className="block truncate text-sm text-fg-muted">
           {booking.service_name} ·{" "}
-          {formatInBusinessTz(booking.starts_at, timezone, "h:mm a")}
+          {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)}
           {booking.staff_name ? ` · ${booking.staff_name}` : ""}
         </span>
         <span className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -120,14 +123,16 @@ function DetailSheet({
   onClose: () => void;
 }) {
   const [state, formAction] = useActionState(cancelBookingAction, idleState);
+  const { locale } = useLocale();
+  const t = useT();
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Cancelled.");
+      toast.success(state.message ?? t("bookingDetail.cancelledFallback"));
       onClose();
     }
     if (state.status === "error" && state.message) toast.error(state.message);
-  }, [state, onClose]);
+  }, [state, onClose, t]);
 
   if (!booking) return null;
 
@@ -140,11 +145,11 @@ function DetailSheet({
     <Sheet open onOpenChange={(next) => !next && onClose()}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{booking.business?.name ?? "Your booking"}</SheetTitle>
+          <SheetTitle>{booking.business?.name ?? t("bookingDetail.yourBooking")}</SheetTitle>
           <SheetDescription>
-            {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM yyyy")} ·{" "}
-            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a")} –{" "}
-            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a")}
+            {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM yyyy", locale)} ·{" "}
+            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)} –{" "}
+            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale)}
           </SheetDescription>
         </SheetHeader>
 
@@ -158,22 +163,22 @@ function DetailSheet({
 
           <dl className="divide-y divide-border rounded-xl bg-surface-muted px-3.5">
             <div className="flex items-start justify-between gap-4 py-3">
-              <dt className="text-sm text-fg-muted">Service</dt>
+              <dt className="text-sm text-fg-muted">{t("bookingDetail.service")}</dt>
               <dd className="text-right font-semibold">{booking.service_name}</dd>
             </div>
             {booking.staff_name ? (
               <div className="flex items-start justify-between gap-4 py-3">
-                <dt className="text-sm text-fg-muted">Barber</dt>
+                <dt className="text-sm text-fg-muted">{t("bookingDetail.barber")}</dt>
                 <dd className="text-right font-semibold">{booking.staff_name}</dd>
               </div>
             ) : null}
             <div className="flex items-start justify-between gap-4 py-3">
-              <dt className="text-sm text-fg-muted">Time zone</dt>
+              <dt className="text-sm text-fg-muted">{t("bookingDetail.timeZone")}</dt>
               <dd className="text-right font-semibold">{timezone}</dd>
             </div>
             {booking.notes ? (
               <div className="flex items-start justify-between gap-4 py-3">
-                <dt className="shrink-0 text-sm text-fg-muted">Your note</dt>
+                <dt className="shrink-0 text-sm text-fg-muted">{t("bookingDetail.yourNote")}</dt>
                 <dd className="text-right text-sm text-fg-muted text-pretty">
                   {booking.notes}
                 </dd>
@@ -200,7 +205,7 @@ function DetailSheet({
                 className="inline-flex min-h-12 items-center gap-2.5 rounded-lg border border-border px-3.5 text-sm font-medium transition-colors hover:bg-surface-muted"
               >
                 <Phone className="size-4 shrink-0 text-accent" />
-                Call {booking.business.phone}
+                {t("bookingDetail.call", { phone: booking.business.phone })}
               </a>
             ) : null}
 
@@ -210,7 +215,7 @@ function DetailSheet({
                 className="inline-flex min-h-12 items-center gap-2.5 rounded-lg border border-border px-3.5 text-sm font-medium transition-colors hover:bg-surface-muted"
               >
                 <Repeat2 className="size-4 shrink-0 text-accent" />
-                Book again
+                {t("bookingDetail.bookAgain")}
               </Link>
             ) : null}
           </div>
@@ -231,10 +236,11 @@ function DetailSheet({
 
 function CancelButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" block variant="outline" loading={pending} className="text-danger">
       <X />
-      Cancel this booking
+      {t("bookingDetail.cancelBooking")}
     </Button>
   );
 }

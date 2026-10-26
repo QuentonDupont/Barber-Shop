@@ -122,6 +122,9 @@ function insertDefaults(table: string): Row {
 
 function withInsertDefaults(table: string, values: Row): Row {
   const row: Row = { ...insertDefaults(table), ...values };
+  // Mirrors the database trigger: a booking with no customer account can only
+  // be one the shop entered itself (migration 20261027000000).
+  if (table === "bookings" && row.customer_id == null) row.source = "shop";
   if (row.id === undefined) row.id = newId();
   return row;
 }

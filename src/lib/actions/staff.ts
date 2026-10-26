@@ -6,23 +6,26 @@ import { createClient } from "@/lib/supabase/server";
 import { requireBusiness } from "@/lib/auth";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
 import { businessPath } from "@/lib/routes";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
-const staffSchema = z.object({
-  id: z.uuid().optional().or(z.literal("")),
-  name: z.string().trim().min(1, "Give this staff member a name").max(80),
-  worksWeekdays: z
-    .array(z.coerce.number().int().min(0).max(6))
-    .default([])
-    .transform((days) => Array.from(new Set(days)).sort((a, b) => a - b)),
-  isActive: z.boolean(),
-  // Which services this staff member performs. Empty = every active
-  // service at the business (`staff_services` default-open semantics —
-  // see the migration comment), so an owner who adds a barber and never
-  // touches this field gets a fully bookable staff member immediately.
-  serviceIds: z.array(z.uuid()).default([]),
-});
+const staffSchema = (locale: Locale) =>
+  z.object({
+    id: z.uuid().optional().or(z.literal("")),
+    name: z.string().trim().min(1, t(locale, "msg.staffNameRequired")).max(80),
+    worksWeekdays: z
+      .array(z.coerce.number().int().min(0).max(6))
+      .default([])
+      .transform((days) => Array.from(new Set(days)).sort((a, b) => a - b)),
+    isActive: z.boolean(),
+    // Which services this staff member performs. Empty = every active
+    // service at the business (`staff_services` default-open semantics —
+    // see the migration comment), so an owner who adds a barber and never
+    // touches this field gets a fully bookable staff member immediately.
+    serviceIds: z.array(z.uuid()).default([]),
+  });
 
 /**
  * Add or edit one staff member — name, which weekdays they work
@@ -35,7 +38,8 @@ export async function saveStaffAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = staffSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = staffSchema(locale).safeParse({
     id: formData.get("id") ?? "",
     name: formData.get("name"),
     worksWeekdays: formData.getAll("worksWeekdays"),
@@ -45,7 +49,7 @@ export async function saveStaffAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -94,7 +98,7 @@ export async function saveStaffAction(
 
   revalidatePath("/dashboard/staff");
   revalidatePath(businessPath(ctx.business.slug));
-  return successState(id ? "Staff member updated." : "Staff member added.");
+  return successState(t(locale, id ? "msg.staffUpdated" : "msg.staffAdded"));
 }
 
 /** Deactivate/reactivate from the list — no confirmation sheet needed. */

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
@@ -434,7 +434,13 @@ function ConfirmSheet({
   const { locale } = useLocale();
   const router = useRouter();
 
+  // Each action result is handled once: the parent re-renders when the sheet
+  // closes, which hands this effect a fresh onBooked and would repeat the toast.
+  const handledState = useRef<typeof state | null>(null);
+
   useEffect(() => {
+    if (handledState.current === state) return;
+    handledState.current = state;
     if (state.status === "success") {
       toast.success(state.message ?? t("confirm.bookedFallback"));
       onBooked();
@@ -453,8 +459,10 @@ function ConfirmSheet({
             }
           : undefined,
       );
+      // QA 11 BUG 3: close the sheet so the "Go to account" action is tappable.
+      if (state.consentBlocked) onOpenChange(false);
     }
-  }, [state, onBooked, t, router]);
+  }, [state, onBooked, onOpenChange, t, router]);
 
   const endsAt = new Date(
     new Date(startsAt).getTime() + (service.duration_min + service.buffer_min) * 60_000,
