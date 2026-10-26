@@ -49,7 +49,7 @@ async function fillCustomer(sheet: ReturnType<Page["getByTestId"]>, name: string
 async function cancelRow(page: Page, customerName: string) {
   await page.getByText(customerName).filter({ visible: true }).first().click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Cancel this booking" }).click();
+  await dialog.getByRole("button", { name: "Cancel booking", exact: true }).click();
   await expect(toast(page).filter({ hasText: "Booking cancelled." })).toBeVisible();
 }
 
@@ -114,7 +114,7 @@ test.describe("owner", () => {
     expect(startsAt).toBeTruthy();
 
     // Tidy up so the shop is as we found it.
-    await dialog.getByRole("button", { name: "Cancel this booking" }).click();
+    await dialog.getByRole("button", { name: "Cancel booking", exact: true }).click();
     await expect(toast(page).filter({ hasText: "Booking cancelled." })).toBeVisible();
   });
 

@@ -183,7 +183,8 @@ test.describe("Thai pages carry no untranslated English", () => {
     await page.locator("main button").filter({ hasText: "THB" }).first().click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
-    const text = await sheet.innerText();
+    // Labels only: the shop's own name ("Nong Barber") is data and legitimately contains "Barber".
+    const text = [await sheet.locator("dt").allInnerTexts(), await sheet.getByRole("button").allInnerTexts(), await sheet.getByRole("link").allInnerTexts()].flat().join("\n");
     for (const phrase of ["Service", "Time zone", "Book again", "Cancel this booking", "Barber"]) {
       expect.soft(text, `English text "${phrase}" in the Thai booking detail sheet`).not.toContain(phrase);
     }
