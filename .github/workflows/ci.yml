@@ -1,8 +1,10 @@
 name: CI
 
 # roadmap.md §3: "build and test as code" — this is the only CI in the repo.
-# Both jobs gate merge to main (branch protection is a repo setting, not
-# something this file can set) and run on every PR and every push to main.
+# Every job gates merge to main (branch protection is a repo setting, not
+# something this file can set: each job's `name:` below must be listed under
+# Settings > Branches > "Require status checks to pass", the e2e job included)
+# and runs on every PR and every push to main.
 on:
   pull_request:
   push:
@@ -241,3 +243,98 @@ jobs:
       # migrations" step to run first; db:test is genuinely the one command.
       - name: Run database tests
         run: npm run db:test
+
+  # ---------------------------------------------------------------------------
+  # Job 4 — end-to-end browser tests (handoff 09). A Playwright suite drives the
+  # real built app in mock mode like a customer and a shop owner would: booking
+  # (named barber and "any available"), sign-up and consent, the PDPA data
+  # rights, owner screens, Thai/English and the logo. Three projects: iPhone-
+  # sized WebKit, iPhone-sized Chromium and one desktop Chromium.
+  #
+  # Artifacts (kept 14 days): the HTML report — which embeds a full-page
+  # screenshot of every major step, so it doubles as a visual walkthrough —
+  # plus the raw screenshots; and, only when something fails, the videos and
+  # traces. A failing test fails this job, and so blocks the merge.
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: End-to-end tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_USE_MOCK: "1"
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck the e2e suite
+        run: npm run typecheck:e2e
+
+      # WebKit needs system libraries; --with-deps installs them too.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Build (mock mode)
+        run: npm run build
+
+      - name: Start server (mock mode)
+        run: nohup npm run start -- -p 3000 > server.log 2>&1 &
+
+      - name: Wait for server to come up
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://localhost:3000/"; then
+              echo "Server is up"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Server never became ready" >&2
+          cat server.log
+          exit 1
+
+      # playwright.config.ts reuses the server started above.
+      - name: Run the end-to-end suite
+        run: npm run test:e2e
+
+      - name: Upload HTML report (with screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-html-report
+          path: e2e-results/html-report
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e-results/screenshots
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload videos and traces of failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-videos-and-traces
+          path: |
+            e2e-results/test-output/**/*.webm
+            e2e-results/test-output/**/trace.zip
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Server log (always, for debugging)
+        if: always()
+        run: cat server.log || true

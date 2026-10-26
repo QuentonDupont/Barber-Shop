@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "typecheck:e2e": "tsc -p e2e/tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "local": "npm run db:start && npm run db:env && npm run dev",
@@ -16,7 +17,9 @@
     "db:reset": "npx --yes supabase db reset",
     "db:status": "npx --yes supabase status",
     "db:env": "node scripts/local-env.mjs",
-    "db:test": "bash supabase/tests/run.sh"
+    "db:test": "bash supabase/tests/run.sh",
+    "test:e2e": "playwright test",
+    "test:e2e:report": "playwright show-report e2e-results/html-report"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.23",
@@ -46,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/google.maps": "^3.66.2",
     "@types/node": "^26.5.1",
