@@ -1,5 +1,5 @@
 -- ============================================================================
--- Bookly — invite-only business accounts (security handoff 01, 2026-10-06)
+-- TatNat — invite-only business accounts (security handoff 01, 2026-10-06)
 -- ============================================================================
 -- Before this migration, three paths let anyone become a business without an
 -- invite, all reachable straight through the public API (no app involved):
@@ -9,7 +9,7 @@
 --      a user write every column of their own row);
 --   3. any signed-in user inserts a businesses row (the policy checked only
 --      owner_id = auth.uid(), never the role).
--- Customer self-sign-up stays open. Only Bookly staff (SQL, Studio, or the
+-- Customer self-sign-up stays open. Only TatNat staff (SQL, Studio, or the
 -- service-role key) can make or promote a business owner.
 -- ============================================================================
 
@@ -60,7 +60,7 @@ set search_path = ''
 as $$
 begin
   if new.role is distinct from old.role and (select auth.uid()) is not null then
-    raise exception 'Only Bookly staff can change an account type'
+    raise exception 'Only TatNat staff can change an account type'
       using errcode = '42501';
   end if;
   return new;

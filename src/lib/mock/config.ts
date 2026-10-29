@@ -11,7 +11,7 @@
  */
 
 /** Cookie that stands in for a Supabase auth session in mock mode. */
-export const MOCK_COOKIE = "bookly_mock_user";
+export const MOCK_COOKIE = "tatnat_mock_user";
 
 /** True when the app should run against in-memory fixtures. */
 export function isMockMode(): boolean {

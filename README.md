@@ -1,4 +1,4 @@
-# Bookly
+# TatNat
 
 A booking platform for salons, barbers, clinics, spas and studios. Two portals
 behind one sign-in: **customers** find a place and book a real time slot,
@@ -89,8 +89,8 @@ Open **<http://localhost:3000>** and sign in as either demo account:
 
 | Portal | Email | Password |
 |---|---|---|
-| Business — *Nong Barber*, already set up and published | `owner@bookly.local` | `bookly123` |
-| Customer | `customer@bookly.local` | `bookly123` |
+| Business — *Nong Barber*, already set up and published | `owner@tatnat.local` | `tatnat123` |
+| Customer | `customer@tatnat.local` | `tatnat123` |
 
 Or create your own account from the landing page — sign-up works instantly
 locally because email confirmation is switched off in `supabase/config.toml`.

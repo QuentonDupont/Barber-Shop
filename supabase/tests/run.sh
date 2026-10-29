@@ -11,7 +11,7 @@
 #
 set -euo pipefail
 
-DB="${BOOKLY_TEST_DB:-bookly_test}"
+DB="${TATNAT_TEST_DB:-tatnat_test}"
 PSQL=(psql -v ON_ERROR_STOP=1 -q)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 

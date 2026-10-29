@@ -132,22 +132,22 @@ select test_assert(
 
 -- --- the seed -----------------------------------------------------------------
 select test_assert(
-  (select count(*) from public.profiles where email like '%@bookly.local') = 2,
+  (select count(*) from public.profiles where email like '%@tatnat.local') = 2,
   'the seed created the two demo logins with profiles');
 
 select test_assert(
-  (select role from public.profiles where email = 'owner@bookly.local') = 'business_owner',
+  (select role from public.profiles where email = 'owner@tatnat.local') = 'business_owner',
   'the seeded owner has the business_owner role');
 
 select test_assert(
   (select count(*) from public.businesses b
    join public.profiles p on p.id = b.owner_id
-   where p.email = 'owner@bookly.local' and b.is_published) = 2,
+   where p.email = 'owner@tatnat.local' and b.is_published) = 2,
   'the seeded owner has two published businesses');
 
 select test_assert(
   (select count(*) from public.services s
    join public.businesses b on b.id = s.business_id
    join public.profiles p on p.id = b.owner_id
-   where p.email = 'owner@bookly.local') = 7,
+   where p.email = 'owner@tatnat.local') = 7,
   'the seed created seven services');

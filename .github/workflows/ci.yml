@@ -122,8 +122,8 @@ jobs:
       # seeded owner and customer ids are fixed in `src/lib/mock/fixtures.ts`.
       - name: Fetch key routes
         run: |
-          OWNER_COOKIE="bookly_mock_user=business_owner:a0000000-0000-4000-8000-000000000001"
-          CUSTOMER_COOKIE="bookly_mock_user=customer:a0000000-0000-4000-8000-000000000002"
+          OWNER_COOKIE="tatnat_mock_user=business_owner:a0000000-0000-4000-8000-000000000001"
+          CUSTOMER_COOKIE="tatnat_mock_user=customer:a0000000-0000-4000-8000-000000000002"
           BARBER_SLUG="nong-barber"
 
           check() {

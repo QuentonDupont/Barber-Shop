@@ -32,7 +32,7 @@ async function withdrawConsent(page: Page) {
 
 test.describe("privacy", () => {
   test("the privacy policy renders in Thai and in English", async ({ page, context, baseURL, snap }) => {
-    await context.addCookies([{ name: "bookly-locale", value: "th", url: baseURL! }]);
+    await context.addCookies([{ name: "tatnat-locale", value: "th", url: baseURL! }]);
     await open(page, "/privacy");
     await expectHealthy(page);
     await expect(page.locator("html")).toHaveAttribute("lang", "th");

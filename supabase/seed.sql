@@ -1,5 +1,5 @@
 -- ============================================================================
--- Bookly — local development seed
+-- TatNat — local development seed
 -- ============================================================================
 -- Applied automatically by `supabase db reset` (see config.toml). Plain SQL,
 -- no psql meta-commands, so the CLI's seed runner can execute it.
@@ -7,8 +7,8 @@
 -- It creates two demo logins, then two published businesses owned by the
 -- first, so the app is usable the moment it starts:
 --
---   owner@bookly.local     / bookly123   -> business portal (Nong Barber)
---   customer@bookly.local  / bookly123   -> customer portal
+--   owner@tatnat.local     / tatnat123   -> business portal (Nong Barber)
+--   customer@tatnat.local  / tatnat123   -> customer portal
 --
 -- These are for LOCAL use only. Never run this against a production project:
 -- it writes directly to auth.users with a known password.
@@ -18,7 +18,7 @@ do $$
 declare
   v_owner     uuid := 'a0000000-0000-4000-8000-000000000001';
   v_customer  uuid := 'a0000000-0000-4000-8000-000000000002';
-  pw          text := crypt('bookly123', gen_salt('bf'));
+  pw          text := crypt('tatnat123', gen_salt('bf'));
   shop        uuid;
   spa         uuid;
 begin
@@ -34,12 +34,12 @@ begin
   )
   values
     (v_owner, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-     'owner@bookly.local', pw, now(),
+     'owner@tatnat.local', pw, now(),
      '{"provider":"email","providers":["email"]}',
      '{"role":"business_owner","full_name":"Nong Srisuk","phone":"081 000 0001"}',
      now(), now(), '', '', '', '', '', '', '', '', false),
     (v_customer, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-     'customer@bookly.local', pw, now(),
+     'customer@tatnat.local', pw, now(),
      '{"provider":"email","providers":["email"]}',
      '{"role":"customer","full_name":"Ann Suwannee","phone":"081 000 0002"}',
      now(), now(), '', '', '', '', '', '', '', '', false)
@@ -51,10 +51,10 @@ begin
   )
   values
     (gen_random_uuid(), v_owner, v_owner::text, 'email',
-     jsonb_build_object('sub', v_owner::text, 'email', 'owner@bookly.local', 'email_verified', true),
+     jsonb_build_object('sub', v_owner::text, 'email', 'owner@tatnat.local', 'email_verified', true),
      now(), now(), now()),
     (gen_random_uuid(), v_customer, v_customer::text, 'email',
-     jsonb_build_object('sub', v_customer::text, 'email', 'customer@bookly.local', 'email_verified', true),
+     jsonb_build_object('sub', v_customer::text, 'email', 'customer@tatnat.local', 'email_verified', true),
      now(), now(), now())
   on conflict do nothing;
 
@@ -124,6 +124,6 @@ begin
       (spa, 'Aromatherapy', 'Oil massage with a scent of your choosing.', 90, 15, 1400, 3);
   end if;
 
-  raise notice 'Seeded: owner@bookly.local and customer@bookly.local (password bookly123), 2 businesses, 7 services';
+  raise notice 'Seeded: owner@tatnat.local and customer@tatnat.local (password tatnat123), 2 businesses, 7 services';
 end
 $$;

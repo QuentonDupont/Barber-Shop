@@ -46,7 +46,7 @@ export function SignInForm({
     const form = formRef.current;
     if (!form) return;
     (form.elements.namedItem("email") as HTMLInputElement).value = email;
-    (form.elements.namedItem("password") as HTMLInputElement).value = "bookly123";
+    (form.elements.namedItem("password") as HTMLInputElement).value = "tatnat123";
     form.requestSubmit();
   }
 
@@ -70,11 +70,11 @@ export function SignInForm({
             {t("auth.demoModeLabel")}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <Button type="button" variant="outline" size="md" onClick={() => demoLogin("owner@bookly.local")}>
+            <Button type="button" variant="outline" size="md" onClick={() => demoLogin("owner@tatnat.local")}>
               <Store className="size-4" />
               {t("auth.shopOwner")}
             </Button>
-            <Button type="button" variant="outline" size="md" onClick={() => demoLogin("customer@bookly.local")}>
+            <Button type="button" variant="outline" size="md" onClick={() => demoLogin("customer@tatnat.local")}>
               <User className="size-4" />
               {t("auth.customer")}
             </Button>

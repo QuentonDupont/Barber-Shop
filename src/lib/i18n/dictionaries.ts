@@ -19,7 +19,7 @@ export const DEFAULT_LOCALE: Locale = "th";
  * `server-only` guard into the client bundle and break the build (a real
  * Server/Client boundary violation, not a mock-mode issue).
  */
-export const LOCALE_COOKIE = "bookly-locale";
+export const LOCALE_COOKIE = "tatnat-locale";
 
 export const dictionaries = {
   th: {

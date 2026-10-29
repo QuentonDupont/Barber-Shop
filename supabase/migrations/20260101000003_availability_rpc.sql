@@ -1,5 +1,5 @@
 -- ============================================================================
--- Bookly — busy intervals for availability
+-- TatNat — busy intervals for availability
 -- ============================================================================
 -- The slot engine needs to know which stretches of a business's day are already
 -- taken. It cannot read that from `bookings` directly: RLS deliberately hides

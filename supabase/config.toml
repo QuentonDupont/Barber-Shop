@@ -1,11 +1,11 @@
-# Supabase CLI configuration for running Bookly locally.
+# Supabase CLI configuration for running TatNat locally.
 #
 #   npm run local        # starts the stack, writes .env.local, runs next dev
 #
 # Everything here is the local stack only. Production settings live in the
 # Supabase dashboard.
 
-project_id = "bookly"
+project_id = "tatnat"
 
 [api]
 enabled = true

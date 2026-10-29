@@ -43,7 +43,7 @@ test.describe("language toggle", () => {
   }
 
   test("the TH/EN choice persists across reloads and pages", async ({ page, context, baseURL, snap }) => {
-    await context.addCookies([{ name: "bookly-locale", value: "th", url: baseURL! }]); // Thai is the default
+    await context.addCookies([{ name: "tatnat-locale", value: "th", url: baseURL! }]); // Thai is the default
     await open(page, "/sign-in");
     await expect(page.locator("html")).toHaveAttribute("lang", "th");
     await expect(page.getByRole("heading", { name: "ยินดีต้อนรับกลับมา" })).toBeVisible();
@@ -61,7 +61,7 @@ test.describe("language toggle", () => {
     await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     await open(page, "/privacy");
     await expect(page.getByRole("heading", { name: "Privacy policy" })).toBeVisible();
-    expect((await context.cookies()).find((c) => c.name === "bookly-locale")?.value).toBe("en");
+    expect((await context.cookies()).find((c) => c.name === "tatnat-locale")?.value).toBe("en");
 
     // And back to Thai, also persisted.
     await page.getByRole("button", { name: "ไทย" }).click();
@@ -108,7 +108,7 @@ test.describe("brand logo", () => {
   });
 
   test("the TatNat logo is visible in dark mode", async ({ page, snap }) => {
-    await page.addInitScript(() => localStorage.setItem("bookly-theme", "dark"));
+    await page.addInitScript(() => localStorage.setItem("tatnat-theme", "dark"));
     await open(page, "/");
     const s = await logoState(page);
     expect(s.dark).toBe(true);
@@ -119,7 +119,7 @@ test.describe("brand logo", () => {
 
   test("the logo also shows on the sign-in screen in both themes", async ({ page, snap }) => {
     for (const theme of ["light", "dark"] as const) {
-      await page.addInitScript((t) => localStorage.setItem("bookly-theme", t), theme);
+      await page.addInitScript((t) => localStorage.setItem("tatnat-theme", t), theme);
       await open(page, "/sign-in");
       const s = await logoState(page, "icon-mark"); // the auth screens use the icon mark
       expect(s.dark).toBe(theme === "dark");

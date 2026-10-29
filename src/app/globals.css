@@ -222,7 +222,7 @@
   }
 }
 
-@keyframes bookly-fade-in {
+@keyframes tatnat-fade-in {
   from {
     opacity: 0;
     transform: translateY(4px);
@@ -233,7 +233,7 @@
   }
 }
 
-@keyframes bookly-slide-up {
+@keyframes tatnat-slide-up {
   from {
     transform: translateY(100%);
   }
@@ -242,7 +242,7 @@
   }
 }
 
-@keyframes bookly-shimmer {
+@keyframes tatnat-shimmer {
   100% {
     transform: translateX(100%);
   }
@@ -250,9 +250,9 @@
 
 @layer utilities {
   .animate-fade-in {
-    animation: bookly-fade-in 0.22s ease-out both;
+    animation: tatnat-fade-in 0.22s ease-out both;
   }
   .animate-slide-up {
-    animation: bookly-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: tatnat-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 }

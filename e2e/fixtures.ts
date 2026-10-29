@@ -30,7 +30,7 @@ export const test = base.extend<Fixtures>({
   lang: ["en", { option: true }],
 
   context: async ({ context, lang, baseURL }, use) => {
-    await context.addCookies([{ name: "bookly-locale", value: lang, url: baseURL! }]);
+    await context.addCookies([{ name: "tatnat-locale", value: lang, url: baseURL! }]);
     await use(context);
   },
 
@@ -57,7 +57,7 @@ export const test = base.extend<Fixtures>({
 
 export async function signInAs(context: BrowserContext, who: "owner" | "customer", baseURL: string) {
   await context.addCookies([
-    { name: "bookly_mock_user", value: who === "owner" ? OWNER_COOKIE : CUSTOMER_COOKIE, url: baseURL },
+    { name: "tatnat_mock_user", value: who === "owner" ? OWNER_COOKIE : CUSTOMER_COOKIE, url: baseURL },
   ]);
 }
 
@@ -99,7 +99,7 @@ export async function newVisitor(
   as?: "customer" | "owner",
 ) {
   const context = await browser.newContext({ baseURL });
-  await context.addCookies([{ name: "bookly-locale", value: lang, url: baseURL }]);
+  await context.addCookies([{ name: "tatnat-locale", value: lang, url: baseURL }]);
   if (as) await signInAs(context, as, baseURL);
   const page = await context.newPage();
   return { context, page };

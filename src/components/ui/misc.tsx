@@ -29,7 +29,7 @@ function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>)
     >
       <div
         className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-border/60 to-transparent"
-        style={{ animation: "bookly-shimmer 1.6s infinite" }}
+        style={{ animation: "tatnat-shimmer 1.6s infinite" }}
         aria-hidden
       />
     </div>

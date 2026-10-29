@@ -16,7 +16,7 @@ function useTheme() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("bookly-theme");
+    const stored = window.localStorage.getItem("tatnat-theme");
     const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isDark = stored ? stored === "dark" : prefers;
     setDark(isDark);
@@ -27,7 +27,7 @@ function useTheme() {
     setDark((current) => {
       const next = !current;
       document.documentElement.classList.toggle("dark", next);
-      window.localStorage.setItem("bookly-theme", next ? "dark" : "light");
+      window.localStorage.setItem("tatnat-theme", next ? "dark" : "light");
       return next;
     });
   };

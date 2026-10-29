@@ -2,7 +2,7 @@
 \timing off
 
 -- ===========================================================================
--- Bookly — migration acceptance tests
+-- TatNat — migration acceptance tests
 -- Mirrors the validation checklist: overlap, breaks, closed days, timezone
 -- correctness and cross-tenant isolation.
 -- ===========================================================================

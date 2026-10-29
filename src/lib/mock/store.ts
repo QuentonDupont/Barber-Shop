@@ -25,23 +25,23 @@ import { buildDB, type MockDB } from "./fixtures";
 const SCHEMA_VERSION = 5;
 
 const globalForMock = globalThis as unknown as {
-  __booklyMockDB?: MockDB;
-  __booklyMockVersion?: number;
+  __tatnatMockDB?: MockDB;
+  __tatnatMockVersion?: number;
 };
 
 export function store(): MockDB {
-  if (!globalForMock.__booklyMockDB || globalForMock.__booklyMockVersion !== SCHEMA_VERSION) {
-    globalForMock.__booklyMockDB = buildDB();
-    globalForMock.__booklyMockVersion = SCHEMA_VERSION;
+  if (!globalForMock.__tatnatMockDB || globalForMock.__tatnatMockVersion !== SCHEMA_VERSION) {
+    globalForMock.__tatnatMockDB = buildDB();
+    globalForMock.__tatnatMockVersion = SCHEMA_VERSION;
   }
-  return globalForMock.__booklyMockDB;
+  return globalForMock.__tatnatMockDB;
 }
 
 /** Rebuild the fixtures from scratch (used by the dev reset endpoint). */
 export function resetStore(): MockDB {
-  globalForMock.__booklyMockDB = buildDB();
-  globalForMock.__booklyMockVersion = SCHEMA_VERSION;
-  return globalForMock.__booklyMockDB;
+  globalForMock.__tatnatMockDB = buildDB();
+  globalForMock.__tatnatMockVersion = SCHEMA_VERSION;
+  return globalForMock.__tatnatMockDB;
 }
 
 export type { MockDB };

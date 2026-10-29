@@ -164,8 +164,8 @@ export function buildDB(): MockDB {
   const authUsers: MockAuthUser[] = [
     {
       id: OWNER,
-      email: "owner@bookly.local",
-      password: "bookly123",
+      email: "owner@tatnat.local",
+      password: "tatnat123",
       user_metadata: {
         role: "business_owner",
         full_name: "Nong Srisuk",
@@ -175,8 +175,8 @@ export function buildDB(): MockDB {
     },
     {
       id: CUSTOMER,
-      email: "customer@bookly.local",
-      password: "bookly123",
+      email: "customer@tatnat.local",
+      password: "tatnat123",
       user_metadata: {
         role: "customer",
         full_name: "Ann Suwannee",
@@ -187,8 +187,8 @@ export function buildDB(): MockDB {
   ];
 
   const profiles: ProfileRow[] = [
-    profile(OWNER, "business_owner", "Nong Srisuk", "081 000 0001", "owner@bookly.local"),
-    profile(CUSTOMER, "customer", "Ann Suwannee", "081 000 0002", "customer@bookly.local"),
+    profile(OWNER, "business_owner", "Nong Srisuk", "081 000 0001", "owner@tatnat.local"),
+    profile(CUSTOMER, "customer", "Ann Suwannee", "081 000 0002", "customer@tatnat.local"),
     profile(WALK_IN_1, "customer", "Somchai Prasert", "081 111 2222", null),
     profile(WALK_IN_2, "customer", "Malee Thongdee", "081 333 4444", null),
     profile(WALK_IN_3, "customer", "Anucha Kitti", "081 555 6666", null),
