@@ -33,10 +33,11 @@ select test_assert(
   'the owner-side list hides inactive, not RLS)');
 
 select test_assert(
-  test_raises('22222222-2222-2222-2222-222222222222', $q$
-    update public.staff set name = 'Hijacked'
-    where id = 'ffffffff-0000-0000-0000-000000000001'
-  $q$),
+  test_count_as('22222222-2222-2222-2222-222222222222', $q$
+    with u as (update public.staff set name = 'Hijacked'
+               where id = 'ffffffff-0000-0000-0000-000000000001' returning 1)
+    select count(*) from u
+  $q$) = 0,
   'a rival owner cannot rename another business''s staff member');
 
 select test_assert(
@@ -84,6 +85,7 @@ select test_assert(
 
 -- put the link back for a clean slate for the owner to re-add (next test
 -- block does not depend on it, but keeps this file's state legible).
+reset role;
 insert into public.staff_services (staff_id, service_id)
 values ('ffffffff-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001');
 
@@ -127,21 +129,17 @@ select test_assert(
 -- relied on the insert itself raising to catch a real failure, rather than
 -- going through this function's own exception path like every other
 -- assertion in this file.
-select test_assert(
-  (
-    with inserted as (
-      insert into public.bookings
+with inserted as (
+  insert into public.bookings
         (business_id, service_id, customer_id, staff_id, starts_at, ends_at, status,
          service_name, price, customer_name)
       values ('aaaaaaaa-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000001',
               '44444444-4444-4444-4444-444444444444', 'ffffffff-0000-0000-0000-000000000002',
               '2026-04-10T03:00:00Z', '2026-04-10T04:00:00Z', 'confirmed', 'Cut', 300, 'Ben')
       returning id
-    )
-    select count(*) from inserted
-  ) = 1,
-  'a different barber, same business, same exact time slot is allowed'
-);
+)
+select test_assert((select count(*) from inserted) = 1,
+  'a different barber, same business, same exact time slot is allowed');
 
 select test_assert(
   test_raises(null, $q$

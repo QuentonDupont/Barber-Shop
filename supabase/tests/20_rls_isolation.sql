@@ -193,8 +193,8 @@ select test_assert(
     with ins as (
       insert into public.businesses (owner_id, name, slug)
       values ('33333333-3333-3333-3333-333333333333', 'Pirate Shop', 'pirate-shop')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '42501',
   'a customer cannot create a business (blocked by RLS)');
 
@@ -203,8 +203,8 @@ select test_assert(
     with ins as (
       insert into public.businesses (owner_id, name, slug)
       values ('22222222-2222-2222-2222-222222222222', 'Second Shop', 'second-shop-probe')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '22012',
   'an invited owner can still create a business');
 

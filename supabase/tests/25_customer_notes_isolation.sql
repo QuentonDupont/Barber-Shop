@@ -54,8 +54,8 @@ select test_assert(
       values ('aaaaaaaa-0000-0000-0000-000000000001',
               '44444444-4444-4444-4444-444444444444',
               'a rival owner writing on another business''s customer')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '42501',
   'a rival owner cannot insert a note against another business (blocked by RLS)');
 

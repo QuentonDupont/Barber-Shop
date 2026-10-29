@@ -79,8 +79,8 @@ select test_assert(
     with ins as (
       insert into public.consent_records (user_id, policy_version)
       values ('33333333-3333-3333-3333-333333333333', '2026-10-21-draft-1')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '22012',
   'Ann can record her own consent');
 
@@ -89,8 +89,8 @@ select test_assert(
     with ins as (
       insert into public.consent_records (user_id, policy_version)
       values ('44444444-4444-4444-4444-444444444444', '2026-10-21-draft-1')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '42501',
   'Ann cannot record consent on Ben''s behalf (blocked by RLS)');
 
@@ -133,8 +133,8 @@ select test_assert(
     with ins as (
       insert into public.deletion_requests (user_id)
       values ('44444444-4444-4444-4444-444444444444')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '22012',
   'Ben can file his own deletion request');
 
@@ -148,8 +148,8 @@ select test_assert(
     with ins as (
       insert into public.deletion_requests (user_id)
       values ('44444444-4444-4444-4444-444444444444')
-      returning 1)
-    select 1/0 from ins
+      returning 0 as z)
+    select 1/z from ins
   $q$) = '42501',
   'Ann cannot file a deletion request on Ben''s behalf (blocked by RLS)');
 
@@ -367,3 +367,7 @@ select test_assert(
   (select count(*) from public.bookings
     where id = 'eeeeeeee-0000-0000-0000-000000000001') = 1,
   'negative control: Ben''s recent booking survives the same purge call');
+
+-- 60_beta_ops.sql reuses the eeeeeeee-... booking ids; leave the table as found.
+reset role;
+delete from public.bookings where id::text like 'eeeeeeee-0000-0000-0000-0000000%';

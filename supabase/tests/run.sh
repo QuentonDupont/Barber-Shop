@@ -15,7 +15,7 @@ DB="${TATNAT_TEST_DB:-tatnat_test}"
 PSQL=(psql -v ON_ERROR_STOP=1 -q)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-echo "Rebuilding $DB…"
+echo "Rebuilding ${DB}…"
 "${PSQL[@]}" -d postgres -c "drop database if exists ${DB};" -c "create database ${DB};"
 
 echo "Applying the Supabase shim (auth schema, roles, auth.uid)…"

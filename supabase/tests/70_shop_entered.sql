@@ -15,7 +15,8 @@ reset role;
 
 -- A rolling future date, 10:00-11:00 Bangkok.
 create temp table fut70 as
-select (current_date + 45) as d;
+select (case when extract(dow from current_date + 45) = 0 then current_date + 46
+             else current_date + 45 end) as d;
 grant select on fut70 to authenticated;
 
 -- ---------------------------------------------------------------------------
