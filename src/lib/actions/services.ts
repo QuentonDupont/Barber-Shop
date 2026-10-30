@@ -6,26 +6,31 @@ import { createClient } from "@/lib/supabase/server";
 import { requireBusiness } from "@/lib/auth";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
 import { businessPath } from "@/lib/routes";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
-const serviceSchema = z.object({
-  id: z.uuid().optional().or(z.literal("")),
-  name: z.string().trim().min(2, "Give the service a name").max(80),
-  description: z.string().trim().max(400).optional().or(z.literal("")),
-  durationMin: z.coerce
-    .number()
-    .int()
-    .min(5, "Five minutes is the shortest bookable service")
-    .max(1440, "That is longer than a day"),
-  bufferMin: z.coerce.number().int().min(0).max(240),
-  price: z.coerce.number().min(0, "Price cannot be negative").max(1_000_000),
-  isActive: z.boolean(),
-});
+function serviceSchema(locale: Locale) {
+  return z.object({
+    id: z.uuid().optional().or(z.literal("")),
+    name: z.string().trim().min(2, t(locale, "servicesAdmin.errorNameRequired")).max(80),
+    description: z.string().trim().max(400).optional().or(z.literal("")),
+    durationMin: z.coerce
+      .number()
+      .int()
+      .min(5, t(locale, "servicesAdmin.errorDurationTooShort"))
+      .max(1440, t(locale, "servicesAdmin.errorDurationTooLong")),
+    bufferMin: z.coerce.number().int().min(0).max(240),
+    price: z.coerce.number().min(0, t(locale, "servicesAdmin.errorPriceNegative")).max(1_000_000),
+    isActive: z.boolean(),
+  });
+}
 
 export async function saveServiceAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = serviceSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = serviceSchema(locale).safeParse({
     id: formData.get("id") ?? "",
     name: formData.get("name"),
     description: formData.get("description"),
@@ -37,7 +42,7 @@ export async function saveServiceAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "auth.errorCheckFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -83,7 +88,9 @@ export async function saveServiceAction(
 
   revalidatePath("/dashboard/services");
   revalidatePath(businessPath(ctx.business.slug));
-  return successState(id ? "Service updated." : "Service added.");
+  return successState(
+    id ? t(locale, "servicesAdmin.serviceUpdated") : t(locale, "servicesAdmin.serviceAdded"),
+  );
 }
 
 export async function toggleServiceAction(formData: FormData): Promise<void> {
@@ -109,7 +116,8 @@ export async function deleteServiceAction(
   formData: FormData,
 ): Promise<ActionState> {
   const id = String(formData.get("id") ?? "");
-  if (!id) return errorState("That service no longer exists.");
+  const locale = await getLocale();
+  if (!id) return errorState(t(locale, "servicesAdmin.errorServiceGone"));
 
   const ctx = await requireBusiness();
   const supabase = await createClient();
@@ -130,9 +138,7 @@ export async function deleteServiceAction(
     if (error) return errorState(error.message);
 
     revalidatePath("/dashboard/services");
-    return successState(
-      "This service has bookings against it, so it was hidden from customers rather than deleted.",
-    );
+    return successState(t(locale, "servicesAdmin.hiddenInsteadOfDeleted"));
   }
 
   const { error } = await supabase
@@ -144,7 +150,7 @@ export async function deleteServiceAction(
 
   revalidatePath("/dashboard/services");
   revalidatePath(businessPath(ctx.business.slug));
-  return successState("Service deleted.");
+  return successState(t(locale, "servicesAdmin.serviceDeleted"));
 }
 
 /**

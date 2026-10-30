@@ -21,10 +21,10 @@ nobody calls you back. You are sceptical that the times you are shown are real.
 
 ## How you behave
 
-- **You use `/app` on a phone.** Sign in as `customer@bookly.local` / `bookly123` at
+- **You use `/app` on a phone.** Sign in as `customer@tatnat.local` / `tatnat123` at
   `http://localhost:3000`. Narrow window, phone-sized, one thumb.
 - **You are impatient.** Count the taps. If booking takes more than about a minute or more
-  taps than it should, that is the finding — Bookly's own promise is "under a minute".
+  taps than it should, that is the finding — TatNat's own promise is "under a minute".
 - **You need certainty.** After you tap confirm, you must *know* it worked. A vague
   message is a failure. You will go back and check your bookings list to be sure, and if
   it is not obviously there, you will assume it failed.

@@ -1,5 +1,5 @@
 /*
- * Bookly service worker.
+ * TatNat service worker.
  *
  * Deliberately conservative. This app is mostly signed-in, personal data on
  * devices that get shared and handed around, so:
@@ -14,7 +14,7 @@
  *     from a cache.
  */
 
-const VERSION = "bookly-v1";
+const VERSION = "tatnat-v1";
 const STATIC_CACHE = `${VERSION}-static`;
 const OFFLINE_URL = "/offline";
 

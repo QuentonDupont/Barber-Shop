@@ -10,6 +10,7 @@ import type {
   OrderRow,
   ProductRow,
 } from "@/lib/database.types";
+import { useT } from "@/lib/i18n/context";
 
 export function ShopfrontManager({
   products,
@@ -24,19 +25,20 @@ export function ShopfrontManager({
   subscriptions: CampaignSubscriptionRow[];
   timezone: string;
 }) {
+  const t = useT();
   const activity = orders.length + subscriptions.filter((s) => s.status === "going").length;
 
   return (
     <Tabs defaultValue="products">
       <TabsList className="w-full max-w-md">
         <TabsTrigger value="products">
-          Products{products.length > 0 ? ` (${products.length})` : ""}
+          {t("shopfrontAdmin.tabProducts")}{products.length > 0 ? ` (${products.length})` : ""}
         </TabsTrigger>
         <TabsTrigger value="campaigns">
-          Campaigns{campaigns.length > 0 ? ` (${campaigns.length})` : ""}
+          {t("shopfrontAdmin.tabCampaigns")}{campaigns.length > 0 ? ` (${campaigns.length})` : ""}
         </TabsTrigger>
         <TabsTrigger value="orders">
-          Orders{activity > 0 ? ` (${activity})` : ""}
+          {t("shopfrontAdmin.tabOrders")}{activity > 0 ? ` (${activity})` : ""}
         </TabsTrigger>
       </TabsList>
 
@@ -47,7 +49,12 @@ export function ShopfrontManager({
         <CampaignsManager campaigns={campaigns} timezone={timezone} />
       </TabsContent>
       <TabsContent value="orders">
-        <OrdersPanel orders={orders} subscriptions={subscriptions} campaigns={campaigns} />
+        <OrdersPanel
+          orders={orders}
+          subscriptions={subscriptions}
+          campaigns={campaigns}
+          timezone={timezone}
+        />
       </TabsContent>
     </Tabs>
   );

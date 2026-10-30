@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="TatNat app icon (dark)">
+  <!--
+    TatNat app icon, full detail, dark variant. Same glyph as icon.svg;
+    rim/pivot/ticks invert to the warm canvas colour for contrast on a dark
+    background, hands and the appointment marker stay brand-accent brass.
+    Tokens: bg #1C1612 (new, token:icon-bg-dark), rim/pivot/ticks #FCFAF8 (token:bg, reused),
+    hands/marker #E18F14 (token:accent), marker ring #1C1612 (same as bg).
+  -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#1C1612"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#FCFAF8" stroke-width="40"/>
+  <g stroke="#FCFAF8" stroke-width="16" stroke-linecap="round">
+    <line x1="408" y1="256" x2="440" y2="256"/>
+    <line x1="256" y1="408" x2="256" y2="440"/>
+    <line x1="104" y1="256" x2="72" y2="256"/>
+  </g>
+  <g stroke="#E18F14" stroke-width="56" stroke-linecap="round">
+    <line x1="256" y1="256" x2="131.3" y2="184"/>
+    <line x1="256" y1="256" x2="380.7" y2="184"/>
+  </g>
+  <circle cx="256" cy="256" r="28" fill="#FCFAF8"/>
+  <circle cx="256" cy="88" r="20" fill="#E18F14" stroke="#1C1612" stroke-width="10"/>
+</svg>

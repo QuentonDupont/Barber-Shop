@@ -23,6 +23,7 @@ import {
 } from "@/lib/actions/bookings";
 import { idleState } from "@/lib/actions/types";
 import { businessToday, formatInBusinessTz, toDateKey, type DateKey } from "@/lib/booking/time";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 interface MovableBooking {
@@ -52,6 +53,8 @@ export function MoveBookingSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const today = businessToday(timezone);
   const currentDate = toDateKey(new Date(booking.starts_at), timezone);
 
@@ -81,7 +84,7 @@ export function MoveBookingSheet({
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Booking moved.");
+      toast.success(state.message ?? t("common.bookingMoved"));
       onOpenChange(false);
     }
     if (state.status === "error" && state.message) {
@@ -93,16 +96,19 @@ export function MoveBookingSheet({
         if (result.status === "ok") setSlots(result.slots);
       });
     }
-  }, [state, onOpenChange, booking.id, date]);
+  }, [state, onOpenChange, booking.id, date, t]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Move booking</SheetTitle>
+          <SheetTitle>{t("calendarAdmin.moveBookingTitle")}</SheetTitle>
           <SheetDescription>
-            {booking.customer_name} · {booking.service_name} · currently{" "}
-            {formatInBusinessTz(booking.starts_at, timezone, "EEE d MMM, h:mm a")}
+            {t("calendarAdmin.moveBookingDescription", {
+              customer: booking.customer_name,
+              service: booking.service_name,
+              when: formatInBusinessTz(booking.starts_at, timezone, "EEE d MMM, h:mm a", locale),
+            })}
           </SheetDescription>
         </SheetHeader>
 
@@ -114,25 +120,25 @@ export function MoveBookingSheet({
             <DateStrip selected={date} today={today} onSelect={setDate} days={28} />
 
             <p className="text-sm font-semibold">
-              {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMMM")}
+              {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMMM", locale)}
             </p>
 
             {loading || slots === null ? (
               <div className="flex min-h-28 items-center justify-center gap-2 rounded-xl border border-border text-sm text-fg-muted">
                 <Loader2 className="size-4 animate-spin" />
-                Checking availability…
+                {t("calendarAdmin.checkingAvailability")}
               </div>
             ) : !isOpen ? (
               <EmptyState
                 icon={CalendarX2}
-                title="Closed that day"
-                description="Pick another date, or change your hours first."
+                title={t("calendarAdmin.closedThatDayTitle")}
+                description={t("calendarAdmin.closedThatDayDescription")}
               />
             ) : slots.length === 0 ? (
               <EmptyState
                 icon={CalendarX2}
-                title="No free times that day"
-                description="Every slot is taken. Try a neighbouring day."
+                title={t("calendarAdmin.noFreeTimesTitle")}
+                description={t("calendarAdmin.noFreeTimesDescription")}
               />
             ) : (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
@@ -156,7 +162,9 @@ export function MoveBookingSheet({
                       )}
                     >
                       {slot.label}
-                      {isCurrent ? <span className="sr-only"> (current time)</span> : null}
+                      {isCurrent ? (
+                        <span className="sr-only">{t("calendarAdmin.currentTimeSuffix")}</span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -166,7 +174,7 @@ export function MoveBookingSheet({
 
           <SheetFooter>
             <Button type="button" variant="ghost" size="md" onClick={() => onOpenChange(false)}>
-              Keep as is
+              {t("calendarAdmin.keepAsIs")}
             </Button>
             <MoveButton disabled={!choice || choice === booking.starts_at} />
           </SheetFooter>
@@ -178,9 +186,10 @@ export function MoveBookingSheet({
 
 function MoveButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" variant="accent" loading={pending} disabled={disabled} className="sm:w-auto">
-      Move booking
+      {t("calendarAdmin.moveBookingButton")}
     </Button>
   );
 }

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Bookly — row level security
+-- TatNat — row level security
 -- ============================================================================
 -- Threat model:
 --   * a customer may read published businesses and their own bookings, nothing

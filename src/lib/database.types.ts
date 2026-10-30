@@ -20,6 +20,9 @@ export type BusinessCategory =
   | "event"
   | "other";
 
+/** Who created a booking; stamped by the database (see 20261026000000_beta_ops.sql). */
+export type BookingSource = "customer" | "shop";
+
 export type BookingStatus =
   | "pending"
   | "confirmed"
@@ -53,6 +56,9 @@ export type BusinessRow = {
   phone: string | null;
   line_id: string | null;
   cover_url: string | null;
+  /** Shown on the listing page, the booking-confirmation screen and the
+   *  confirmation email (roadmap.md §1 row 6). `null` until the owner sets one. */
+  cancellation_policy: string | null;
   slot_interval_min: number;
   min_notice_min: number;
   max_advance_days: number;
@@ -106,6 +112,12 @@ export type StaffRow = {
   created_at: string;
 };
 
+export type StaffServiceRow = {
+  staff_id: string;
+  service_id: string;
+  created_at: string;
+};
+
 export type AvailabilityOverrideRow = {
   id: string;
   business_id: string;
@@ -120,11 +132,14 @@ export type BookingRow = {
   id: string;
   business_id: string;
   service_id: string;
-  customer_id: string;
+  /** Null for a shop-entered booking (phone / LINE / walk-in customer with no account). */
+  customer_id: string | null;
   staff_id: string | null;
+  staff_name: string | null;
   starts_at: string;
   ends_at: string;
   status: BookingStatus;
+  source: BookingSource;
   notes: string | null;
   service_name: string;
   price: number;
@@ -135,6 +150,52 @@ export type BookingRow = {
   cancelled_by: string | null;
   created_at: string;
   updated_at: string;
+};
+
+/**
+ * A barber/owner's private note on a customer — "usual: skin fade, prefers
+ * quiet" — one per (business, customer) pair, never visible to the customer
+ * (roadmap.md §1 row 5). Separate from `BookingRow.notes`, which is the
+ * customer's own one-off note on a single booking.
+ */
+export type CustomerNoteRow = {
+  id: string;
+  business_id: string;
+  customer_id: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+};
+
+/* ---- PDPA: consent capture, deletion requests (handoff 07) --------------- */
+
+/**
+ * One row per consent event — a fresh row each time someone agrees to a
+ * (possibly new) policy version, never overwritten in place. `withdrawn_at`
+ * records an opt-out without deleting the history of having once consented
+ * (handoff 07 items 4, 14-15). RLS: a user may only select/insert/update
+ * their own row (`user_id = auth.uid()`).
+ */
+export type ConsentRecordRow = {
+  id: string;
+  user_id: string;
+  policy_version: string;
+  consented_at: string;
+  withdrawn_at: string | null;
+};
+
+/**
+ * A customer's request to delete their account/data (handoff 07 items 13,
+ * 15-18). `status` starts at `"pending"`; completion is out of band for this
+ * handoff (no automated purge job yet) and stamps `completed_at`. RLS: a user
+ * may only select/insert their own row.
+ */
+export type DeletionRequestRow = {
+  id: string;
+  user_id: string;
+  requested_at: string;
+  status: string;
+  completed_at: string | null;
 };
 
 /* ---- Shopfront: merch, campaigns, orders, subscriptions ------------------ */
@@ -318,6 +379,27 @@ export type Database = {
           },
         ];
       };
+      staff_services: {
+        Row: StaffServiceRow;
+        Insert: Insertable<StaffServiceRow, "staff_id" | "service_id", "created_at">;
+        Update: Partial<StaffServiceRow>;
+        Relationships: [
+          {
+            foreignKeyName: "staff_services_staff_id_fkey";
+            columns: ["staff_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_services_service_id_fkey";
+            columns: ["service_id"];
+            isOneToOne: false;
+            referencedRelation: "services";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       availability_overrides: {
         Row: AvailabilityOverrideRow;
         Insert: Insertable<AvailabilityOverrideRow, "business_id" | "date", "id">;
@@ -342,7 +424,7 @@ export type Database = {
           | "starts_at"
           | "ends_at"
           | "service_name",
-          "id" | "created_at" | "updated_at"
+          "id" | "created_at" | "updated_at" | "source"
         >;
         Update: Partial<BookingRow>;
         Relationships: [
@@ -377,6 +459,67 @@ export type Database = {
           {
             foreignKeyName: "bookings_cancelled_by_fkey";
             columns: ["cancelled_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      customer_notes: {
+        Row: CustomerNoteRow;
+        Insert: Insertable<
+          CustomerNoteRow,
+          "business_id" | "customer_id",
+          "id" | "created_at" | "updated_at"
+        >;
+        Update: Partial<CustomerNoteRow>;
+        Relationships: [
+          {
+            foreignKeyName: "customer_notes_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: false;
+            referencedRelation: "businesses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "customer_notes_customer_id_fkey";
+            columns: ["customer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      consent_records: {
+        Row: ConsentRecordRow;
+        Insert: Insertable<
+          ConsentRecordRow,
+          "user_id" | "policy_version",
+          "id" | "consented_at" | "withdrawn_at"
+        >;
+        Update: Partial<ConsentRecordRow>;
+        Relationships: [
+          {
+            foreignKeyName: "consent_records_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      deletion_requests: {
+        Row: DeletionRequestRow;
+        Insert: Insertable<
+          DeletionRequestRow,
+          "user_id",
+          "id" | "requested_at" | "status" | "completed_at"
+        >;
+        Update: Partial<DeletionRequestRow>;
+        Relationships: [
+          {
+            foreignKeyName: "deletion_requests_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
@@ -435,12 +578,17 @@ export type Database = {
         Args: { desired: string };
         Returns: string;
       };
+      health_check: {
+        Args: Record<string, never>;
+        Returns: { ok: boolean; checked_at: string };
+      };
       busy_intervals: {
         Args: {
           target_business: string;
           from_ts: string;
           to_ts: string;
           exclude_booking?: string | null;
+          target_staff?: string | null;
         };
         Returns: { starts_at: string; ends_at: string }[];
       };
@@ -449,6 +597,7 @@ export type Database = {
       user_role: UserRole;
       business_category: BusinessCategory;
       booking_status: BookingStatus;
+      booking_source: BookingSource;
       campaign_kind: CampaignKind;
       subscription_status: SubscriptionStatus;
       order_status: OrderStatus;

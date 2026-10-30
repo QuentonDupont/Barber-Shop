@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
 import { DEFAULT_CENTER, loadGoogleMaps, mapId, mapsApiKey } from "@/lib/maps";
+import { useT } from "@/lib/i18n/context";
 
 export interface LocationValue {
   address: string;
@@ -34,6 +35,7 @@ export function LocationPicker({
   onChange: (value: LocationValue) => void;
   error?: string;
 }) {
+  const t = useT();
   const hasKey = Boolean(mapsApiKey());
   const mapNode = useRef<HTMLDivElement | null>(null);
   const searchNode = useRef<HTMLDivElement | null>(null);
@@ -197,23 +199,23 @@ export function LocationPicker({
   return (
     <div className="space-y-4">
       {!hasKey ? (
-        <Alert tone="warning" title="Map search is off">
-          Add <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to enable address
-          search and the map pin. You can still type your address below.
+        <Alert tone="warning" title={t("shopfrontAdmin.mapSearchOffTitle")}>
+          {t("shopfrontAdmin.mapSearchOffBodyPrefix")}
+          <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>
+          {t("shopfrontAdmin.mapSearchOffBodySuffix")}
         </Alert>
       ) : null}
 
       {status === "failed" ? (
-        <Alert tone="warning" title="Could not load Google Maps">
-          Check that the API key is valid and that the Maps JavaScript API and
-          Places API are enabled. Typing the address below still works.
+        <Alert tone="warning" title={t("shopfrontAdmin.mapLoadFailedTitle")}>
+          {t("shopfrontAdmin.mapLoadFailedBody")}
         </Alert>
       ) : null}
 
       {hasKey && status !== "failed" ? (
         <Field
-          label="Search for your address"
-          hint="Pick the closest match, then drag the pin to the exact door."
+          label={t("shopfrontAdmin.searchAddressLabel")}
+          hint={t("shopfrontAdmin.searchAddressHint")}
         >
           <div className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-fg-subtle" />
@@ -222,7 +224,9 @@ export function LocationPicker({
               className="[&_gmp-place-autocomplete]:block [&_gmp-place-autocomplete]:w-full [&_input]:h-12 [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-border-strong [&_input]:bg-surface [&_input]:pl-10 [&_input]:pr-3.5 [&_input]:text-base"
             >
               <div className="flex h-12 items-center rounded-lg border border-border-strong bg-surface pl-10 pr-3.5 text-base text-fg-subtle">
-                {status === "loading" ? "Loading map search…" : "Search an address"}
+                {status === "loading"
+                  ? t("shopfrontAdmin.loadingMapSearch")
+                  : t("shopfrontAdmin.searchAnAddress")}
               </div>
             </div>
           </div>
@@ -241,16 +245,16 @@ export function LocationPicker({
             className="absolute bottom-3 left-3 shadow-sm"
           >
             <LocateFixed />
-            I&rsquo;m here now
+            {t("shopfrontAdmin.imHereNow")}
           </Button>
         </div>
       ) : null}
 
       <Field
-        label="Address shown to customers"
+        label={t("shopfrontAdmin.addressLabel")}
         htmlFor="address"
         error={error}
-        hint="Edit this freely — it is what appears on your booking page."
+        hint={t("shopfrontAdmin.addressHint")}
         required
       >
         <Input
@@ -258,7 +262,7 @@ export function LocationPicker({
           name="address"
           value={value.address}
           onChange={(event) => onChange({ ...value, address: event.target.value })}
-          placeholder="123 Sukhumvit Soi 11, Khlong Toei Nuea, Bangkok"
+          placeholder={t("shopfrontAdmin.addressPlaceholder")}
           aria-invalid={Boolean(error)}
           required
         />
@@ -272,13 +276,12 @@ export function LocationPicker({
         {value.lat != null && value.lng != null ? (
           <>
             <MapPin className="mt-0.5 size-4 shrink-0 text-success" />
-            Pin set at {value.lat.toFixed(5)}, {value.lng.toFixed(5)}
+            {t("shopfrontAdmin.pinSetAt", { lat: value.lat.toFixed(5), lng: value.lng.toFixed(5) })}
           </>
         ) : (
           <>
             <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
-            No map pin yet. Customers can still read your address, but
-            &ldquo;near me&rdquo; search will not find you.
+            {t("shopfrontAdmin.noPinYet")}
           </>
         )}
       </p>

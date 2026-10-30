@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useT } from "@/lib/i18n/context";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -17,7 +18,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 /**
- * "Add to home screen", which is how Bookly gets a launcher icon without an
+ * "Add to home screen", which is how TatNat gets a launcher icon without an
  * app store.
  *
  * Chrome fires `beforeinstallprompt` and lets us drive the native dialog. iOS
@@ -25,6 +26,7 @@ interface BeforeInstallPromptEvent extends Event {
  * and since iOS is most of this audience, that path is the one that matters.
  */
 export function InstallPrompt() {
+  const t = useT();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [isIos, setIsIos] = useState(false);
@@ -66,12 +68,9 @@ export function InstallPrompt() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Smartphone className="size-5 text-accent" />
-          Add Bookly to your home screen
+          {t("customer.installTitle")}
         </CardTitle>
-        <CardDescription>
-          It opens full screen like a normal app, and your bookings are one tap
-          away. No download.
-        </CardDescription>
+        <CardDescription>{t("customer.installDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         {deferred ? (
@@ -86,7 +85,7 @@ export function InstallPrompt() {
               setDeferred(null);
             }}
           >
-            Install Bookly
+            {t("customer.installButton")}
           </Button>
         ) : (
           <ol className="space-y-2.5 text-sm text-fg-muted">
@@ -94,17 +93,17 @@ export function InstallPrompt() {
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-bold">
                 1
               </span>
-              Tap
+              {t("customer.installStep1a")}
               <Share className="size-4 shrink-0 text-accent" />
-              Share in the Safari toolbar
+              {t("customer.installStep1b")}
             </li>
             <li className="flex items-center gap-2.5">
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-xs font-bold">
                 2
               </span>
-              Choose
+              {t("customer.installStep2a")}
               <SquarePlus className="size-4 shrink-0 text-accent" />
-              Add to Home Screen
+              {t("customer.installStep2b")}
             </li>
           </ol>
         )}

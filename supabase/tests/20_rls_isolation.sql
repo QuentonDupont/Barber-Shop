@@ -162,3 +162,67 @@ select test_assert(
   'busy_intervals reveals nothing about an unpublished business');
 
 reset role;
+
+-- --- invite-only business accounts (handoff 01) ------------------------------
+set role authenticated;
+
+select test_assert(
+  test_raises('33333333-3333-3333-3333-333333333333', $q$
+    update public.profiles set role = 'business_owner'
+    where id = '33333333-3333-3333-3333-333333333333'
+  $q$),
+  'a customer cannot promote themselves to business_owner');
+
+-- Returns the SQLSTATE a statement fails with ('' if it succeeds). Each probe
+-- ends in a deliberate division by zero (22012) once its insert has passed RLS,
+-- so the row is always rolled back and a pass cannot come from some other error.
+reset role;
+create or replace function test_sqlstate(uid uuid, sql text)
+returns text language plpgsql as $$
+begin
+  perform set_config('test.uid', coalesce(uid::text, ''), true);
+  execute sql;
+  return '';
+exception when others then
+  return sqlstate;
+end $$;
+set role authenticated;
+
+select test_assert(
+  test_sqlstate('33333333-3333-3333-3333-333333333333', $q$
+    with ins as (
+      insert into public.businesses (owner_id, name, slug)
+      values ('33333333-3333-3333-3333-333333333333', 'Pirate Shop', 'pirate-shop')
+      returning 0 as z)
+    select 1/z from ins
+  $q$) = '42501',
+  'a customer cannot create a business (blocked by RLS)');
+
+select test_assert(
+  test_sqlstate('22222222-2222-2222-2222-222222222222', $q$
+    with ins as (
+      insert into public.businesses (owner_id, name, slug)
+      values ('22222222-2222-2222-2222-222222222222', 'Second Shop', 'second-shop-probe')
+      returning 0 as z)
+    select 1/z from ins
+  $q$) = '22012',
+  'an invited owner can still create a business');
+
+select test_assert(
+  test_sqlstate('33333333-3333-3333-3333-333333333333', $q$
+    update public.profiles set role = 'business_owner'
+    where id = '33333333-3333-3333-3333-333333333333'
+  $q$) = '42501',
+  'the self-promotion is refused with insufficient-privilege, not another error');
+
+select test_assert(
+  not test_raises('33333333-3333-3333-3333-333333333333', $q$
+    update public.profiles set full_name = 'Ann C.'
+    where id = '33333333-3333-3333-3333-333333333333'
+  $q$),
+  'a customer can still edit the rest of their own profile');
+
+reset role;
+select test_assert(
+  (select role from public.profiles where id = '33333333-3333-3333-3333-333333333333') = 'customer',
+  'Ann is still a customer after the attempts');

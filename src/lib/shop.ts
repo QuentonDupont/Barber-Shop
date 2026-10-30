@@ -7,6 +7,9 @@
  * variables, not `dark:` utilities), so no dark variants are needed.
  */
 
+import { formatInBusinessTz } from "@/lib/booking/time";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+
 export const SHOP_ACCENTS = ["amber", "rose", "emerald", "sky", "violet"] as const;
 export type ShopAccent = (typeof SHOP_ACCENTS)[number];
 
@@ -65,32 +68,29 @@ export function zonedParts(iso: string | null, tz: string): { date: string; time
   return { date, time };
 }
 
-/** "Sat 12 Sep · 18:00" for an event, "12 Sep – 19 Sep" for a sale. */
+/**
+ * "Sat 12 Sep · 18:00" for an event, "12 Sep – 19 Sep" for a sale.
+ *
+ * `locale` is optional and defaults to English, same convention as
+ * `formatInBusinessTz` itself (no behaviour change for a call site that
+ * hasn't switched to `useT()`/`useLocale()` yet) — pass the active locale
+ * explicitly once a call site has (handoff 07 closes this for the owner
+ * shopfront page; `campaign-card.tsx`'s customer-facing use is untouched,
+ * same as the rest of that component).
+ */
 export function formatCampaignWhen(
   campaign: { kind: "event" | "sale"; starts_at: string; ends_at: string | null },
   tz: string,
+  locale: Locale = "en",
 ): string {
-  const start = new Date(campaign.starts_at);
-  const day = new Intl.DateTimeFormat("en-GB", {
-    timeZone: tz,
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-  const clock = new Intl.DateTimeFormat("en-GB", {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
+  const { starts_at: start, ends_at } = campaign;
 
   if (campaign.kind === "event") {
-    return `${day.format(start)} · ${clock.format(start)}`;
+    return `${formatInBusinessTz(start, tz, "EEE d MMM", locale)} · ${formatInBusinessTz(start, tz, "HH:mm", locale)}`;
   }
 
-  if (campaign.ends_at) {
-    const shortDay = new Intl.DateTimeFormat("en-GB", { timeZone: tz, day: "numeric", month: "short" });
-    return `${shortDay.format(start)} – ${shortDay.format(new Date(campaign.ends_at))}`;
+  if (ends_at) {
+    return `${formatInBusinessTz(start, tz, "d MMM", locale)} – ${formatInBusinessTz(ends_at, tz, "d MMM", locale)}`;
   }
-  return `From ${day.format(start)}`;
+  return `${t(locale, "campaign.fromPrefix")} ${formatInBusinessTz(start, tz, "EEE d MMM", locale)}`;
 }

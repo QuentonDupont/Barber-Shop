@@ -10,8 +10,10 @@ import { MoveBookingSheet } from "./move-booking-sheet";
 import { rescheduleBookingAction } from "@/lib/actions/bookings";
 import { idleState } from "@/lib/actions/types";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/misc";
 import { BookingStatusBadge } from "@/components/shared/booking-status";
+import { useT, useLocale } from "@/lib/i18n/context";
 import type { BookingRow, BusinessRow } from "@/lib/database.types";
 import {
   formatInBusinessTz,
@@ -37,9 +39,16 @@ interface Positioned {
 
 const HOUR_HEIGHT = 56;
 
+/** Sentinel for the staff filter's "show everyone" option — kept out of the
+ *  URL param namespace Radix Select's value prop (which rejects ""). */
+const ALL_STAFF = "all";
+
+type StaffOption = { id: string; name: string };
+
 export function CalendarView({
   business,
   bookings,
+  staff = [],
   selectedDate,
   today,
   view,
@@ -47,6 +56,8 @@ export function CalendarView({
 }: {
   business: BusinessRow;
   bookings: Booking[];
+  /** Active staff only — this is what the filter offers a choice of. */
+  staff?: StaffOption[];
   selectedDate: DateKey;
   today: DateKey;
   view: "day" | "week";
@@ -54,17 +65,31 @@ export function CalendarView({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useT();
 
-  const navigate = (next: { date?: DateKey; view?: "day" | "week" }) => {
+  const staffFilter = searchParams.get("staff") ?? ALL_STAFF;
+
+  const navigate = (next: { date?: DateKey; view?: "day" | "week"; staff?: string }) => {
     const params = new URLSearchParams(searchParams.toString());
     if (next.date) params.set("date", next.date);
     if (next.view) params.set("view", next.view);
+    if (next.staff) {
+      if (next.staff === ALL_STAFF) params.delete("staff");
+      else params.set("staff", next.staff);
+    }
     router.replace(`/dashboard/calendar?${params.toString()}`, { scroll: false });
   };
 
+  // One barber's own calendar, or every booking — a client-side filter is
+  // enough since bookings for the whole visible range are already loaded.
+  const filteredBookings = useMemo(
+    () => (staffFilter === ALL_STAFF ? bookings : bookings.filter((b) => b.staff_id === staffFilter)),
+    [bookings, staffFilter],
+  );
+
   const byDate = useMemo(() => {
     const map: Record<DateKey, Booking[]> = {};
-    for (const booking of bookings) {
+    for (const booking of filteredBookings) {
       const key = toDateKey(new Date(booking.starts_at), business.timezone);
       (map[key] ??= []).push(booking);
     }
@@ -72,7 +97,7 @@ export function CalendarView({
       list.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
     }
     return map;
-  }, [bookings, business.timezone]);
+  }, [filteredBookings, business.timezone]);
 
   const counts = useMemo(() => {
     const out: Record<DateKey, number> = {};
@@ -88,15 +113,36 @@ export function CalendarView({
 
   return (
     <div className="space-y-4">
-      <Tabs
-        value={view}
-        onValueChange={(value) => navigate({ view: value as "day" | "week" })}
-      >
-        <TabsList className="w-full max-w-64">
-          <TabsTrigger value="day">Day</TabsTrigger>
-          <TabsTrigger value="week">Week</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <Tabs
+          value={view}
+          onValueChange={(value) => navigate({ view: value as "day" | "week" })}
+        >
+          <TabsList className="w-full max-w-64">
+            <TabsTrigger value="day">{t("calendarAdmin.dayTab")}</TabsTrigger>
+            <TabsTrigger value="week">{t("calendarAdmin.weekTab")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {staff.length > 0 ? (
+          <Select value={staffFilter} onValueChange={(value) => navigate({ staff: value })}>
+            <SelectTrigger
+              aria-label={t("staffAdmin.calendarFilterLabel")}
+              className="h-10 w-auto min-w-40"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_STAFF}>{t("staffAdmin.calendarFilterAllLabel")}</SelectItem>
+              {staff.map((member) => (
+                <SelectItem key={member.id} value={member.id}>
+                  {member.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </div>
 
       {view === "day" ? (
         <>
@@ -136,26 +182,30 @@ function DayView({
   date: DateKey;
   bookings: Booking[];
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const live = bookings.filter((b) => b.status !== "cancelled");
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-bold tracking-tight">
-          {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMMM yyyy")}
+          {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMMM yyyy", locale)}
         </h2>
         <p className="text-sm text-fg-muted">
           {live.length === 0
-            ? "Nothing booked"
-            : `${live.length} booking${live.length === 1 ? "" : "s"}`}
+            ? t("calendarAdmin.nothingBooked")
+            : live.length === 1
+              ? t("calendarAdmin.bookingCountOne", { n: live.length })
+              : t("calendarAdmin.bookingCountMany", { n: live.length })}
         </p>
       </div>
 
       {bookings.length === 0 ? (
         <EmptyState
           icon={CalendarX2}
-          title="No bookings on this day"
-          description="Slots stay open until someone takes them."
+          title={t("calendarAdmin.noBookingsTitle")}
+          description={t("calendarAdmin.noBookingsDescription")}
         />
       ) : (
         <>
@@ -194,11 +244,13 @@ function WeekView({
   byDate: Record<DateKey, Booking[]>;
   onSelectDay: (date: DateKey) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold tracking-tight">
-        {formatInBusinessTz(`${dates[0]}T12:00:00Z`, "UTC", "d MMM")} –{" "}
-        {formatInBusinessTz(`${dates[6]}T12:00:00Z`, "UTC", "d MMM yyyy")}
+        {formatInBusinessTz(`${dates[0]}T12:00:00Z`, "UTC", "d MMM", locale)} –{" "}
+        {formatInBusinessTz(`${dates[6]}T12:00:00Z`, "UTC", "d MMM yyyy", locale)}
       </h2>
 
       {/* A seven-column time grid is unreadable at 360px, so the week becomes a
@@ -217,17 +269,17 @@ function WeekView({
                 )}
               >
                 <span className="text-sm font-bold uppercase tracking-wide">
-                  {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMM")}
-                  {date === today ? " · Today" : ""}
+                  {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMM", locale)}
+                  {date === today ? t("calendarAdmin.todaySuffix") : ""}
                 </span>
                 <span className="text-xs font-semibold text-fg-subtle">
-                  {list.length === 0 ? "Free" : `${list.length}`}
+                  {list.length === 0 ? t("calendarAdmin.free") : `${list.length}`}
                 </span>
               </button>
 
               {list.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-fg-subtle">
-                  Nothing booked
+                  {t("calendarAdmin.nothingBooked")}
                 </p>
               ) : (
                 list.map((booking) => (
@@ -347,6 +399,7 @@ function layout(bookings: Booking[], timezone: string, date: DateKey): Positione
  */
 function useGridActions() {
   const router = useRouter();
+  const t = useT();
   const [active, setActive] = useState<Booking | null>(null);
   const [moving, setMoving] = useState<Booking | null>(null);
 
@@ -357,13 +410,13 @@ function useGridActions() {
       formData.set("startsAt", startsAtIso);
       const result = await rescheduleBookingAction(idleState, formData);
       if (result.status === "error") {
-        toast.error(result.message ?? "Could not move that booking.");
+        toast.error(result.message ?? t("common.couldNotMoveBooking"));
       } else {
-        toast.success(result.message ?? "Booking moved.");
+        toast.success(result.message ?? t("common.bookingMoved"));
       }
       router.refresh();
     },
-    [router],
+    [router, t],
   );
 
   return { active, setActive, moving, setMoving, onDrop };
@@ -422,6 +475,7 @@ function TimeGrid({
     [bookings, business.timezone, date],
   );
   const actions = useGridActions();
+  const t = useT();
 
   return (
     <>
@@ -442,9 +496,7 @@ function TimeGrid({
           ))}
         </div>
       </div>
-      <p className="mt-2 text-xs text-fg-subtle">
-        Click a booking for actions. Drag it to a new time to reschedule.
-      </p>
+      <p className="mt-2 text-xs text-fg-subtle">{t("calendarAdmin.dragHintDay")}</p>
       <GridSheets business={business} actions={actions} />
     </>
   );
@@ -464,6 +516,8 @@ function WeekGrid({
   const { startMinute, endMinute } = useGridRange(business, dates, byDate);
   const hours = Math.ceil((endMinute - startMinute) / 60);
   const actions = useGridActions();
+  const t = useT();
+  const { locale } = useLocale();
 
   return (
     <>
@@ -479,10 +533,10 @@ function WeekGrid({
               )}
             >
               <span className="block uppercase tracking-wide">
-                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE")}
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE", locale)}
               </span>
               <span className="block text-base font-bold tabular-nums text-fg">
-                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d")}
+                {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "d", locale)}
               </span>
             </span>
           ))}
@@ -517,9 +571,7 @@ function WeekGrid({
           })}
         </div>
       </div>
-      <p className="mt-2 text-xs text-fg-subtle">
-        Click a booking for actions. Drag it to another time or day to reschedule.
-      </p>
+      <p className="mt-2 text-xs text-fg-subtle">{t("calendarAdmin.dragHintWeek")}</p>
       <GridSheets business={business} actions={actions} />
     </>
   );

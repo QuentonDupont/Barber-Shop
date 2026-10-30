@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   Bookly design tokens
+   TatNat design tokens
    --------------------------------------------------------------------------
    Warm ink + gold. Reads as "premium local salon" rather than "enterprise SaaS",
    and holds up on the cheap, glare-heavy phone screens this is mostly used on.
@@ -106,8 +106,12 @@
   --radius-sm: calc(var(--radius) - 0.5rem);
   --radius-xl: calc(var(--radius) + 0.375rem);
 
-  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", sans-serif;
+  /* Thai-capable type system, look-and-feel.md §4.3: Anuphan (bilingual
+     Thai+Latin) first, Noto Sans Thai as the Thai-safe fallback so a slow
+     load never shows tofu boxes, Plus Jakarta Sans (the old Latin-only font)
+     kept for its Latin glyphs, then the system stack. */
+  --font-sans: var(--font-anuphan), var(--font-noto-thai), var(--font-plus-jakarta),
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   --shadow-card: 0 1px 2px hsl(var(--fg) / 0.04), 0 8px 24px -12px hsl(var(--fg) / 0.12);
   --shadow-raised: 0 2px 6px hsl(var(--fg) / 0.06), 0 18px 40px -18px hsl(var(--fg) / 0.22);
@@ -202,9 +206,23 @@
   .text-pretty {
     text-wrap: pretty;
   }
+
+  /* Brand mark/wordmark light-dark swap (logo.tsx). Keyed off the existing
+     .dark class toggle on <html> — the same signal every colour token in
+     this file already uses — not `prefers-color-scheme`, so the swap follows
+     the in-app theme toggle (account-menu.tsx) rather than the OS setting. */
+  .brand-asset-dark {
+    display: none;
+  }
+  .dark .brand-asset-dark {
+    display: inline-block;
+  }
+  .dark .brand-asset-light {
+    display: none;
+  }
 }
 
-@keyframes bookly-fade-in {
+@keyframes tatnat-fade-in {
   from {
     opacity: 0;
     transform: translateY(4px);
@@ -215,7 +233,7 @@
   }
 }
 
-@keyframes bookly-slide-up {
+@keyframes tatnat-slide-up {
   from {
     transform: translateY(100%);
   }
@@ -224,7 +242,7 @@
   }
 }
 
-@keyframes bookly-shimmer {
+@keyframes tatnat-shimmer {
   100% {
     transform: translateX(100%);
   }
@@ -232,9 +250,9 @@
 
 @layer utilities {
   .animate-fade-in {
-    animation: bookly-fade-in 0.22s ease-out both;
+    animation: tatnat-fade-in 0.22s ease-out both;
   }
   .animate-slide-up {
-    animation: bookly-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: tatnat-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 }

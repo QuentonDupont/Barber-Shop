@@ -1,4 +1,4 @@
-# Bookly — project rules
+# TatNat — project rules
 
 ## What this is
 Multi-vertical booking platform (salons, barbers, clinics, events).
@@ -35,7 +35,7 @@ Most traffic is phones and tablets. Every screen must be built and checked at
 
 ## Responsive contract — app experience and web experience
 
-Bookly is one codebase serving two deliberate experiences, and it must hold at
+TatNat is one codebase serving two deliberate experiences, and it must hold at
 **every** width in between. Neither is an afterthought.
 
 **App experience (touch, below `md`)** — bottom tab bar, single column, bottom
@@ -79,7 +79,7 @@ npm run dev | npm run build | npm run lint | npm run typecheck | npm test | supa
 
 ## How we work — org structure
 
-Bookly is run as a company. The user is the **Board of Directors** and holds final
+TatNat is run as a company. The user is the **Board of Directors** and holds final
 authority. Agent definitions live in `.claude/agents/`.
 
 ```

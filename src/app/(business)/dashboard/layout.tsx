@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  BarChart3,
   CalendarDays,
   Clock3,
   ExternalLink,
@@ -7,6 +8,7 @@ import {
   Scissors,
   Settings,
   Store,
+  Users,
 } from "lucide-react";
 import { AppShell } from "@/components/shared/app-shell";
 import { TopBar } from "@/components/shared/top-bar";
@@ -16,6 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import type { NavItem } from "@/components/shared/nav";
 import { getOwnerContext } from "@/lib/auth";
 import { businessPath } from "@/lib/routes";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 /**
  * Every screen behind this layout is specific to the signed-in user, so none of
@@ -23,19 +27,24 @@ import { businessPath } from "@/lib/routes";
  */
 export const dynamic = "force-dynamic";
 
-const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: <LayoutDashboard /> },
-  { href: "/dashboard/calendar", label: "Calendar", icon: <CalendarDays />, matchPrefix: true },
-  { href: "/dashboard/services", label: "Services", icon: <Scissors />, matchPrefix: true },
-  { href: "/dashboard/hours", label: "Hours", icon: <Clock3 />, matchPrefix: true },
-  { href: "/dashboard/shopfront", label: "Shopfront", icon: <Store />, matchPrefix: true },
-  { href: "/dashboard/settings", label: "Settings", icon: <Settings />, matchPrefix: true },
-];
-
 export default async function DashboardLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const ctx = await getOwnerContext();
+  const locale = await getLocale();
+
+  const NAV: NavItem[] = [
+    { href: "/dashboard", label: t(locale, "nav.today"), icon: <LayoutDashboard /> },
+    { href: "/dashboard/calendar", label: t(locale, "nav.calendar"), icon: <CalendarDays />, matchPrefix: true },
+    { href: "/dashboard/services", label: t(locale, "nav.services"), icon: <Scissors />, matchPrefix: true },
+    { href: "/dashboard/staff", label: t(locale, "nav.staff"), icon: <Users />, matchPrefix: true },
+    { href: "/dashboard/hours", label: t(locale, "nav.hours"), icon: <Clock3 />, matchPrefix: true },
+    { href: "/dashboard/shopfront", label: t(locale, "nav.shopfront"), icon: <Store />, matchPrefix: true },
+    { href: "/dashboard/numbers", label: t(locale, "nav.numbers"), icon: <BarChart3 />, matchPrefix: true },
+    { href: "/dashboard/settings", label: t(locale, "nav.settings"), icon: <Settings />, matchPrefix: true },
+  ];
+
+  const accountName = ctx.profile.full_name || t(locale, "nav.defaultAccountName");
 
   return (
     <AppShell
@@ -55,11 +64,11 @@ export default async function DashboardLayout({
                     target="_blank"
                     className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
                   >
-                    Live page
+                    {t(locale, "nav.livePage")}
                     <ExternalLink className="size-3" />
                   </Link>
                 ) : (
-                  <Badge tone="warning">Not published</Badge>
+                  <Badge tone="warning">{t(locale, "nav.notPublished")}</Badge>
                 )}
               </div>
             </div>
@@ -67,22 +76,12 @@ export default async function DashboardLayout({
         </div>
       }
       sidebarFooter={
-        <AccountMenu
-          name={ctx.profile.full_name || "Your account"}
-          email={ctx.email}
-          variant="sidebar"
-        />
+        <AccountMenu name={accountName} email={ctx.email} variant="sidebar" />
       }
       topBar={
         <TopBar
           href="/dashboard"
-          right={
-            <AccountMenu
-              name={ctx.profile.full_name || "Your account"}
-              email={ctx.email}
-              variant="compact"
-            />
-          }
+          right={<AccountMenu name={accountName} email={ctx.email} variant="compact" />}
         />
       }
     >

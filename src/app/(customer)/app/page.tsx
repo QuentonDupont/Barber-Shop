@@ -5,11 +5,14 @@ import { Discover } from "@/components/customer/discover";
 import { EmptyState } from "@/components/ui/misc";
 import { requireCustomer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Explore" };
 
 export default async function ExplorePage() {
   const session = await requireCustomer();
+  const locale = await getLocale();
   const supabase = await createClient();
 
   // One query with the services embedded: the list needs a "from" price and a
@@ -47,15 +50,15 @@ export default async function ExplorePage() {
   return (
     <PageContainer>
       <PageHeader
-        title={firstName ? `Hi ${firstName}` : "Explore"}
-        description="Find a place near you and book a time that actually works."
+        title={firstName ? t(locale, "customer.hi", { name: firstName }) : t(locale, "customer.explore")}
+        description={t(locale, "customer.discoverIntro")}
       />
 
       {listings.length === 0 ? (
         <EmptyState
           icon={Store}
-          title="No businesses are live yet"
-          description="Bookly is brand new here. Once shops publish their pages they will show up in this list."
+          title={t(locale, "customer.noBusinessesTitle")}
+          description={t(locale, "customer.noBusinessesDescription")}
         />
       ) : (
         <Discover businesses={listings} />

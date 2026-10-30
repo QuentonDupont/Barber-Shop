@@ -9,9 +9,11 @@ import { purchaseProductAction } from "@/lib/actions/shop";
 import { formatMoney } from "@/lib/booking/time";
 import { accentTile } from "@/lib/shop";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import { CheckoutSheet } from "./checkout-sheet";
 
 export function ProductBuyCard({ product }: { product: ProductRow }) {
+  const t = useT();
   const [qty, setQty] = useState(1);
   const [checkout, setCheckout] = useState(false);
 
@@ -42,7 +44,7 @@ export function ProductBuyCard({ product }: { product: ProductRow }) {
 
       {soldOut ? (
         <div className="mt-3">
-          <Badge tone="neutral">Sold out</Badge>
+          <Badge tone="neutral">{t("customer.soldOut")}</Badge>
         </div>
       ) : (
         <div className="mt-3 flex items-center gap-2">
@@ -52,7 +54,7 @@ export function ProductBuyCard({ product }: { product: ProductRow }) {
               onClick={() => setQty((q) => Math.max(1, q - 1))}
               disabled={qty <= 1}
               className="flex size-11 items-center justify-center text-fg-muted transition-colors hover:text-fg disabled:opacity-40"
-              aria-label="Decrease quantity"
+              aria-label={t("customer.decreaseQty")}
             >
               <Minus className="size-4" />
             </button>
@@ -62,19 +64,19 @@ export function ProductBuyCard({ product }: { product: ProductRow }) {
               onClick={() => setQty((q) => Math.min(max, q + 1))}
               disabled={qty >= max}
               className="flex size-11 items-center justify-center text-fg-muted transition-colors hover:text-fg disabled:opacity-40"
-              aria-label="Increase quantity"
+              aria-label={t("customer.increaseQty")}
             >
               <Plus className="size-4" />
             </button>
           </div>
           <Button variant="accent" size="md" onClick={() => setCheckout(true)} className="flex-1">
             <ShoppingBag />
-            Buy
+            {t("customer.buy")}
           </Button>
         </div>
       )}
 
-      {lowStock ? <p className="mt-2 text-xs font-medium text-warning">Only {product.stock} left</p> : null}
+      {lowStock ? <p className="mt-2 text-xs font-medium text-warning">{t("customer.onlyLeft", { n: product.stock ?? 0 })}</p> : null}
 
       <CheckoutSheet
         open={checkout}

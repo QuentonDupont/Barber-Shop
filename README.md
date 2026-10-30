@@ -1,4 +1,4 @@
-# Bookly
+# TatNat
 
 A booking platform for salons, barbers, clinics, spas and studios. Two portals
 behind one sign-in: **customers** find a place and book a real time slot,
@@ -89,8 +89,8 @@ Open **<http://localhost:3000>** and sign in as either demo account:
 
 | Portal | Email | Password |
 |---|---|---|
-| Business — *Nong Barber*, already set up and published | `owner@bookly.local` | `bookly123` |
-| Customer | `customer@bookly.local` | `bookly123` |
+| Business — *Nong Barber*, already set up and published | `owner@tatnat.local` | `tatnat123` |
+| Customer | `customer@tatnat.local` | `tatnat123` |
 
 Or create your own account from the landing page — sign-up works instantly
 locally because email confirmation is switched off in `supabase/config.toml`.
@@ -143,7 +143,7 @@ redirect URI in the Google Cloud console.
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | for the map | Enable *Maps JavaScript API* and *Places API*. Restrict by HTTP referrer |
 | `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | no | Map ID for advanced markers. Falls back to `DEMO_MAP_ID`, which is watermarked and rate limited — set a real one for production |
 | `RESEND_API_KEY` | no | Booking emails. Without it, sends are skipped and logged |
-| `RESEND_FROM` | no | e.g. `Bookly <bookings@yourdomain.com>` |
+| `RESEND_FROM` | no | e.g. `TatNat <bookings@yourdomain.com>` |
 | `NEXT_PUBLIC_SITE_URL` | no | Used for OAuth redirects and metadata |
 
 The app degrades rather than crashing: without Maps the location step becomes a

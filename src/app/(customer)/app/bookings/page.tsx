@@ -8,12 +8,15 @@ import { EmptyState } from "@/components/ui/misc";
 import { Button } from "@/components/ui/button";
 import { requireCustomer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "My bookings" };
 
 export default async function BookingsPage() {
   const session = await requireCustomer();
   const supabase = await createClient();
+  const locale = await getLocale();
 
   const { data } = await supabase
     .from("bookings")
@@ -49,16 +52,17 @@ export default async function BookingsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="My bookings"
-        description="Times are shown in each shop's own time zone."
+        title={t(locale, "myBookings.title")}
+        description={t(locale, "myBookings.description")}
       />
 
       <Tabs defaultValue="upcoming">
         <TabsList className="w-full max-w-sm">
           <TabsTrigger value="upcoming">
-            Upcoming{upcoming.length > 0 ? ` (${upcoming.length})` : ""}
+            {t(locale, "myBookings.upcoming")}
+            {upcoming.length > 0 ? ` (${upcoming.length})` : ""}
           </TabsTrigger>
-          <TabsTrigger value="past">History</TabsTrigger>
+          <TabsTrigger value="past">{t(locale, "myBookings.history")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="upcoming">
@@ -67,11 +71,11 @@ export default async function BookingsPage() {
             emptyState={
               <EmptyState
                 icon={CalendarCheck}
-                title="Nothing booked yet"
-                description="When you book somewhere it shows up here, with directions and a one-tap cancel."
+                title={t(locale, "myBookings.upcomingEmptyTitle")}
+                description={t(locale, "myBookings.upcomingEmptyDescription")}
                 action={
                   <Button asChild variant="accent" size="lg">
-                    <Link href="/app">Find a place</Link>
+                    <Link href="/app">{t(locale, "myBookings.findAPlace")}</Link>
                   </Button>
                 }
               />
@@ -85,8 +89,8 @@ export default async function BookingsPage() {
             emptyState={
               <EmptyState
                 icon={History}
-                title="No history yet"
-                description="Past and cancelled bookings collect here so you can rebook in a tap."
+                title={t(locale, "myBookings.pastEmptyTitle")}
+                description={t(locale, "myBookings.pastEmptyDescription")}
               />
             }
           />

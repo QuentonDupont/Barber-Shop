@@ -28,6 +28,7 @@ import { idleState } from "@/lib/actions/types";
 import type { CampaignRow } from "@/lib/database.types";
 import { formatMoney } from "@/lib/booking/time";
 import { accentTile, formatCampaignWhen, zonedParts } from "@/lib/shop";
+import { useLocale, useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 import { AccentPicker } from "./shop-fields";
 
@@ -38,6 +39,7 @@ export function CampaignsManager({
   campaigns: CampaignRow[];
   timezone: string;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState<CampaignRow | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -46,12 +48,12 @@ export function CampaignsManager({
       {campaigns.length === 0 ? (
         <EmptyState
           icon={Ticket}
-          title="No events or sales yet"
-          description="Run a class or a pop-up your customers can sign up for, or put a promotion on your page. Both show up under ‘What’s on’."
+          title={t("shopfrontAdmin.campaignsEmptyTitle")}
+          description={t("shopfrontAdmin.campaignsEmptyDescription")}
           action={
             <Button variant="accent" size="lg" onClick={() => setCreating(true)}>
               <Plus />
-              Create your first campaign
+              {t("shopfrontAdmin.createFirstCampaign")}
             </Button>
           }
         />
@@ -67,7 +69,7 @@ export function CampaignsManager({
         <>
           <Button variant="accent" size="md" onClick={() => setCreating(true)} className="mt-4 hidden sm:inline-flex">
             <Plus />
-            New campaign
+            {t("shopfrontAdmin.newCampaign")}
           </Button>
           {/* Clearance so the last row can scroll clear of the sticky bar. */}
           <div className="h-[4.5rem] sm:hidden" aria-hidden />
@@ -79,7 +81,7 @@ export function CampaignsManager({
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-nav backdrop-blur-lg sm:hidden">
             <Button variant="accent" size="lg" block onClick={() => setCreating(true)}>
               <Plus />
-              New campaign
+              {t("shopfrontAdmin.newCampaign")}
             </Button>
           </div>
         </>
@@ -110,6 +112,8 @@ function CampaignCard({
   timezone: string;
   onEdit: (campaign: CampaignRow) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const isEvent = campaign.kind === "event";
   return (
     <div
@@ -134,23 +138,27 @@ function CampaignCard({
         className="min-w-0 flex-1 rounded-lg text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
       >
         <span className="flex flex-wrap items-center gap-1.5">
-          <Badge tone={isEvent ? "accent" : "info"}>{isEvent ? "Event" : "Sale"}</Badge>
+          <Badge tone={isEvent ? "accent" : "info"}>
+            {isEvent ? t("shopfrontAdmin.eventBadge") : t("shopfrontAdmin.saleBadge")}
+          </Badge>
           {campaign.is_published ? (
-            <Badge tone="success">Live</Badge>
+            <Badge tone="success">{t("shopfrontAdmin.liveBadge")}</Badge>
           ) : (
-            <Badge tone="neutral">Draft</Badge>
+            <Badge tone="neutral">{t("shopfrontAdmin.draftBadge")}</Badge>
           )}
         </span>
         <span className="mt-1 block truncate font-semibold">{campaign.title}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-sm text-fg-muted">
           <span className="inline-flex items-center gap-1">
             <CalendarClock className="size-3.5" />
-            {formatCampaignWhen(campaign, timezone)}
+            {formatCampaignWhen(campaign, timezone, locale)}
           </span>
           {isEvent && campaign.price > 0 ? (
             <span className="font-semibold text-fg">{formatMoney(campaign.price, campaign.currency)}</span>
           ) : null}
-          {isEvent && campaign.price === 0 ? <span className="font-semibold text-fg">Free</span> : null}
+          {isEvent && campaign.price === 0 ? (
+            <span className="font-semibold text-fg">{t("shopfrontAdmin.free")}</span>
+          ) : null}
           {!isEvent && campaign.discount_label ? (
             <span className="font-semibold text-fg">{campaign.discount_label}</span>
           ) : null}
@@ -163,7 +171,7 @@ function CampaignCard({
           type="button"
           onClick={() => onEdit(campaign)}
           className="flex size-11 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg"
-          aria-label={`Edit ${campaign.title}`}
+          aria-label={t("shopfrontAdmin.editCampaignName", { title: campaign.title })}
         >
           <Pencil className="size-4" />
         </button>
@@ -173,6 +181,7 @@ function CampaignCard({
 }
 
 function PublishToggle({ campaign }: { campaign: CampaignRow }) {
+  const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
   return (
     <form ref={formRef} action={togglePublishCampaignAction} className="flex items-center">
@@ -181,13 +190,18 @@ function PublishToggle({ campaign }: { campaign: CampaignRow }) {
       <Switch
         checked={campaign.is_published}
         onCheckedChange={() => formRef.current?.requestSubmit()}
-        aria-label={`${campaign.is_published ? "Unpublish" : "Publish"} ${campaign.title}`}
+        aria-label={
+          campaign.is_published
+            ? t("shopfrontAdmin.unpublishName", { title: campaign.title })
+            : t("shopfrontAdmin.publishName", { title: campaign.title })
+        }
       />
     </form>
   );
 }
 
 function KindToggle({ value, onChange }: { value: "event" | "sale"; onChange: (v: "event" | "sale") => void }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-muted p-1">
       <input type="hidden" name="kind" value={value} />
@@ -203,7 +217,7 @@ function KindToggle({ value, onChange }: { value: "event" | "sale"; onChange: (v
           )}
         >
           {k === "event" ? <Ticket className="size-4" /> : <Users className="size-4" />}
-          {k === "event" ? "Event" : "Sale"}
+          {k === "event" ? t("shopfrontAdmin.eventBadge") : t("shopfrontAdmin.saleBadge")}
         </button>
       ))}
     </div>
@@ -221,6 +235,7 @@ function CampaignSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveCampaignAction, idleState);
   const [deleteState, deleteAction] = useActionState(deleteCampaignAction, idleState);
   const [kind, setKind] = useState<"event" | "sale">(campaign?.kind ?? "event");
@@ -232,18 +247,18 @@ function CampaignSheet({
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Saved.");
+      toast.success(state.message ?? t("common.saved"));
       onOpenChange(false);
     }
-  }, [state, onOpenChange]);
+  }, [state, onOpenChange, t]);
 
   useEffect(() => {
     if (deleteState.status === "success") {
-      toast.success(deleteState.message ?? "Deleted.");
+      toast.success(deleteState.message ?? t("common.deleted"));
       onOpenChange(false);
     }
     if (deleteState.status === "error" && deleteState.message) toast.error(deleteState.message);
-  }, [deleteState, onOpenChange]);
+  }, [deleteState, onOpenChange, t]);
 
   const isEvent = kind === "event";
 
@@ -251,10 +266,14 @@ function CampaignSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>{campaign ? "Edit campaign" : "New campaign"}</SheetTitle>
+          <SheetTitle>{campaign ? t("shopfrontAdmin.editCampaign") : t("shopfrontAdmin.newCampaignTitle")}</SheetTitle>
           <SheetDescription>
-            An <strong>event</strong> is something customers sign up for. A <strong>sale</strong> is a promotion you
-            put on your page.
+            {t("shopfrontAdmin.campaignDescEventIntro")}
+            <strong>{t("shopfrontAdmin.campaignDescEventWord")}</strong>
+            {t("shopfrontAdmin.campaignDescEventRest")}
+            {t("shopfrontAdmin.campaignDescSaleIntro")}
+            <strong>{t("shopfrontAdmin.campaignDescSaleWord")}</strong>
+            {t("shopfrontAdmin.campaignDescSaleRest")}
           </SheetDescription>
         </SheetHeader>
 
@@ -271,7 +290,7 @@ function CampaignSheet({
             <KindToggle value={kind} onChange={setKind} />
 
             <div className="grid grid-cols-[5rem_1fr] gap-3">
-              <Field label="Emoji" htmlFor="campaign-emoji">
+              <Field label={t("shopfrontAdmin.emojiLabel")} htmlFor="campaign-emoji">
                 <Input
                   id="campaign-emoji"
                   name="imageEmoji"
@@ -281,12 +300,16 @@ function CampaignSheet({
                   maxLength={8}
                 />
               </Field>
-              <Field label="Title" htmlFor="campaign-title" error={errors.title} required>
+              <Field label={t("shopfrontAdmin.titleLabel")} htmlFor="campaign-title" error={errors.title} required>
                 <Input
                   id="campaign-title"
                   name="title"
                   defaultValue={campaign?.title ?? ""}
-                  placeholder={isEvent ? "Fade Masterclass" : "Songkran Sale — 20% off"}
+                  placeholder={
+                    isEvent
+                      ? t("shopfrontAdmin.eventTitlePlaceholder")
+                      : t("shopfrontAdmin.saleTitlePlaceholder")
+                  }
                   autoFocus
                   required
                 />
@@ -295,14 +318,17 @@ function CampaignSheet({
 
             <div className="grid grid-cols-2 gap-3">
               <Field
-                label={isEvent ? "Date" : "Starts"}
+                label={isEvent ? t("shopfrontAdmin.dateLabel") : t("shopfrontAdmin.startsLabel")}
                 htmlFor="campaign-date"
                 error={errors.date}
                 required
               >
                 <Input id="campaign-date" name="date" type="date" defaultValue={start.date} required />
               </Field>
-              <Field label={isEvent ? "Time" : "From (optional)"} htmlFor="campaign-time">
+              <Field
+                label={isEvent ? t("shopfrontAdmin.timeLabel") : t("shopfrontAdmin.fromOptionalLabel")}
+                htmlFor="campaign-time"
+              >
                 <Input
                   id="campaign-time"
                   name="time"
@@ -313,26 +339,30 @@ function CampaignSheet({
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label={isEvent ? "Ends (optional)" : "Ends"} htmlFor="campaign-endDate" error={errors.endDate}>
+              <Field
+                label={isEvent ? t("shopfrontAdmin.endsOptionalLabel") : t("shopfrontAdmin.endsLabel")}
+                htmlFor="campaign-endDate"
+                error={errors.endDate}
+              >
                 <Input id="campaign-endDate" name="endDate" type="date" defaultValue={end.date} />
               </Field>
-              <Field label="End time" htmlFor="campaign-endTime">
+              <Field label={t("shopfrontAdmin.endTimeLabel")} htmlFor="campaign-endTime">
                 <Input id="campaign-endTime" name="endTime" type="time" defaultValue={end.time} />
               </Field>
             </div>
 
             {isEvent ? (
               <>
-                <Field label="Location" htmlFor="campaign-location" hint="Where it happens.">
+                <Field label={t("shopfrontAdmin.locationLabel")} htmlFor="campaign-location" hint={t("shopfrontAdmin.locationHint")}>
                   <Input
                     id="campaign-location"
                     name="location"
                     defaultValue={campaign?.location ?? ""}
-                    placeholder="At the shop"
+                    placeholder={t("shopfrontAdmin.locationPlaceholder")}
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Ticket price" htmlFor="campaign-price" hint="0 = free">
+                  <Field label={t("shopfrontAdmin.ticketPriceLabel")} htmlFor="campaign-price" hint={t("shopfrontAdmin.ticketPriceHint")}>
                     <Input
                       id="campaign-price"
                       name="price"
@@ -343,7 +373,7 @@ function CampaignSheet({
                       defaultValue={campaign?.price ?? 0}
                     />
                   </Field>
-                  <Field label="Capacity" htmlFor="campaign-capacity" hint="Blank = unlimited">
+                  <Field label={t("shopfrontAdmin.capacityLabel")} htmlFor="campaign-capacity" hint={t("shopfrontAdmin.capacityHint")}>
                     <Input
                       id="campaign-capacity"
                       name="capacity"
@@ -358,37 +388,37 @@ function CampaignSheet({
                 </div>
               </>
             ) : (
-              <Field label="Offer" htmlFor="campaign-discount" hint="The headline, e.g. “20% off all cuts”.">
+              <Field label={t("shopfrontAdmin.offerLabel")} htmlFor="campaign-discount" hint={t("shopfrontAdmin.offerHint")}>
                 <Input
                   id="campaign-discount"
                   name="discountLabel"
                   defaultValue={campaign?.discount_label ?? ""}
-                  placeholder="20% off"
+                  placeholder={t("shopfrontAdmin.offerPlaceholder")}
                 />
               </Field>
             )}
 
-            <Field label="Description" htmlFor="campaign-description" hint="Optional.">
+            <Field label={t("servicesAdmin.descriptionLabel")} htmlFor="campaign-description" hint={t("shopfrontAdmin.campaignDescriptionHint")}>
               <Textarea
                 id="campaign-description"
                 name="description"
                 defaultValue={campaign?.description ?? ""}
                 placeholder={
                   isEvent
-                    ? "A two-hour, hands-on session. Tools and refreshments provided."
-                    : "Beat the heat with a fresh cut, all week."
+                    ? t("shopfrontAdmin.eventDescriptionPlaceholder")
+                    : t("shopfrontAdmin.saleDescriptionPlaceholder")
                 }
                 maxLength={800}
               />
             </Field>
 
-            <Field label="Card colour">
+            <Field label={t("shopfrontAdmin.cardColour")}>
               <AccentPicker defaultValue={campaign?.accent ?? "amber"} />
             </Field>
 
             <div className="flex min-h-11 items-center justify-between gap-3 rounded-lg bg-surface-muted px-3.5">
               <label htmlFor="campaign-published" className="text-sm font-medium">
-                Published — visible to customers
+                {t("shopfrontAdmin.publishedVisible")}
               </label>
               <Switch id="campaign-published" checked={isPublished} onCheckedChange={setIsPublished} />
               <input type="hidden" name="isPublished" value={isPublished ? "on" : "off"} />
@@ -411,14 +441,16 @@ function CampaignSheet({
 
 function SaveButton({ isNew }: { isNew: boolean }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" variant="accent" loading={pending} className="sm:w-auto">
-      {isNew ? "Create campaign" : "Save changes"}
+      {isNew ? t("shopfrontAdmin.createCampaign") : t("shopfrontAdmin.saveChanges")}
     </Button>
   );
 }
 
 function DeleteButton({ id, action }: { id: string; action: (formData: FormData) => void }) {
+  const t = useT();
   return (
     <Button
       type="button"
@@ -432,7 +464,7 @@ function DeleteButton({ id, action }: { id: string; action: (formData: FormData)
       }}
     >
       <Trash2 />
-      Delete
+      {t("shopfrontAdmin.delete")}
     </Button>
   );
 }

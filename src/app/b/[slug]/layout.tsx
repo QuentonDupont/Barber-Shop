@@ -3,6 +3,8 @@ import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 /**
  * The public booking page's frame. No tab bar — this page is often the very
@@ -16,6 +18,7 @@ export default async function PublicBusinessLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const session = isSupabaseConfigured() ? await getSession().catch(() => null) : null;
   const role = session?.profile.role;
+  const locale = await getLocale();
 
   return (
     <div className="min-h-dvh bg-bg">
@@ -26,15 +29,15 @@ export default async function PublicBusinessLayout({
           </Link>
           {!session ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/sign-in?role=customer">Sign in</Link>
+              <Link href="/sign-in?role=customer">{t(locale, "pages.signIn")}</Link>
             </Button>
           ) : role === "business_owner" ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href="/dashboard">{t(locale, "pages.dashboard")}</Link>
             </Button>
           ) : (
             <Button asChild size="sm" variant="ghost">
-              <Link href="/app/bookings">My bookings</Link>
+              <Link href="/app/bookings">{t(locale, "pages.myBookings")}</Link>
             </Button>
           )}
         </div>

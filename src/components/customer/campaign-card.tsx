@@ -13,6 +13,7 @@ import { idleState } from "@/lib/actions/types";
 import { formatMoney } from "@/lib/booking/time";
 import { accentTile, formatCampaignWhen } from "@/lib/shop";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import { CheckoutSheet } from "./checkout-sheet";
 
 export interface FeedCampaign extends CampaignRow {
@@ -30,6 +31,7 @@ export function CampaignCard({
   timezone: string;
   subscribed: boolean;
 }) {
+  const t = useT();
   const isEvent = campaign.kind === "event";
   const paid = isEvent && campaign.price > 0;
   const [checkout, setCheckout] = useState(false);
@@ -48,10 +50,10 @@ export function CampaignCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge tone={isEvent ? "accent" : "info"}>{isEvent ? "Event" : "Sale"}</Badge>
+            <Badge tone={isEvent ? "accent" : "info"}>{isEvent ? t("customer.event") : t("customer.sale")}</Badge>
             {subscribed ? (
               <Badge tone="success">
-                <Check className="size-3.5" /> Going
+                <Check className="size-3.5" /> {t("customer.going")}
               </Badge>
             ) : null}
           </div>
@@ -92,10 +94,10 @@ export function CampaignCard({
             campaign.price > 0 ? (
               formatMoney(campaign.price, campaign.currency)
             ) : (
-              <span className="text-success">Free</span>
+              <span className="text-success">{t("customer.free")}</span>
             )
           ) : (
-            <span className="text-accent">{campaign.discount_label ?? "On now"}</span>
+            <span className="text-accent">{campaign.discount_label ?? t("customer.onNow")}</span>
           )}
         </span>
 
@@ -105,14 +107,14 @@ export function CampaignCard({
           ) : paid ? (
             <Button variant="accent" size="md" onClick={() => setCheckout(true)}>
               <Ticket />
-              Get ticket
+              {t("customer.getTicket")}
             </Button>
           ) : (
             <SubscribeForm campaignId={campaign.id} />
           )
         ) : campaign.business_slug ? (
           <Button asChild variant="subtle" size="md">
-            <Link href={`/b/${campaign.business_slug}`}>View shop</Link>
+            <Link href={`/b/${campaign.business_slug}`}>{t("customer.viewShop")}</Link>
           </Button>
         ) : null}
       </div>
@@ -129,7 +131,7 @@ export function CampaignCard({
           currency={campaign.currency}
           action={subscribeCampaignAction}
           hidden={{ campaignId: campaign.id }}
-          cta={`Pay ${formatMoney(campaign.price, campaign.currency)}`}
+          cta={t("customer.payAmount", { amount: formatMoney(campaign.price, campaign.currency) })}
         />
       ) : null}
     </div>
@@ -138,28 +140,30 @@ export function CampaignCard({
 
 function SubscribeForm({ campaignId }: { campaignId: string }) {
   const [state, action] = useActionState(subscribeCampaignAction, idleState);
+  const t = useT();
   useEffect(() => {
-    if (state.status === "success") toast.success(state.message ?? "You're in.");
+    if (state.status === "success") toast.success(state.message ?? t("customer.youreIn"));
     if (state.status === "error" && state.message) toast.error(state.message);
-  }, [state]);
+  }, [state, t]);
   return (
     <form action={action}>
       <input type="hidden" name="campaignId" value={campaignId} />
-      <SubmitButton variant="accent" label="Subscribe" icon={<Ticket />} />
+      <SubmitButton variant="accent" label={t("customer.subscribe")} icon={<Ticket />} />
     </form>
   );
 }
 
 function UnsubscribeForm({ campaignId }: { campaignId: string }) {
   const [state, action] = useActionState(unsubscribeCampaignAction, idleState);
+  const t = useT();
   useEffect(() => {
-    if (state.status === "success") toast.success(state.message ?? "Cancelled.");
+    if (state.status === "success") toast.success(state.message ?? t("bookingDetail.cancelledFallback"));
     if (state.status === "error" && state.message) toast.error(state.message);
-  }, [state]);
+  }, [state, t]);
   return (
     <form action={action}>
       <input type="hidden" name="campaignId" value={campaignId} />
-      <SubmitButton variant="ghost" label="Cancel" />
+      <SubmitButton variant="ghost" label={t("customer.cancel")} />
     </form>
   );
 }

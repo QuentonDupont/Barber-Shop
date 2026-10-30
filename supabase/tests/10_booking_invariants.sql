@@ -2,7 +2,7 @@
 \timing off
 
 -- ===========================================================================
--- Bookly — migration acceptance tests
+-- TatNat — migration acceptance tests
 -- Mirrors the validation checklist: overlap, breaks, closed days, timezone
 -- correctness and cross-tenant isolation.
 -- ===========================================================================
@@ -29,14 +29,17 @@ end $$;
 -- ---------------------------------------------------------------------------
 -- Fixtures
 -- ---------------------------------------------------------------------------
-insert into auth.users (id, email, raw_user_meta_data) values
-  ('11111111-1111-1111-1111-111111111111', 'owner@shop.test',
+-- Owners are invited: their role is in app_metadata, which only the server can
+-- set. Ben (the 5555 user) tries the old trick of claiming the role in his own
+-- sign-up metadata and must still come out a customer.
+insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values
+  ('11111111-1111-1111-1111-111111111111', 'owner@shop.test', '{"role":"business_owner"}',
    '{"role":"business_owner","full_name":"Owner One","phone":"0811111111"}'),
-  ('22222222-2222-2222-2222-222222222222', 'rival@shop.test',
+  ('22222222-2222-2222-2222-222222222222', 'rival@shop.test', '{"role":"business_owner"}',
    '{"role":"business_owner","full_name":"Owner Two","phone":"0822222222"}'),
-  ('33333333-3333-3333-3333-333333333333', 'ann@example.test',
+  ('33333333-3333-3333-3333-333333333333', 'ann@example.test', '{}',
    '{"role":"customer","full_name":"Ann Customer","phone":"0833333333"}'),
-  ('44444444-4444-4444-4444-444444444444', 'ben@example.test',
+  ('44444444-4444-4444-4444-444444444444', 'ben@example.test', '{}',
    '{"role":"customer","full_name":"Ben Customer","phone":"0844444444"}');
 
 select test_assert(
@@ -46,7 +49,17 @@ select test_assert(
 select test_assert(
   (select role from public.profiles where id='11111111-1111-1111-1111-111111111111')
     = 'business_owner',
-  'sign-up metadata sets the business_owner role');
+  'an invite (app_metadata) sets the business_owner role');
+
+-- A self-sign-up that claims the role in user_metadata stays a customer.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('55555555-5555-5555-5555-555555555555', 'sneaky@example.test',
+   '{"role":"business_owner","full_name":"Sneaky","phone":"0855555555"}');
+select test_assert(
+  (select role from public.profiles where id='55555555-5555-5555-5555-555555555555')
+    = 'customer',
+  'self-sign-up cannot claim business_owner through user_metadata');
+delete from auth.users where id='55555555-5555-5555-5555-555555555555';
 
 select test_assert(
   (select role from public.profiles where id='33333333-3333-3333-3333-333333333333')

@@ -18,6 +18,7 @@ import { idleState, type ActionState } from "@/lib/actions/types";
 import { formatMoney } from "@/lib/booking/time";
 import { accentTile } from "@/lib/shop";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 
 type PayAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
 
@@ -55,21 +56,22 @@ export function CheckoutSheet({
 }) {
   const [state, formAction] = useActionState(action, idleState);
   const [method, setMethod] = useState<"stripe" | "scan">("stripe");
+  const t = useT();
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Done.");
+      toast.success(state.message ?? t("customer.done"));
       onOpenChange(false);
       onSuccess?.();
     }
-  }, [state, onOpenChange, onSuccess]);
+  }, [state, onOpenChange, onSuccess, t]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Checkout</SheetTitle>
-          <SheetDescription>Choose how you&rsquo;d like to pay.</SheetDescription>
+          <SheetTitle>{t("customer.checkout")}</SheetTitle>
+          <SheetDescription>{t("customer.checkoutDescription")}</SheetDescription>
         </SheetHeader>
 
         <form action={formAction}>
@@ -105,20 +107,20 @@ export function CheckoutSheet({
 
             {/* Payment method — card-style radios */}
             <fieldset className="space-y-2.5">
-              <legend className="mb-1 text-sm font-semibold">Payment method</legend>
+              <legend className="mb-1 text-sm font-semibold">{t("customer.paymentMethod")}</legend>
               <PaymentOption
                 active={method === "stripe"}
                 onSelect={() => setMethod("stripe")}
                 icon={<CreditCard className="size-5" />}
-                title="Pay by card"
-                subtitle="Visa, Mastercard, Amex — via Stripe"
+                title={t("customer.payCard")}
+                subtitle={t("customer.payCardSub")}
               />
               <PaymentOption
                 active={method === "scan"}
                 onSelect={() => setMethod("scan")}
                 icon={<QrCode className="size-5" />}
-                title="Scan to pay"
-                subtitle="PromptPay / your banking app"
+                title={t("customer.payScan")}
+                subtitle={t("customer.payScanSub")}
               />
 
               {method === "scan" ? (
@@ -127,7 +129,7 @@ export function CheckoutSheet({
                     <FakeQR seed={`${title}-${amount}`} />
                   </div>
                   <p className="text-center text-xs text-fg-subtle">
-                    Scan with any banking app. Demo QR — no real charge.
+                    {t("customer.scanHint")}
                   </p>
                 </div>
               ) : null}
@@ -138,7 +140,7 @@ export function CheckoutSheet({
             <PayButton amount={amount} currency={currency} method={method} cta={cta} />
             <p className="flex items-center justify-center gap-1.5 text-center text-xs text-fg-subtle">
               <ShieldCheck className="size-3.5" />
-              Demo checkout — you won&rsquo;t be charged.
+              {t("customer.demoCheckout")}
             </p>
           </SheetFooter>
         </form>
@@ -209,7 +211,12 @@ function PayButton({
   cta?: string;
 }) {
   const { pending } = useFormStatus();
-  const label = cta ?? (amount > 0 ? `Pay ${formatMoney(amount, currency)}` : "Confirm");
+  const t = useT();
+  const label =
+    cta ??
+    (amount > 0
+      ? t("customer.payAmount", { amount: formatMoney(amount, currency) })
+      : t("customer.confirm"));
   return (
     <Button type="submit" size="lg" variant="accent" block loading={pending}>
       {method === "scan" ? <QrCode /> : <CreditCard />}
@@ -220,6 +227,7 @@ function PayButton({
 
 /** A decorative, non-functional QR code. Deterministic from `seed`. */
 function FakeQR({ seed }: { seed: string }) {
+  const t = useT();
   const N = 25;
   let h = 2166136261;
   for (let i = 0; i < seed.length; i += 1) {
@@ -259,7 +267,7 @@ function FakeQR({ seed }: { seed: string }) {
       shapeRendering="crispEdges"
       fill="#0f172a"
       role="img"
-      aria-label="Demo QR code"
+      aria-label={t("customer.demoQr")}
     >
       {cells}
       {finder(0, 0)}

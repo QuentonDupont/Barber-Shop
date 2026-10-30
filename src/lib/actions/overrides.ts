@@ -12,14 +12,17 @@ import {
 } from "@/lib/booking/time";
 import { errorState, fieldErrorsFrom, successState, type ActionState } from "./types";
 import { businessPath } from "@/lib/routes";
+import { t, type Locale } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
-const overrideSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date"),
-  mode: z.enum(["closed", "custom"]),
-  openTime: z.string().optional().or(z.literal("")),
-  closeTime: z.string().optional().or(z.literal("")),
-  note: z.string().trim().max(120, "Keep the note under 120 characters").optional().or(z.literal("")),
-});
+const overrideSchema = (locale: Locale) =>
+  z.object({
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t(locale, "msg.pickDate")),
+    mode: z.enum(["closed", "custom"]),
+    openTime: z.string().optional().or(z.literal("")),
+    closeTime: z.string().optional().or(z.literal("")),
+    note: z.string().trim().max(120, t(locale, "msg.noteTooLong")).optional().or(z.literal("")),
+  });
 
 /**
  * A one-off day: a public holiday, a late opening, a half day.
@@ -32,7 +35,8 @@ export async function saveOverrideAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const parsed = overrideSchema.safeParse({
+  const locale = await getLocale();
+  const parsed = overrideSchema(locale).safeParse({
     date: formData.get("date"),
     mode: formData.get("mode"),
     openTime: formData.get("openTime"),
@@ -42,7 +46,7 @@ export async function saveOverrideAction(
 
   if (!parsed.success) {
     return errorState(
-      "Please check the highlighted fields.",
+      t(locale, "msg.checkFields"),
       fieldErrorsFrom(z.flattenError(parsed.error).fieldErrors),
     );
   }
@@ -52,7 +56,7 @@ export async function saveOverrideAction(
   const business = ctx.business;
 
   if (date < businessToday(business.timezone)) {
-    return errorState("That date has already passed.", { date: "Pick today or a later date." });
+    return errorState(t(locale, "msg.datePassed"), { date: t(locale, "msg.datePassedField") });
   }
 
   let openTime: string | null = null;
@@ -60,15 +64,15 @@ export async function saveOverrideAction(
 
   if (mode === "custom") {
     if (!parsed.data.openTime || !parsed.data.closeTime) {
-      return errorState("Set both an opening and a closing time.", {
-        openTime: "Required for custom hours",
+      return errorState(t(locale, "msg.needBothTimes"), {
+        openTime: t(locale, "msg.openRequired"),
       });
     }
     const open = parseTimeToMinutes(parsed.data.openTime);
     const close = parseTimeToMinutes(parsed.data.closeTime);
     if (open >= close) {
-      return errorState("Closing time must be after opening time.", {
-        closeTime: "Must be after the opening time",
+      return errorState(t(locale, "msg.closeAfterOpen"), {
+        closeTime: t(locale, "msg.closeAfterOpenField"),
       });
     }
     openTime = minutesToTimeString(open);
@@ -99,10 +103,9 @@ export async function saveOverrideAction(
 
   if (stranded.length > 0) {
     return errorState(
-      `${stranded.length} booking${stranded.length === 1 ? " is" : "s are"} already on that day ` +
-        `${mode === "closed" ? "" : "outside those hours "}— move or cancel ${
-          stranded.length === 1 ? "it" : "them"
-        } first.`,
+      t(locale, mode === "closed" ? "msg.strandedClosed" : "msg.strandedOutside", {
+        n: stranded.length,
+      }),
     );
   }
 
@@ -123,15 +126,16 @@ export async function saveOverrideAction(
   revalidatePath("/dashboard/hours");
   revalidatePath("/dashboard/calendar");
   revalidatePath(businessPath(business.slug));
-  return successState(mode === "closed" ? "Day marked as closed." : "Custom hours saved.");
+  return successState(t(locale, mode === "closed" ? "msg.dayClosed" : "msg.customHoursSaved"));
 }
 
 export async function deleteOverrideAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
+  const locale = await getLocale();
   const id = String(formData.get("id") ?? "");
-  if (!id) return errorState("That entry no longer exists.");
+  if (!id) return errorState(t(locale, "msg.entryGone"));
 
   const ctx = await requireBusiness();
   const supabase = await createClient();
@@ -147,5 +151,5 @@ export async function deleteOverrideAction(
   revalidatePath("/dashboard/hours");
   revalidatePath("/dashboard/calendar");
   revalidatePath(businessPath(ctx.business.slug));
-  return successState("Removed. Regular hours apply again on that day.");
+  return successState(t(locale, "msg.overrideRemoved"));
 }

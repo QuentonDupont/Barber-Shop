@@ -3,14 +3,16 @@
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { signInWithGoogleAction } from "@/lib/actions/auth";
+import { useT } from "@/lib/i18n/context";
 import type { Role } from "./role-toggle";
 
 function Submit() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" variant="outline" size="lg" block loading={pending}>
       {pending ? null : <GoogleMark />}
-      Continue with Google
+      {t("auth.continueWithGoogle")}
     </Button>
   );
 }

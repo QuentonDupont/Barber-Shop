@@ -4,6 +4,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, BusinessRow, ServiceRow } from "@/lib/database.types";
 import { getDayAvailability, type DayAvailability, type GetAvailableSlotsInput } from "./slots";
 import { type DateKey, shiftDateKey, zonedDayMinutesToUtc } from "./time";
+import type { StaffWithServices } from "./staff-eligibility";
+
+// Re-exported so existing imports from "@/lib/booking/availability" (the
+// customer- and owner-side streams both import staff helpers from here) keep
+// working unchanged — the logic itself moved to staff-eligibility.ts so it
+// has no `server-only`/Supabase dependency and can be unit-tested directly
+// (QA report #4 §2).
+export {
+  bookableStaffFor,
+  staffCanPerform,
+  staffWorksWeekday,
+  resolveStaffCandidates,
+  type StaffWithServices,
+  type StaffSelection,
+} from "./staff-eligibility";
 
 type Client = SupabaseClient<Database>;
 
@@ -20,13 +35,19 @@ export interface AvailabilitySources {
  *
  * `ignoreBookingId` lets the reschedule path ask "would this slot be free if
  * the booking being moved were not in the way?".
+ *
+ * `staffId` narrows the busy set to one staff member's own bookings — pass it
+ * to compute a specific barber's availability instead of the whole
+ * business's. Leave it unset for the pre-multi-staff behaviour (and for
+ * businesses that have no staff configured at all, which keep booking exactly
+ * as they did before this feature existed).
  */
 export async function loadAvailabilitySources(
   supabase: Client,
   business: Pick<BusinessRow, "id" | "timezone">,
   fromDate: DateKey,
   toDate: DateKey,
-  options: { ignoreBookingId?: string } = {},
+  options: { ignoreBookingId?: string; staffId?: string } = {},
 ): Promise<AvailabilitySources> {
   // Widen by a day on each side: a booking can start before local midnight and
   // still occupy the first minutes of the day being asked about.
@@ -56,6 +77,7 @@ export async function loadAvailabilitySources(
       from_ts: windowStart.toISOString(),
       to_ts: windowEnd.toISOString(),
       exclude_booking: options.ignoreBookingId ?? null,
+      target_staff: options.staffId ?? null,
     }),
   ]);
 
@@ -127,4 +149,45 @@ export function availabilityForRange(
     out.push(getDayAvailability(buildSlotInput(business, service, sources, date, now)));
   }
   return out;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Multi-staff (roadmap.md §1 row 4)                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every staff row for a business, each annotated with the services it's
+ * narrowed to (if any). One extra query, always run together so the "no
+ * staff_services rows = performs everything" default only has to be applied
+ * in one place (`staffCanPerform` below).
+ */
+export async function loadStaffWithServices(
+  supabase: Client,
+  businessId: string,
+): Promise<StaffWithServices[]> {
+  const { data: staffRows } = await supabase
+    .from("staff")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: true });
+
+  const rows = staffRows ?? [];
+  if (rows.length === 0) return [];
+
+  const { data: links } = await supabase
+    .from("staff_services")
+    .select("staff_id, service_id")
+    .in(
+      "staff_id",
+      rows.map((s) => s.id),
+    );
+
+  const byStaff = new Map<string, string[]>();
+  for (const link of links ?? []) {
+    const list = byStaff.get(link.staff_id) ?? [];
+    list.push(link.service_id);
+    byStaff.set(link.staff_id, list);
+  }
+
+  return rows.map((s) => ({ ...s, serviceIds: byStaff.get(s.id) ?? [] }));
 }

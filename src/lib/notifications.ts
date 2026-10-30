@@ -3,9 +3,19 @@ import "server-only";
 import type { BookingRow, BusinessRow } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/server";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
+import { t } from "@/lib/i18n/dictionaries";
 
 type BusinessLike = Pick<BusinessRow, "name" | "timezone"> &
-  Partial<Pick<BusinessRow, "slug" | "phone" | "address">>;
+  Partial<Pick<BusinessRow, "slug" | "phone" | "address" | "cancellation_policy">>;
+
+/**
+ * Emails always render in Thai: there is no live session to offer a toggle
+ * on, and Thai is the default locale (roadmap.md §1 row 3). If a per-recipient
+ * locale preference is ever stored, thread it through here instead of this
+ * constant — the dictionary already has the English strings ready
+ * (`@/lib/i18n/dictionaries`, `email.*`).
+ */
+const EMAIL_LOCALE = "th";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
@@ -14,7 +24,7 @@ function resendConfig() {
   if (!apiKey) return null;
   return {
     apiKey,
-    from: process.env.RESEND_FROM ?? "Bookly <onboarding@resend.dev>",
+    from: process.env.RESEND_FROM ?? "TatNat <onboarding@resend.dev>",
   };
 }
 
@@ -71,7 +81,10 @@ async function recipientsFor(
     const admin = createAdminClient();
 
     const [{ data: customer }, { data: business }] = await Promise.all([
-      admin.from("profiles").select("email").eq("id", booking.customer_id).maybeSingle(),
+      // A shop-entered booking has no customer account, so no customer email.
+      booking.customer_id
+        ? admin.from("profiles").select("email").eq("id", booking.customer_id).maybeSingle()
+        : Promise.resolve({ data: null }),
       admin.from("businesses").select("owner_id").eq("id", booking.business_id).maybeSingle(),
     ]);
 
@@ -107,7 +120,7 @@ function layout(heading: string, intro: string, rows: [string, string][], footer
 <html><body style="margin:0;padding:24px;background:#faf8f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <table role="presentation" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:14px;border:1px solid #e7e2da;">
     <tr><td style="padding:28px 24px;">
-      <p style="margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#d08a12;">Bookly</p>
+      <p style="margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#d08a12;">ตัดนัด</p>
       <h1 style="margin:0 0 8px;font-size:21px;line-height:1.3;color:#1f1a16;">${heading}</h1>
       <p style="margin:0 0 20px;font-size:15px;line-height:1.55;color:#5c544c;">${intro}</p>
       <table role="presentation" style="width:100%;border-top:1px solid #efeae2;">${cells}</table>
@@ -126,11 +139,12 @@ function escapeHtml(value: string): string {
 }
 
 function whenLine(booking: Pick<BookingRow, "starts_at">, timezone: string): string {
-  return `${formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM yyyy")} at ${formatInBusinessTz(
+  return `${formatInBusinessTz(
     booking.starts_at,
     timezone,
-    "h:mm a",
-  )}`;
+    "EEEE d MMMM yyyy",
+    EMAIL_LOCALE,
+  )} ${formatInBusinessTz(booking.starts_at, timezone, "h:mm a", EMAIL_LOCALE)}`;
 }
 
 export async function notifyBookingCreated(
@@ -140,27 +154,46 @@ export async function notifyBookingCreated(
   const { customerEmail, ownerEmail } = await recipientsFor(booking);
   const when = whenLine(booking, business.timezone);
   const confirmed = booking.status === "confirmed";
+  const e = (key: string, vars?: Record<string, string | number>) =>
+    t(EMAIL_LOCALE, key, vars);
 
   const rows: [string, string][] = [
-    ["Service", escapeHtml(booking.service_name)],
-    ["When", when],
-    ["Where", escapeHtml(business.address ?? business.name)],
-    ["Price", formatMoney(booking.price, booking.currency)],
+    [e("email.rowService"), escapeHtml(booking.service_name)],
+    ...(booking.staff_name
+      ? ([[e("email.rowStaff"), escapeHtml(booking.staff_name)]] as [string, string][])
+      : []),
+    [e("email.rowWhen"), when],
+    [e("email.rowWhere"), escapeHtml(business.address ?? business.name)],
+    [e("email.rowPrice"), formatMoney(booking.price, booking.currency)],
   ];
 
   if (customerEmail) {
+    // Cancellation/no-show policy, repeated here as on the listing page and
+    // the booking-confirmation screen (roadmap.md §1 row 6) — always shown,
+    // falling back to generic contact copy when unset, same as the other two
+    // placements (QA report #2 §5: this row was being omitted entirely instead
+    // of falling back, which is what failed test list item 16).
+    const customerRows: [string, string][] = [
+      ...rows,
+      [
+        e("email.rowCancellationPolicy"),
+        escapeHtml(business.cancellation_policy || e("email.cancellationPolicyFallback")),
+      ],
+    ];
+
     await send(
       customerEmail,
-      confirmed
-        ? `Booking confirmed — ${business.name}`
-        : `Booking requested — ${business.name}`,
+      e(confirmed ? "email.bookingConfirmedSubject" : "email.bookingRequestedSubject", {
+        business: business.name,
+      }),
       layout(
-        confirmed ? "You're booked in" : "Request sent",
-        confirmed
-          ? `${escapeHtml(business.name)} has you down for the slot below. Times are shown in the shop's local time (${escapeHtml(business.timezone)}).`
-          : `${escapeHtml(business.name)} has your request and will confirm shortly. Times are shown in the shop's local time (${escapeHtml(business.timezone)}).`,
-        rows,
-        "Need to change it? Open Bookly and cancel from My bookings.",
+        e(confirmed ? "email.youAreBookedHeading" : "email.requestSentHeading"),
+        e(confirmed ? "email.confirmedIntro" : "email.requestedIntro", {
+          business: escapeHtml(business.name),
+          timezone: escapeHtml(business.timezone),
+        }),
+        customerRows,
+        e("email.footerCustomerConfirmed"),
       ),
     );
   }
@@ -168,16 +201,19 @@ export async function notifyBookingCreated(
   if (ownerEmail) {
     await send(
       ownerEmail,
-      `New booking — ${booking.service_name}`,
+      e("email.newBookingSubject", { service: booking.service_name }),
       layout(
-        confirmed ? "New booking" : "New booking request",
-        `${escapeHtml(booking.customer_name)} booked ${escapeHtml(booking.service_name)}.`,
+        e(confirmed ? "email.newBookingHeading" : "email.newBookingRequestHeading"),
+        e("email.ownerNewBookingIntro", {
+          customer: escapeHtml(booking.customer_name),
+          service: escapeHtml(booking.service_name),
+        }),
         [
           ...rows,
-          ["Customer", escapeHtml(booking.customer_name)],
-          ["Phone", escapeHtml(booking.customer_phone ?? "Not given")],
+          [e("email.rowCustomer"), escapeHtml(booking.customer_name)],
+          [e("email.rowPhone"), escapeHtml(booking.customer_phone ?? e("email.phoneNotGiven"))],
         ],
-        "Open your Bookly dashboard to confirm, move or cancel this booking.",
+        e("email.footerOwner"),
       ),
     );
   }
@@ -200,27 +236,32 @@ export async function notifyBookingCancelled(
 
   const { customerEmail, ownerEmail } = await recipientsFor(booking);
   const when = whenLine(booking, business.timezone);
+  const e = (key: string, vars?: Record<string, string | number>) =>
+    t(EMAIL_LOCALE, key, vars);
 
   const rows: [string, string][] = [
-    ["Service", escapeHtml(booking.service_name)],
-    ["Was booked for", when],
-    ["Business", escapeHtml(business.name)],
+    [e("email.rowService"), escapeHtml(booking.service_name)],
+    [e("email.rowWasBookedFor"), when],
+    [e("email.rowBusiness"), escapeHtml(business.name)],
   ];
 
   const body = layout(
-    "Booking cancelled",
-    "This appointment has been cancelled. The slot is free again for anyone to book.",
+    e("email.bookingCancelledHeading"),
+    e("email.cancelledIntro"),
     rows,
-    "Booked by mistake? You can rebook any time from Bookly.",
+    e("email.footerCancelled"),
   );
 
   if (customerEmail) {
-    await send(customerEmail, `Booking cancelled — ${business.name}`, body);
+    await send(customerEmail, e("email.bookingCancelledSubject", { business: business.name }), body);
   }
   if (ownerEmail) {
     await send(
       ownerEmail,
-      `Cancelled — ${booking.service_name} (${escapeHtml(booking.customer_name)})`,
+      e("email.cancelledOwnerSubject", {
+        service: booking.service_name,
+        customer: booking.customer_name,
+      }),
       body,
     );
   }

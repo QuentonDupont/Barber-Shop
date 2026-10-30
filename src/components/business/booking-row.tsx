@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -9,12 +9,15 @@ import {
   Check,
   CircleSlash,
   MessageSquare,
+  Undo2,
   MoreVertical,
+  NotebookPen,
   Phone,
   UserRound,
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/input";
 import { BookingStatusBadge } from "@/components/shared/booking-status";
 import {
   Sheet,
@@ -26,18 +29,23 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { updateBookingStatusAction } from "@/lib/actions/bookings";
+import { getCustomerNote, saveCustomerNoteAction } from "@/lib/actions/customer-notes";
 import { MoveBookingSheet } from "./move-booking-sheet";
+import { canMarkNoShow } from "@/lib/booking/no-show";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow, BookingStatus } from "@/lib/database.types";
 import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 export type OwnerBooking = Pick<
   BookingRow,
   | "id"
+  | "customer_id"
   | "starts_at"
   | "ends_at"
   | "status"
+  | "source"
   | "service_name"
   | "customer_name"
   | "customer_phone"
@@ -62,13 +70,21 @@ export function OwnerBookingRow({
   timezone: string;
   className?: string;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const live = booking.status === "pending" || booking.status === "confirmed";
+  // Re-evaluated on each render; the server action and the database check the
+  // same rule again, so a stale button can only produce a polite error.
+  const noShowAllowed = canMarkNoShow(booking);
 
   return (
     <>
       <div
+        data-testid="owner-booking-row"
+        data-booking-id={booking.id}
+        data-status={booking.status}
         className={cn(
           "flex items-stretch gap-3 rounded-xl border border-border bg-surface p-3 sm:p-3.5",
           booking.status === "cancelled" && "opacity-60",
@@ -82,10 +98,10 @@ export function OwnerBookingRow({
         >
           <span className="flex w-16 shrink-0 flex-col items-center rounded-lg bg-surface-muted px-1 py-2 sm:w-20">
             <span className="text-sm font-bold tabular-nums sm:text-base">
-              {formatInBusinessTz(booking.starts_at, timezone, "h:mm")}
+              {formatInBusinessTz(booking.starts_at, timezone, "h:mm", locale)}
             </span>
             <span className="text-[0.625rem] font-semibold uppercase text-fg-subtle">
-              {formatInBusinessTz(booking.starts_at, timezone, "a")}
+              {formatInBusinessTz(booking.starts_at, timezone, "a", locale)}
             </span>
           </span>
 
@@ -98,14 +114,21 @@ export function OwnerBookingRow({
             <span className="flex flex-wrap items-center gap-1.5">
               <BookingStatusBadge status={booking.status} short />
               <span className="text-xs text-fg-subtle">
-                until {formatInBusinessTz(booking.ends_at, timezone, "h:mm a")}
+                {t("bookingAdmin.untilTime", {
+                  time: formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale),
+                })}
               </span>
             </span>
           </span>
         </button>
 
+        {noShowAllowed ? <QuickNoShow bookingId={booking.id} /> : null}
         {live ? (
-          <QuickActions bookingId={booking.id} status={booking.status} />
+          <QuickActions
+            bookingId={booking.id}
+            status={booking.status}
+            noShowAllowed={noShowAllowed}
+          />
         ) : null}
       </div>
 
@@ -132,14 +155,55 @@ export function OwnerBookingRow({
   );
 }
 
+/**
+ * One-tap no-show, visible on phones too (the overflow menu below is
+ * desktop-only). Shown only once the appointment time has passed.
+ */
+function QuickNoShow({ bookingId }: { bookingId: string }) {
+  const t = useT();
+  const [, formAction] = useActionState(withToast(updateBookingStatusAction), idleState);
+  return (
+    <form action={formAction} className="flex shrink-0 items-center">
+      <input type="hidden" name="id" value={bookingId} />
+      <input type="hidden" name="status" value="no_show" />
+      <NoShowQuickButton label={t("bookingAdmin.noShowQuick")} />
+    </form>
+  );
+}
+
+function NoShowQuickButton({ label }: { label: string }) {
+  const { pending } = useFormStatus();
+  return (
+    <Button
+      type="submit"
+      size="sm"
+      variant="outline"
+      loading={pending}
+      data-testid="booking-no-show-quick"
+    >
+      <CircleSlash />
+      {label}
+    </Button>
+  );
+}
+
 /** Desktop-friendly overflow menu; hidden on phones where the sheet rules. */
-function QuickActions({ bookingId, status }: { bookingId: string; status: BookingStatus }) {
+function QuickActions({
+  bookingId,
+  status,
+  noShowAllowed,
+}: {
+  bookingId: string;
+  status: BookingStatus;
+  noShowAllowed: boolean;
+}) {
+  const t = useT();
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
           className="hidden size-9 shrink-0 items-center justify-center self-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg sm:flex"
-          aria-label="Booking actions"
+          aria-label={t("bookingAdmin.bookingActionsLabel")}
         >
           <MoreVertical className="size-4" />
         </button>
@@ -152,18 +216,20 @@ function QuickActions({ bookingId, status }: { bookingId: string; status: Bookin
         >
           {status === "pending" ? (
             <StatusMenuItem id={bookingId} status="confirmed" icon={Check}>
-              Confirm
+              {t("bookingAdmin.confirm")}
             </StatusMenuItem>
           ) : null}
           <StatusMenuItem id={bookingId} status="completed" icon={Check}>
-            Mark completed
+            {t("bookingAdmin.markCompleted")}
           </StatusMenuItem>
-          <StatusMenuItem id={bookingId} status="no_show" icon={CircleSlash}>
-            Mark no-show
-          </StatusMenuItem>
+          {noShowAllowed ? (
+            <StatusMenuItem id={bookingId} status="no_show" icon={CircleSlash}>
+              {t("bookingAdmin.markNoShow")}
+            </StatusMenuItem>
+          ) : null}
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <StatusMenuItem id={bookingId} status="cancelled" icon={Ban} danger>
-            Cancel booking
+            {t("bookingAdmin.cancelBooking")}
           </StatusMenuItem>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
@@ -222,8 +288,11 @@ export function OwnerBookingSheet({
   onOpenChange: (open: boolean) => void;
   onMove?: () => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [, formAction] = useActionState(withToast(updateBookingStatusAction), idleState);
   const live = booking.status === "pending" || booking.status === "confirmed";
+  const noShowAllowed = canMarkNoShow(booking);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -231,9 +300,9 @@ export function OwnerBookingSheet({
         <SheetHeader>
           <SheetTitle>{booking.service_name}</SheetTitle>
           <SheetDescription>
-            {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM")} ·{" "}
-            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a")} –{" "}
-            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a")}
+            {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM", locale)} ·{" "}
+            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)} –{" "}
+            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale)}
           </SheetDescription>
         </SheetHeader>
 
@@ -243,13 +312,21 @@ export function OwnerBookingSheet({
             <span className="text-sm font-semibold">
               {formatMoney(booking.price, booking.currency)}
             </span>
+            <span
+              className="text-xs text-fg-subtle"
+              data-testid="booking-source"
+              data-source={booking.source}
+            >
+              {t("bookingAdmin.sourceLabel")}:{" "}
+              {t(booking.source === "shop" ? "bookingAdmin.sourceShop" : "bookingAdmin.sourceCustomer")}
+            </span>
           </div>
 
           <dl className="space-y-3 rounded-xl bg-surface-muted p-3.5 text-sm">
             <div className="flex items-start gap-2.5">
               <UserRound className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
               <div className="min-w-0">
-                <dt className="sr-only">Customer</dt>
+                <dt className="sr-only">{t("bookingAdmin.customer")}</dt>
                 <dd className="font-semibold">{booking.customer_name}</dd>
               </div>
             </div>
@@ -258,7 +335,7 @@ export function OwnerBookingSheet({
               <div className="flex items-start gap-2.5">
                 <Phone className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
                 <div className="min-w-0">
-                  <dt className="sr-only">Phone</dt>
+                  <dt className="sr-only">{t("bookingAdmin.phone")}</dt>
                   <dd>
                     <a
                       href={`tel:${booking.customer_phone.replace(/\s/g, "")}`}
@@ -275,12 +352,20 @@ export function OwnerBookingSheet({
               <div className="flex items-start gap-2.5">
                 <MessageSquare className="mt-0.5 size-4 shrink-0 text-fg-subtle" />
                 <div className="min-w-0">
-                  <dt className="sr-only">Notes</dt>
+                  <dt className="sr-only">{t("bookingAdmin.notes")}</dt>
                   <dd className="text-fg-muted text-pretty">{booking.notes}</dd>
                 </div>
               </div>
             ) : null}
           </dl>
+
+          {/* Simple client records (roadmap.md §1 row 5): a note that follows
+              this customer across every booking at this business, not just
+              the one-off note above tied to a single booking. Never shown to
+              the customer — see the RLS policy in the matching migration. */}
+          {booking.customer_id ? (
+            <CustomerNoteSection customerId={booking.customer_id} open={open} />
+          ) : null}
         </SheetBody>
 
         {live ? (
@@ -294,7 +379,7 @@ export function OwnerBookingSheet({
               {onMove ? (
                 <Button type="button" size="md" variant="ghost" onClick={onMove}>
                   <CalendarClock />
-                  Move
+                  {t("bookingAdmin.move")}
                 </Button>
               ) : null}
             </div>
@@ -306,27 +391,45 @@ export function OwnerBookingSheet({
                   <input type="hidden" name="status" value="confirmed" />
                   <SubmitButton variant="accent">
                     <Check />
-                    Confirm
+                    {t("bookingAdmin.confirm")}
                   </SubmitButton>
                 </form>
-              ) : (
-                <>
-                  <form action={formAction} className="flex-1">
-                    <input type="hidden" name="id" value={booking.id} />
-                    <input type="hidden" name="status" value="no_show" />
-                    <SubmitButton variant="outline">No-show</SubmitButton>
-                  </form>
-                  <form action={formAction} className="flex-1">
-                    <input type="hidden" name="id" value={booking.id} />
-                    <input type="hidden" name="status" value="completed" />
-                    <SubmitButton variant="primary">
-                      <Check />
-                      Done
-                    </SubmitButton>
-                  </form>
-                </>
-              )}
+              ) : null}
+              {noShowAllowed ? (
+                <form action={formAction} className="flex-1">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="status" value="no_show" />
+                  <SubmitButton variant="outline" testId="booking-no-show">
+                    {t("bookingAdmin.noShow")}
+                  </SubmitButton>
+                </form>
+              ) : null}
+              {booking.status === "confirmed" ? (
+                <form action={formAction} className="flex-1">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="status" value="completed" />
+                  <SubmitButton variant="primary" testId="booking-done">
+                    <Check />
+                    {t("bookingAdmin.done")}
+                  </SubmitButton>
+                </form>
+              ) : null}
             </div>
+          </SheetFooter>
+        ) : null}
+
+        {/* A mis-tapped no-show must be reversible, or one slip corrupts the
+            beta numbers for good. Puts the booking back to confirmed. */}
+        {booking.status === "no_show" ? (
+          <SheetFooter>
+            <form action={formAction} className="w-full">
+              <input type="hidden" name="id" value={booking.id} />
+              <input type="hidden" name="status" value="confirmed" />
+              <SubmitButton variant="outline" testId="booking-undo-no-show">
+                <Undo2 />
+                {t("bookingAdmin.undoNoShow")}
+              </SubmitButton>
+            </form>
           </SheetFooter>
         ) : null}
       </SheetContent>
@@ -334,16 +437,80 @@ export function OwnerBookingSheet({
   );
 }
 
+/**
+ * Loads the customer's standing note (if any) once the sheet is actually
+ * open, rather than on every booking row render — a sheet that's never
+ * opened never costs a lookup.
+ */
+function CustomerNoteSection({ customerId, open }: { customerId: string; open: boolean }) {
+  const t = useT();
+  const [initialNote, setInitialNote] = useState<string | null>(null);
+  const [, formAction] = useActionState(withToast(saveCustomerNoteAction), idleState);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    getCustomerNote(customerId).then((note) => {
+      if (!cancelled) setInitialNote(note);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, customerId]);
+
+  if (initialNote === null) {
+    return (
+      <div className="flex items-center gap-2.5 text-sm text-fg-subtle">
+        <NotebookPen className="size-4 shrink-0" />
+        {t("bookingAdmin.loadingCustomerNotes")}
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="space-y-1.5">
+      <input type="hidden" name="customerId" value={customerId} />
+      <label htmlFor="customerNote" className="flex items-center gap-2 text-sm font-medium">
+        <NotebookPen className="size-4 shrink-0 text-fg-subtle" />
+        {t("bookingAdmin.customerNotes")}
+      </label>
+      <Textarea
+        id="customerNote"
+        name="note"
+        defaultValue={initialNote}
+        maxLength={2000}
+        placeholder={t("bookingAdmin.customerNotePlaceholder")}
+        className="min-h-20"
+      />
+      <div className="flex justify-end">
+        <SaveNoteButton />
+      </div>
+    </form>
+  );
+}
+
+function SaveNoteButton() {
+  const { pending } = useFormStatus();
+  const t = useT();
+  return (
+    <Button type="submit" size="sm" variant="outline" loading={pending}>
+      {t("bookingAdmin.saveNote")}
+    </Button>
+  );
+}
+
 function SubmitButton({
   variant,
   children,
+  testId,
 }: {
   variant: "accent" | "primary" | "outline";
   children: React.ReactNode;
+  testId?: string;
 }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" size="md" block variant={variant} loading={pending}>
+    <Button type="submit" size="md" block variant={variant} loading={pending} data-testid={testId}>
       {children}
     </Button>
   );
@@ -351,10 +518,11 @@ function SubmitButton({
 
 function CancelButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="md" variant="ghost" loading={pending} className="text-danger">
       <Ban />
-      Cancel booking
+      {t("bookingAdmin.cancelBooking")}
     </Button>
   );
 }

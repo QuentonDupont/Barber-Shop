@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { WEEKDAY_SHORT, shiftDateKey, type DateKey } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
+import { useLocale, useT } from "@/lib/i18n/context";
 
 interface CalendarProps {
   selected: DateKey;
@@ -15,10 +16,15 @@ interface CalendarProps {
   today: DateKey;
 }
 
-const MONTH_NAMES = [
+const MONTH_NAMES_EN = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+const MONTH_NAMES_TH = [
+  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+];
+const WEEKDAY_TH = ["อา.", "จ.", "อ.", "พ.", "พฤ.", "ศ.", "ส."];
 
 function parts(date: DateKey) {
   const [year, month, day] = date.split("-").map(Number);
@@ -44,6 +50,8 @@ export function Calendar({
   maxDate,
   today,
 }: CalendarProps) {
+  const { locale } = useLocale();
+  const t = useT();
   const initial = parts(selected);
   const [cursor, setCursor] = useState({ year: initial.year, month: initial.month });
 
@@ -86,13 +94,13 @@ export function Calendar({
           onClick={() => step(-1)}
           disabled={!canGoBack}
           className="flex size-11 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted disabled:opacity-30"
-          aria-label="Previous month"
+          aria-label={t("ui.prevMonth")}
         >
           <ChevronLeft className="size-5" />
         </button>
 
         <p className="text-base font-semibold" aria-live="polite">
-          {MONTH_NAMES[cursor.month]} {cursor.year}
+          {(locale === "th" ? MONTH_NAMES_TH : MONTH_NAMES_EN)[cursor.month]} {cursor.year}
         </p>
 
         <button
@@ -100,20 +108,20 @@ export function Calendar({
           onClick={() => step(1)}
           disabled={!canGoForward}
           className="flex size-11 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted disabled:opacity-30"
-          aria-label="Next month"
+          aria-label={t("ui.nextMonth")}
         >
           <ChevronRight className="size-5" />
         </button>
       </div>
 
       <div className="grid grid-cols-7 gap-1" role="grid">
-        {WEEKDAY_SHORT.map((label) => (
+        {WEEKDAY_SHORT.map((label, weekdayIndex) => (
           <div
             key={label}
             role="columnheader"
             className="pb-1 text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-fg-subtle"
           >
-            {label.charAt(0)}
+            {locale === "th" ? WEEKDAY_TH[weekdayIndex] : label.charAt(0)}
           </div>
         ))}
 
@@ -155,11 +163,11 @@ export function Calendar({
       <p className="mt-3 flex items-center gap-3 text-xs text-fg-subtle">
         <span className="flex items-center gap-1.5">
           <span className="size-3 rounded bg-surface-muted" aria-hidden />
-          Available
+          {t("ui.legendAvailable")}
         </span>
         <span className="flex items-center gap-1.5">
           <span className="size-3 rounded border border-border" aria-hidden />
-          Closed or full
+          {t("ui.legendClosed")}
         </span>
       </p>
     </div>

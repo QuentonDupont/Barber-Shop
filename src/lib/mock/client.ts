@@ -55,6 +55,7 @@ const TABLES_WITH_UPDATED_AT = new Set([
   "bookings",
   "products",
   "campaigns",
+  "customer_notes",
 ]);
 
 function insertDefaults(table: string): Row {
@@ -80,11 +81,13 @@ function insertDefaults(table: string): Row {
       };
     case "staff":
       return { avatar_url: null, works_weekdays: [0, 1, 2, 3, 4, 5, 6], is_active: true, created_at: now };
+    case "staff_services":
+      return { created_at: now };
     case "availability_overrides":
       return { is_closed: true, open_time: null, close_time: null, note: null };
     case "bookings":
       return {
-        staff_id: null, status: "pending", notes: null, price: 0, currency: "THB",
+        staff_id: null, status: "pending", source: "customer", notes: null, price: 0, currency: "THB",
         customer_name: "", customer_phone: null, cancelled_at: null, cancelled_by: null,
         created_at: now, updated_at: now,
       };
@@ -106,6 +109,12 @@ function insertDefaults(table: string): Row {
         quantity: 1, unit_price: 0, currency: "THB", payment_method: "stripe",
         status: "paid", customer_name: "", created_at: now,
       };
+    case "customer_notes":
+      return { note: "", created_at: now, updated_at: now };
+    case "consent_records":
+      return { consented_at: now, withdrawn_at: null };
+    case "deletion_requests":
+      return { requested_at: now, status: "pending", completed_at: null };
     default:
       return {};
   }
@@ -113,6 +122,9 @@ function insertDefaults(table: string): Row {
 
 function withInsertDefaults(table: string, values: Row): Row {
   const row: Row = { ...insertDefaults(table), ...values };
+  // Mirrors the database trigger: a booking with no customer account can only
+  // be one the shop entered itself (migration 20261027000000).
+  if (table === "bookings" && row.customer_id == null) row.source = "shop";
   if (row.id === undefined) row.id = newId();
   return row;
 }
@@ -378,6 +390,9 @@ function rpc(db: MockDB, name: string, args: any): Promise<{ data: any; error: a
       .sort((a, b) => (a.starts_at < b.starts_at ? -1 : a.starts_at > b.starts_at ? 1 : 0))
       .map((b) => ({ starts_at: b.starts_at, ends_at: b.ends_at }));
     return Promise.resolve({ data, error: null });
+  }
+  if (name === "health_check") {
+    return Promise.resolve({ data: { ok: true, checked_at: nowIso() }, error: null });
   }
   if (name === "unique_business_slug") {
     const slug = uniqueSlug(args?.desired ?? "", db.businesses.map((b) => b.slug));

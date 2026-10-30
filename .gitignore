@@ -18,3 +18,8 @@ coverage/
 supabase/.temp/
 supabase/.branches/
 supabase/.env
+
+# Playwright e2e output (handoff 09)
+e2e-results/
+playwright-report/
+test-results/

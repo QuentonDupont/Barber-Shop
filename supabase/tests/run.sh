@@ -11,11 +11,11 @@
 #
 set -euo pipefail
 
-DB="${BOOKLY_TEST_DB:-bookly_test}"
+DB="${TATNAT_TEST_DB:-tatnat_test}"
 PSQL=(psql -v ON_ERROR_STOP=1 -q)
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-echo "Rebuilding $DB…"
+echo "Rebuilding ${DB}…"
 "${PSQL[@]}" -d postgres -c "drop database if exists ${DB};" -c "create database ${DB};"
 
 echo "Applying the Supabase shim (auth schema, roles, auth.uid)…"
@@ -38,8 +38,23 @@ run_assertions() {
 
 echo "Running assertions…"
 failures=0
-# 1x and 2x build their own fixtures and expect an otherwise empty database.
-for file in "$ROOT"/supabase/tests/[12]*.sql; do run_assertions "$file"; done
+# Everything that isn't the shim (already applied above) or the seed-
+# dependent 3x bucket (below) builds its own fixtures and expects an
+# otherwise-empty database — 10x, 20x, 25x, 40x, and anything added later.
+#
+# This is an exclude list, not an allow list, on purpose: an earlier version
+# used `[12]*.sql` here, which silently skipped `40_multi_staff.sql` (QA
+# report #4 §3) because its prefix wasn't in the allow-listed set of digits.
+# Excluding only the two things that are genuinely special (the shim, and
+# "needs seed.sql first") means a brand new file — 50x, 60x, whatever comes
+# next — runs automatically instead of needing this script edited again.
+for file in "$ROOT"/supabase/tests/*.sql; do
+  base="$(basename "$file")"
+  case "$base" in
+    00_supabase_shim.sql|3*.sql) continue ;;
+  esac
+  run_assertions "$file"
+done
 
 echo "Applying the seed…"
 if ! "${PSQL[@]}" -d "$DB" -f "$ROOT/supabase/seed.sql" > "$DB.log" 2>&1; then
@@ -48,7 +63,9 @@ if ! "${PSQL[@]}" -d "$DB" -f "$ROOT/supabase/seed.sql" > "$DB.log" 2>&1; then
 fi
 grep -E "ERROR|Seeded" "$DB.log" | sed 's/^psql:[^ ]*[0-9]: //;s/^NOTICE:  //'
 
-# 3x checks the seed's output alongside the earlier fixtures.
+# 3x checks the seed's output alongside the earlier fixtures — the only
+# bucket that depends on seed.sql having run. Anything that doesn't need the
+# seed belongs in the loop above, not here.
 for file in "$ROOT"/supabase/tests/3*.sql; do run_assertions "$file"; done
 rm -f "$DB.log"
 

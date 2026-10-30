@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { requireBusiness } from "@/lib/auth";
 import { businessPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Services" };
 
 export default async function ServicesPage() {
   const ctx = await requireBusiness();
   const supabase = await createClient();
+  const locale = await getLocale();
 
   const { data: services } = await supabase
     .from("services")
@@ -24,13 +27,13 @@ export default async function ServicesPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Services"
-        description="Everything here is what customers see on your booking page — names, descriptions, prices and the order they appear in. Tap a service to change it."
+        title={t(locale, "servicesAdmin.pageTitle")}
+        description={t(locale, "servicesAdmin.pageDescription")}
         action={
           <Button asChild variant="outline" size="sm">
             <Link href={businessPath(ctx.business.slug)}>
               <Eye />
-              Preview your page
+              {t(locale, "servicesAdmin.previewYourPage")}
             </Link>
           </Button>
         }

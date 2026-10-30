@@ -4,6 +4,12 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
+
+function CloseLabel() {
+  const t = useT();
+  return <span className="sr-only">{t("ui.close")}</span>;
+}
 
 /**
  * One component, two presentations:
@@ -73,7 +79,7 @@ const SheetContent = React.forwardRef<
             )}
           >
             <X className="size-5" />
-            <span className="sr-only">Close</span>
+            <CloseLabel />
           </DialogPrimitive.Close>
         )}
       </div>
@@ -86,7 +92,7 @@ const SheetContent = React.forwardRef<
           )}
         >
           <X className="size-4" />
-          <span className="sr-only">Close</span>
+          <CloseLabel />
         </DialogPrimitive.Close>
       )}
     </DialogPrimitive.Content>

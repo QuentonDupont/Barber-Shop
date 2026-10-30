@@ -4,14 +4,15 @@ import { useState } from "react";
 import { CalendarX } from "lucide-react";
 import { EmptyState } from "@/components/ui/misc";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/context";
 import { CampaignCard, type FeedCampaign } from "./campaign-card";
 
 type Filter = "all" | "event" | "sale";
 
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "event", label: "Events" },
-  { value: "sale", label: "Sales" },
+const FILTERS: { value: Filter; labelKey: string }[] = [
+  { value: "all", labelKey: "customer.filterAll" },
+  { value: "event", labelKey: "customer.filterEvents" },
+  { value: "sale", labelKey: "customer.filterSales" },
 ];
 
 export function WhatsOnFeed({
@@ -21,6 +22,7 @@ export function WhatsOnFeed({
   campaigns: FeedCampaign[];
   subscribedIds: string[];
 }) {
+  const t = useT();
   const [filter, setFilter] = useState<Filter>("all");
   const subscribed = new Set(subscribedIds);
   const shown = campaigns.filter((c) => filter === "all" || c.kind === filter);
@@ -45,7 +47,7 @@ export function WhatsOnFeed({
                   : "border border-border bg-surface text-fg-muted hover:bg-surface-muted",
               )}
             >
-              {f.label}
+              {t(f.labelKey)}
               <span className={cn("text-xs", active ? "text-primary-fg/70" : "text-fg-subtle")}>{count}</span>
             </button>
           );
@@ -55,8 +57,8 @@ export function WhatsOnFeed({
       {shown.length === 0 ? (
         <EmptyState
           icon={CalendarX}
-          title="Nothing on right now"
-          description="No events or sales are live at the moment. Check back soon — this is where they'll appear."
+          title={t("customer.nothingOnTitle")}
+          description={t("customer.nothingOnDescription")}
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

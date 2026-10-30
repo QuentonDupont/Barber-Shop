@@ -17,26 +17,31 @@ import { buildDB, type MockDB } from "./fixtures";
  * auto-rebuilds on a version mismatch, so schema additions don't require a
  * manual dev-server restart to clear a stale singleton.
  */
-const SCHEMA_VERSION = 2;
+// v3: handoff 07 — added consent_records, deletion_requests, and registered
+// the pre-existing customer_notes table in the mock store.
+// v4: handoff 08 (runtime fix) — registered staff_services and seeded
+// staff for the barber shop, so multi-staff booking is exercisable in mock
+// mode instead of 500ing the moment a shop has barbers.
+const SCHEMA_VERSION = 5;
 
 const globalForMock = globalThis as unknown as {
-  __booklyMockDB?: MockDB;
-  __booklyMockVersion?: number;
+  __tatnatMockDB?: MockDB;
+  __tatnatMockVersion?: number;
 };
 
 export function store(): MockDB {
-  if (!globalForMock.__booklyMockDB || globalForMock.__booklyMockVersion !== SCHEMA_VERSION) {
-    globalForMock.__booklyMockDB = buildDB();
-    globalForMock.__booklyMockVersion = SCHEMA_VERSION;
+  if (!globalForMock.__tatnatMockDB || globalForMock.__tatnatMockVersion !== SCHEMA_VERSION) {
+    globalForMock.__tatnatMockDB = buildDB();
+    globalForMock.__tatnatMockVersion = SCHEMA_VERSION;
   }
-  return globalForMock.__booklyMockDB;
+  return globalForMock.__tatnatMockDB;
 }
 
 /** Rebuild the fixtures from scratch (used by the dev reset endpoint). */
 export function resetStore(): MockDB {
-  globalForMock.__booklyMockDB = buildDB();
-  globalForMock.__booklyMockVersion = SCHEMA_VERSION;
-  return globalForMock.__booklyMockDB;
+  globalForMock.__tatnatMockDB = buildDB();
+  globalForMock.__tatnatMockVersion = SCHEMA_VERSION;
+  return globalForMock.__tatnatMockDB;
 }
 
 export type { MockDB };

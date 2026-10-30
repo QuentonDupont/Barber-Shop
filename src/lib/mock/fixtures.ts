@@ -16,13 +16,18 @@ import type {
   BookingRow,
   CampaignRow,
   CampaignSubscriptionRow,
+  ConsentRecordRow,
+  CustomerNoteRow,
+  DeletionRequestRow,
   OrderRow,
   ProductRow,
   ProfileRow,
   ServiceRow,
   StaffRow,
+  StaffServiceRow,
   UserRole,
 } from "@/lib/database.types";
+import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
 
 export interface MockAuthUser {
   id: string;
@@ -45,12 +50,31 @@ export interface MockDB {
   business_breaks: BusinessBreakRow[];
   services: ServiceRow[];
   staff: StaffRow[];
+  /**
+   * Registered for handoff 08 (runtime fix): `loadStaffWithServices`
+   * (`src/lib/booking/availability.ts`) always queries this table once a
+   * business has any `staff` rows at all — leaving it off `MockDB` made
+   * `table_()` in `mock/client.ts` throw `unknown table "staff_services"`
+   * the moment a seeded shop had barbers, a 500 that stayed hidden only
+   * because no fixture business had staff yet.
+   */
+  staff_services: StaffServiceRow[];
   availability_overrides: AvailabilityOverrideRow[];
   bookings: BookingRow[];
   products: ProductRow[];
   campaigns: CampaignRow[];
   campaign_subscriptions: CampaignSubscriptionRow[];
   orders: OrderRow[];
+  /**
+   * Added for handoff 07 (PDPA). `customer_notes` was already in the real
+   * schema (stretch A, `20261020120000_stretch_a_notes_and_policy.sql`) but
+   * had never been registered here, so mock mode couldn't exercise it —
+   * closing that gap now since the data-export feature (item 12) needs to
+   * read it.
+   */
+  customer_notes: CustomerNoteRow[];
+  consent_records: ConsentRecordRow[];
+  deletion_requests: DeletionRequestRow[];
 }
 
 const TZ = "Asia/Bangkok"; // +07:00, no DST
@@ -107,6 +131,11 @@ const SVC_THAI60 = "c0000000-0000-4000-8000-000000000005";
 const SVC_THAI120 = "c0000000-0000-4000-8000-000000000006";
 const SVC_AROMA = "c0000000-0000-4000-8000-000000000007";
 
+// Barber staff (roadmap.md §1 row 4 — multi-staff booking needs the demo
+// shop to actually have barbers).
+const STAFF_NONG = "d0000000-0000-4000-8000-000000000001";
+const STAFF_PLOY = "d0000000-0000-4000-8000-000000000002";
+
 /* -------------------------------------------------------------------------- */
 /* Builder                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -135,8 +164,8 @@ export function buildDB(): MockDB {
   const authUsers: MockAuthUser[] = [
     {
       id: OWNER,
-      email: "owner@bookly.local",
-      password: "bookly123",
+      email: "owner@tatnat.local",
+      password: "tatnat123",
       user_metadata: {
         role: "business_owner",
         full_name: "Nong Srisuk",
@@ -146,8 +175,8 @@ export function buildDB(): MockDB {
     },
     {
       id: CUSTOMER,
-      email: "customer@bookly.local",
-      password: "bookly123",
+      email: "customer@tatnat.local",
+      password: "tatnat123",
       user_metadata: {
         role: "customer",
         full_name: "Ann Suwannee",
@@ -158,8 +187,8 @@ export function buildDB(): MockDB {
   ];
 
   const profiles: ProfileRow[] = [
-    profile(OWNER, "business_owner", "Nong Srisuk", "081 000 0001", "owner@bookly.local"),
-    profile(CUSTOMER, "customer", "Ann Suwannee", "081 000 0002", "customer@bookly.local"),
+    profile(OWNER, "business_owner", "Nong Srisuk", "081 000 0001", "owner@tatnat.local"),
+    profile(CUSTOMER, "customer", "Ann Suwannee", "081 000 0002", "customer@tatnat.local"),
     profile(WALK_IN_1, "customer", "Somchai Prasert", "081 111 2222", null),
     profile(WALK_IN_2, "customer", "Malee Thongdee", "081 333 4444", null),
     profile(WALK_IN_3, "customer", "Anucha Kitti", "081 555 6666", null),
@@ -181,6 +210,7 @@ export function buildDB(): MockDB {
       phone: "02 123 4567",
       line_id: "@nongbarber",
       cover_url: null,
+      cancellation_policy: "Free up to 2 hours before your appointment; 50% charge inside that window, full charge for a no-show.",
       slot_interval_min: 15,
       min_notice_min: 60,
       max_advance_days: 60,
@@ -205,6 +235,7 @@ export function buildDB(): MockDB {
       phone: "02 987 6543",
       line_id: null,
       cover_url: null,
+      cancellation_policy: null,
       slot_interval_min: 30,
       min_notice_min: 120,
       max_advance_days: 45,
@@ -280,6 +311,37 @@ export function buildDB(): MockDB {
     service(SVC_AROMA, SPA, "Aromatherapy", "Oil massage with a scent of your choosing.", 90, 15, 1400, 3),
   ];
 
+  /* ---- staff (multi-staff booking) --------------------------------------- */
+
+  // Nong performs everything (no `staff_services` rows = default-open, see
+  // `staffCanPerform`). Ploy is narrowed to cuts and fades only, so the
+  // demo shows the "choose your barber" step actually filtering by service.
+  const staff: StaffRow[] = [
+    {
+      id: STAFF_NONG,
+      business_id: BARBER,
+      name: "Nong",
+      avatar_url: null,
+      works_weekdays: [0, 1, 2, 3, 4, 5, 6],
+      is_active: true,
+      created_at: now,
+    },
+    {
+      id: STAFF_PLOY,
+      business_id: BARBER,
+      name: "Ploy",
+      avatar_url: null,
+      works_weekdays: [1, 2, 3, 4, 5],
+      is_active: true,
+      created_at: now,
+    },
+  ];
+
+  const staff_services: StaffServiceRow[] = [
+    { staff_id: STAFF_PLOY, service_id: SVC_CUT, created_at: now },
+    { staff_id: STAFF_PLOY, service_id: SVC_FADE, created_at: now },
+  ];
+
   const availability_overrides: AvailabilityOverrideRow[] = [
     {
       id: "ovr-barber-holiday",
@@ -303,6 +365,7 @@ export function buildDB(): MockDB {
     time: string;
     duration_min: number;
     status: BookingRow["status"];
+    source?: BookingRow["source"];
     service_name: string;
     price: number;
     customer_name: string;
@@ -319,9 +382,11 @@ export function buildDB(): MockDB {
       service_id: args.service_id,
       customer_id: args.customer_id,
       staff_id: null,
+      staff_name: null,
       starts_at,
       ends_at,
       status: args.status,
+      source: args.source ?? "customer",
       notes: args.notes ?? null,
       service_name: args.service_name,
       price: args.price,
@@ -396,6 +461,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_SHAVE,
       customer_id: WALK_IN_1,
+      source: "shop",
       dateKey: today,
       time: "10:15",
       duration_min: 30,
@@ -409,6 +475,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_COMBO,
       customer_id: WALK_IN_2,
+      source: "shop",
       dateKey: today,
       time: "14:30",
       duration_min: 90,
@@ -422,6 +489,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_CUT,
       customer_id: WALK_IN_3,
+      source: "shop",
       dateKey: today,
       time: "17:00",
       duration_min: 45,
@@ -435,6 +503,7 @@ export function buildDB(): MockDB {
       business_id: BARBER,
       service_id: SVC_FADE,
       customer_id: WALK_IN_1,
+      source: "shop",
       dateKey: shiftDate(today, 2),
       time: "11:30",
       duration_min: 60,
@@ -444,6 +513,37 @@ export function buildDB(): MockDB {
       customer_name: "Somchai Prasert",
       customer_phone: "081 111 2222",
     }),
+
+    // --- Recent history at the barber, so the owner's weekly numbers page
+    // (and the no-show button's undo) has something to show. Mostly
+    // customer-made, a few shop-entered, a couple of no-shows. ---
+    ...[
+      // [days ago, time, status, source, customer]
+      [-2, "10:00", "completed", "customer", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-2, "14:00", "no_show", "customer", WALK_IN_2, "Malee Thongdee", "081 333 4444"],
+      [-3, "11:00", "completed", "customer", WALK_IN_3, "Anucha Kitti", "081 555 6666"],
+      [-4, "16:00", "completed", "shop", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-9, "10:00", "completed", "customer", WALK_IN_2, "Malee Thongdee", "081 333 4444"],
+      [-9, "13:00", "completed", "customer", WALK_IN_3, "Anucha Kitti", "081 555 6666"],
+      [-10, "15:00", "no_show", "shop", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-16, "10:00", "completed", "customer", WALK_IN_1, "Somchai Prasert", "081 111 2222"],
+      [-17, "12:00", "cancelled", "customer", WALK_IN_2, "Malee Thongdee", "081 333 4444"],
+    ].map(([offset, time, status, source, customer_id, customer_name, customer_phone]) =>
+      booking({
+        business_id: BARBER,
+        service_id: SVC_CUT,
+        customer_id: customer_id as string,
+        dateKey: shiftDate(today, offset as number),
+        time: time as string,
+        duration_min: 45,
+        status: status as BookingRow["status"],
+        source: source as BookingRow["source"],
+        service_name: "Men's cut",
+        price: 350,
+        customer_name: customer_name as string,
+        customer_phone: customer_phone as string,
+      }),
+    ),
   ];
 
   /* ---- products (merch) ------------------------------------------------- */
@@ -539,6 +639,34 @@ export function buildDB(): MockDB {
     },
   ];
 
+  // The demo customer's only note from the barber shop — gives "Download my
+  // data" (item 12) something real to include.
+  const customer_notes: CustomerNoteRow[] = [
+    {
+      id: "note-1",
+      business_id: BARBER,
+      customer_id: CUSTOMER,
+      note: "Usual: skin fade, prefers quiet.",
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+
+  // The demo customer already consented under the current policy version, so
+  // the account page's "Your data" section (item 11) has something to show
+  // out of the box.
+  const consent_records: ConsentRecordRow[] = [
+    {
+      id: "consent-1",
+      user_id: CUSTOMER,
+      policy_version: PRIVACY_POLICY_VERSION,
+      consented_at: now,
+      withdrawn_at: null,
+    },
+  ];
+
+  const deletion_requests: DeletionRequestRow[] = [];
+
   return {
     authUsers,
     profiles,
@@ -546,12 +674,16 @@ export function buildDB(): MockDB {
     business_hours: [...barberHours, ...spaHours],
     business_breaks: barberBreaks,
     services,
-    staff: [],
+    staff,
+    staff_services,
     availability_overrides,
     bookings,
     products,
     campaigns,
     campaign_subscriptions,
     orders,
+    customer_notes,
+    consent_records,
+    deletion_requests,
   };
 }

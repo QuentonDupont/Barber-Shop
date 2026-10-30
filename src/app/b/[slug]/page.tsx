@@ -3,18 +3,39 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, MapPin, MessageCircle, Phone } from "lucide-react";
 import { PageContainer } from "@/components/shared/app-shell";
-import { BookingFlow, type DayPayload, type Viewer } from "@/components/customer/booking-flow";
+import {
+  BookingFlow,
+  type DayPayload,
+  type StaffAvailabilityEntry,
+  type StaffOption,
+  type Viewer,
+} from "@/components/customer/booking-flow";
 import { BusinessTabs } from "@/components/customer/business-tabs";
 import { Alert } from "@/components/ui/alert";
-import { CATEGORY_LABEL } from "@/components/customer/business-card";
 import { Badge } from "@/components/ui/badge";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   availabilityForRange,
+  bookableStaffFor,
   loadAvailabilitySources,
+  loadStaffWithServices,
+  staffCanPerform,
+  staffWorksWeekday,
 } from "@/lib/booking/availability";
+import type { Slot } from "@/lib/booking/slots";
 import { businessToday, shiftDateKey, type DateKey } from "@/lib/booking/time";
+import { categoryLabel, t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
+
+/** Union of two staff members' slot lists for one day — "any available" is
+ * open at a time if at least one eligible barber is free then. */
+function mergeSlots(a: Slot[], b: Slot[]): Slot[] {
+  const byStart = new Map<string, Slot>();
+  for (const slot of a) byStart.set(slot.startsAt, slot);
+  for (const slot of b) byStart.set(slot.startsAt, slot);
+  return Array.from(byStart.values()).sort((x, y) => x.startMinute - y.startMinute);
+}
 
 /**
  * How many days of full slot data travel with the page.
@@ -43,7 +64,7 @@ export async function generateMetadata({
   if (!data) return { title: "Not found" };
   return {
     title: data.name,
-    description: data.description ?? `Book an appointment at ${data.name} on Bookly.`,
+    description: data.description ?? `Book an appointment at ${data.name} on TatNat.`,
   };
 }
 
@@ -56,6 +77,7 @@ export default async function BusinessPage({
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const session = await getSession().catch(() => null);
+  const locale = await getLocale();
 
   const supabase = await createClient();
 
@@ -130,34 +152,114 @@ export default async function BusinessPage({
 
   let openDays: Record<DateKey, boolean> = {};
   let loadedDays: DayPayload[] = [];
+  let staffOptions: StaffOption[] = [];
+  const staffByMember: Record<string, StaffAvailabilityEntry> = {};
 
   if (selectedService) {
-    // The horizon drives the calendar's greying; the window around the selected
-    // date carries the actual slot lists.
-    const sources = await loadAvailabilitySources(
-      supabase,
-      business,
-      today,
-      maxDate,
-    );
-
-    const horizon = availabilityForRange(
-      business,
-      selectedService,
-      sources,
-      today,
-      horizonDays + 1,
-    );
-
-    openDays = Object.fromEntries(
-      horizon.map((day) => [day.date, day.slots.length > 0]),
-    );
-
     const windowStart = requested;
     const windowEnd = shiftDateKey(windowStart, PREFETCH_DAYS - 1);
-    loadedDays = horizon
-      .filter((day) => day.date >= windowStart && day.date <= windowEnd)
-      .map((day) => ({ date: day.date, slots: day.slots }));
+
+    // Multi-staff (roadmap.md §1 row 4). `allStaff` (zero rows) is the only
+    // gate for the pre-multi-staff fallback below — matches
+    // `createBookingAction`'s own gate, so the client's "is there a staff
+    // step" decision never disagrees with what the server will actually do.
+    // `eligibleStaff` (active + narrowed to services that include this one,
+    // or narrowed to none) may still be empty with staff configured — that's
+    // a real "nobody can take this service" state, not a business-wide one.
+    const allStaff = await loadStaffWithServices(supabase, business.id);
+
+    if (allStaff.length === 0) {
+      // No staff configured for this business at all: book exactly as before
+      // this feature existed — one business-wide calendar, no staff step.
+      const sources = await loadAvailabilitySources(supabase, business, today, maxDate);
+
+      const horizon = availabilityForRange(
+        business,
+        selectedService,
+        sources,
+        today,
+        horizonDays + 1,
+      );
+
+      openDays = Object.fromEntries(
+        horizon.map((day) => [day.date, day.slots.length > 0]),
+      );
+      loadedDays = horizon
+        .filter((day) => day.date >= windowStart && day.date <= windowEnd)
+        .map((day) => ({ date: day.date, slots: day.slots }));
+    } else {
+      // Staff exist for this business: every booking now resolves through a
+      // staff member server-side (`createBookingAction`'s `allStaff.length
+      // === 0` branch no longer applies), so compute per-staff availability
+      // and an "any available" union — even if `eligibleStaff` below turns
+      // out empty, in which case every day is correctly closed rather than
+      // falling back to a business-wide view the server would then reject.
+      const eligibleStaff = allStaff.filter(
+        (staff) => staff.is_active && staffCanPerform(staff, selectedService.id),
+      );
+
+      // Pre-seed every date in the horizon/window so a day with zero
+      // eligible staff still arrives as "closed with no slots", not
+      // "never loaded" (which would leave the Time step spinning forever).
+      const anyOpenDays: Record<DateKey, boolean> = {};
+      const anyLoadedByDate = new Map<DateKey, Slot[]>();
+      for (let i = 0; i <= horizonDays; i += 1) {
+        const date = shiftDateKey(today, i);
+        anyOpenDays[date] = false;
+        if (date >= windowStart && date <= windowEnd) {
+          anyLoadedByDate.set(date, []);
+        }
+      }
+
+      for (const staff of eligibleStaff) {
+        const sources = await loadAvailabilitySources(supabase, business, today, maxDate, {
+          staffId: staff.id,
+        });
+
+        const horizon = availabilityForRange(
+          business,
+          selectedService,
+          sources,
+          today,
+          horizonDays + 1,
+        );
+
+        const staffOpenDays: Record<DateKey, boolean> = {};
+        const staffLoadedDays: DayPayload[] = [];
+
+        for (const day of horizon) {
+          // The availability engine only knows the business's own hours —
+          // close out any day this staff member isn't rostered to work,
+          // regardless of what it computed.
+          const worksThatDay = staffWorksWeekday(staff, day.date);
+          const slots = worksThatDay ? day.slots : [];
+          const isOpen = slots.length > 0;
+
+          staffOpenDays[day.date] = isOpen;
+          anyOpenDays[day.date] = (anyOpenDays[day.date] ?? false) || isOpen;
+
+          if (day.date >= windowStart && day.date <= windowEnd) {
+            staffLoadedDays.push({ date: day.date, slots });
+            anyLoadedByDate.set(day.date, mergeSlots(anyLoadedByDate.get(day.date) ?? [], slots));
+          }
+        }
+
+        staffByMember[staff.id] = { openDays: staffOpenDays, loadedDays: staffLoadedDays };
+      }
+
+      // Default (no staff chosen yet) is "any available".
+      openDays = anyOpenDays;
+      loadedDays = Array.from(anyLoadedByDate.entries()).map(([date, slots]) => ({
+        date,
+        slots,
+      }));
+
+      staffOptions = bookableStaffFor(allStaff, selectedService.id, requested).map((staff) => ({
+        id: staff.id,
+        name: staff.name,
+        avatarUrl: staff.avatar_url,
+      }));
+    }
   }
 
   return (
@@ -167,18 +269,26 @@ export default async function BusinessPage({
         className="mb-3 inline-flex min-h-11 items-center gap-1.5 -ml-2 px-2 text-sm font-medium text-fg-muted transition-colors hover:text-fg"
       >
         <ArrowLeft className="size-4" />
-        {viewer === "owner" ? "Back to your services" : viewer === "other-business" ? "Your dashboard" : "All places"}
+        {viewer === "owner"
+          ? t(locale, "listing.backToServices")
+          : viewer === "other-business"
+            ? t(locale, "listing.backToDashboard")
+            : t(locale, "listing.backAllPlaces")}
       </Link>
 
       {viewer === "owner" ? (
         <Alert
           tone={business.is_published ? "info" : "warning"}
-          title={business.is_published ? "This is what customers see" : "Preview — not published yet"}
+          title={
+            business.is_published
+              ? t(locale, "listing.ownerPreviewLiveTitle")
+              : t(locale, "listing.ownerPreviewDraftTitle")
+          }
           className="mb-5"
         >
           {business.is_published
-            ? "Change a service's name, price, description or order under Services and it updates here straight away."
-            : "Only you can see this page. Publish it from Settings when you're ready to take bookings."}
+            ? t(locale, "listing.ownerPreviewLiveBody")
+            : t(locale, "listing.ownerPreviewDraftBody")}
         </Alert>
       ) : null}
 
@@ -195,11 +305,11 @@ export default async function BusinessPage({
               {business.name}
             </h1>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Badge tone="outline">{CATEGORY_LABEL[business.category]}</Badge>
+              <Badge tone="outline">{categoryLabel(business.category, locale)}</Badge>
               {business.auto_confirm ? (
-                <Badge tone="success">Instant confirmation</Badge>
+                <Badge tone="success">{t(locale, "listing.instantConfirmation")}</Badge>
               ) : (
-                <Badge tone="warning">Confirmed by the shop</Badge>
+                <Badge tone="warning">{t(locale, "listing.confirmedByShop")}</Badge>
               )}
             </div>
           </div>
@@ -237,7 +347,7 @@ export default async function BusinessPage({
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted"
             >
               <Phone className="size-4 shrink-0 text-accent" />
-              Call
+              {t(locale, "listing.call")}
             </a>
           ) : null}
 
@@ -249,9 +359,18 @@ export default async function BusinessPage({
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted"
             >
               <MessageCircle className="size-4 shrink-0 text-accent" />
-              LINE
+              {t(locale, "listing.line")}
             </a>
           ) : null}
+        </div>
+
+        {/* Cancellation/no-show policy — repeated here, on the booking-confirmation
+            screen and in the confirmation email (roadmap.md §1 row 6). */}
+        <div className="mt-4 rounded-xl border border-border bg-surface-muted p-3.5">
+          <p className="text-sm font-semibold">{t(locale, "listing.cancellationPolicyHeading")}</p>
+          <p className="mt-1 text-sm text-fg-muted text-pretty">
+            {business.cancellation_policy || t(locale, "listing.cancellationPolicyFallback")}
+          </p>
         </div>
       </header>
 
@@ -266,6 +385,8 @@ export default async function BusinessPage({
             maxDate={maxDate}
             openDays={openDays}
             loadedDays={loadedDays}
+            staffOptions={staffOptions}
+            staffByMember={staffByMember}
             viewer={viewer}
           />
         }

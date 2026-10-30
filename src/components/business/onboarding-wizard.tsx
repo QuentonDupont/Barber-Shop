@@ -25,23 +25,21 @@ import {
 } from "@/lib/actions/business";
 import { idleState } from "@/lib/actions/types";
 import type { BusinessCategory, BusinessRow } from "@/lib/database.types";
+import { categoryLabel } from "@/lib/i18n/dictionaries";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
-const CATEGORY_OPTIONS: { value: BusinessCategory; label: string }[] = [
-  { value: "barber", label: "Barber shop" },
-  { value: "salon", label: "Hair / beauty salon" },
-  { value: "spa", label: "Spa & massage" },
-  { value: "clinic", label: "Clinic" },
-  { value: "fitness", label: "Fitness & studio" },
-  { value: "event", label: "Events" },
-  { value: "other", label: "Something else" },
+const CATEGORY_VALUES: BusinessCategory[] = [
+  "barber",
+  "salon",
+  "spa",
+  "clinic",
+  "fitness",
+  "event",
+  "other",
 ];
 
-const STEPS = [
-  { number: 1, label: "Your business", icon: Store },
-  { number: 2, label: "Location", icon: MapPin },
-  { number: 3, label: "Opening hours", icon: Clock3 },
-] as const;
+const STEP_ICONS = { 1: Store, 2: MapPin, 3: Clock3 } as const;
 
 export function OnboardingWizard({
   step,
@@ -52,25 +50,26 @@ export function OnboardingWizard({
   business: BusinessRow | null;
   initialHours: DayHours[] | null;
 }) {
+  const t = useT();
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-6 sm:mb-8">
         <p className="text-sm font-semibold text-accent">
-          Step {step} of {STEPS.length}
+          {t("onboardingAdmin.stepOf", { step, total: 3 })}
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
           {step === 1
-            ? "Tell us about your business"
+            ? t("onboardingAdmin.step1Heading")
             : step === 2
-              ? "Where can customers find you?"
-              : "When are you open?"}
+              ? t("onboardingAdmin.step2Heading")
+              : t("onboardingAdmin.step3Heading")}
         </h1>
         <p className="mt-1.5 text-sm text-fg-muted text-pretty">
           {step === 1
-            ? "This is what customers see when they search. You can change any of it later."
+            ? t("onboardingAdmin.step1Sub")
             : step === 2
-              ? "Search your address, then drag the pin to your exact door."
-              : "Bookly turns these hours into bookable slots. Breaks are blocked out automatically."}
+              ? t("onboardingAdmin.step2Sub")
+              : t("onboardingAdmin.step3Sub")}
         </p>
       </div>
 
@@ -87,11 +86,18 @@ export function OnboardingWizard({
 
 /** Progress rail: icons only on a phone, labels once there is room. */
 function StepRail({ current }: { current: number }) {
+  const t = useT();
+  const steps = [
+    { number: 1 as const, label: t("onboardingAdmin.stepBusiness") },
+    { number: 2 as const, label: t("onboardingAdmin.stepLocation") },
+    { number: 3 as const, label: t("onboardingAdmin.stepHours") },
+  ];
   return (
-    <ol className="flex items-center gap-1.5" aria-label="Setup progress">
-      {STEPS.map((item, index) => {
+    <ol className="flex items-center gap-1.5" aria-label={t("onboardingAdmin.setupProgressLabel")}>
+      {steps.map((item, index) => {
         const done = item.number < current;
         const active = item.number === current;
+        const Icon = STEP_ICONS[item.number];
         return (
           <li key={item.number} className="flex flex-1 items-center gap-1.5">
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
@@ -110,12 +116,14 @@ function StepRail({ current }: { current: number }) {
                 {done ? (
                   <Check className="size-3.5 shrink-0" />
                 ) : (
-                  <item.icon className="size-3.5 shrink-0" />
+                  <Icon className="size-3.5 shrink-0" />
                 )}
                 <span className="hidden truncate sm:inline">{item.label}</span>
               </span>
             </div>
-            {index < STEPS.length - 1 ? <span className="sr-only">then</span> : null}
+            {index < steps.length - 1 ? (
+              <span className="sr-only">{t("onboardingAdmin.then")}</span>
+            ) : null}
           </li>
         );
       })}
@@ -134,6 +142,8 @@ function StepSubmit({ children }: { children: React.ReactNode }) {
 }
 
 function BasicsStep({ business }: { business: BusinessRow | null }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [state, formAction] = useActionState(saveBusinessBasicsAction, idleState);
   const [category, setCategory] = useState<BusinessCategory>(business?.category ?? "barber");
   const errors = state.fieldErrors ?? {};
@@ -144,30 +154,30 @@ function BasicsStep({ business }: { business: BusinessRow | null }) {
         <Alert tone="error">{state.message}</Alert>
       ) : null}
 
-      <Field label="Business name" htmlFor="name" error={errors.name} required>
+      <Field label={t("onboardingAdmin.businessNameLabel")} htmlFor="name" error={errors.name} required>
         <Input
           id="name"
           name="name"
           defaultValue={business?.name ?? ""}
-          placeholder="Nong's Barber Shop"
+          placeholder={t("onboardingAdmin.businessNamePlaceholder")}
           enterKeyHint="next"
           aria-invalid={Boolean(errors.name)}
           required
         />
       </Field>
 
-      <Field label="What kind of business is it?" error={errors.category} required>
+      <Field label={t("onboardingAdmin.businessTypeLabel")} error={errors.category} required>
         <Select
           value={category}
           onValueChange={(value) => setCategory(value as BusinessCategory)}
         >
-          <SelectTrigger aria-label="Business category">
+          <SelectTrigger aria-label={t("onboardingAdmin.businessCategoryAriaLabel")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {CATEGORY_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+            {CATEGORY_VALUES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {categoryLabel(value, locale)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -175,7 +185,7 @@ function BasicsStep({ business }: { business: BusinessRow | null }) {
         <input type="hidden" name="category" value={category} />
       </Field>
 
-      <Field label="Phone number" htmlFor="phone" error={errors.phone} required>
+      <Field label={t("onboardingAdmin.phoneNumberLabel")} htmlFor="phone" error={errors.phone} required>
         <Input
           id="phone"
           name="phone"
@@ -184,49 +194,50 @@ function BasicsStep({ business }: { business: BusinessRow | null }) {
           autoComplete="tel"
           enterKeyHint="next"
           defaultValue={business?.phone ?? ""}
-          placeholder="02 123 4567"
+          placeholder={t("onboardingAdmin.phoneNumberPlaceholder")}
           aria-invalid={Boolean(errors.phone)}
           required
         />
       </Field>
 
       <Field
-        label="LINE ID"
+        label={t("onboardingAdmin.lineIdLabel")}
         htmlFor="lineId"
         error={errors.lineId}
-        hint="Optional. Shown on your booking page so customers can message you."
+        hint={t("onboardingAdmin.lineIdHint")}
       >
         <Input
           id="lineId"
           name="lineId"
           defaultValue={business?.line_id ?? ""}
-          placeholder="@nongsbarber"
+          placeholder={t("onboardingAdmin.lineIdPlaceholder")}
           autoCapitalize="none"
           enterKeyHint="next"
         />
       </Field>
 
       <Field
-        label="Short description"
+        label={t("onboardingAdmin.shortDescriptionLabel")}
         htmlFor="description"
         error={errors.description}
-        hint="Optional. One or two lines about what you do."
+        hint={t("onboardingAdmin.shortDescriptionHint")}
       >
         <Textarea
           id="description"
           name="description"
           defaultValue={business?.description ?? ""}
-          placeholder="Classic cuts and hot-towel shaves, five minutes from BTS Asok."
+          placeholder={t("onboardingAdmin.shortDescriptionPlaceholder")}
           maxLength={600}
         />
       </Field>
 
-      <StepSubmit>Continue</StepSubmit>
+      <StepSubmit>{t("onboardingAdmin.continueButton")}</StepSubmit>
     </form>
   );
 }
 
 function LocationStep({ business }: { business: BusinessRow | null }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveBusinessLocationAction, idleState);
   const [location, setLocation] = useState<LocationValue>({
     address: business?.address ?? "",
@@ -248,12 +259,12 @@ function LocationStep({ business }: { business: BusinessRow | null }) {
 
       <div className="flex flex-col gap-2 sm:flex-row-reverse">
         <div className="sm:flex-1">
-          <StepSubmit>Continue</StepSubmit>
+          <StepSubmit>{t("onboardingAdmin.continueButton")}</StepSubmit>
         </div>
         <Button asChild variant="ghost" size="lg" className="sm:w-auto">
           <Link href="/dashboard/onboarding?step=1">
             <ArrowLeft />
-            Back
+            {t("common.back")}
           </Link>
         </Button>
       </div>
@@ -262,6 +273,7 @@ function LocationStep({ business }: { business: BusinessRow | null }) {
 }
 
 function HoursStep({ initialHours }: { initialHours: DayHours[] }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveBusinessHoursAction, idleState);
   const [days, setDays] = useState<DayHours[]>(initialHours);
 
@@ -275,12 +287,12 @@ function HoursStep({ initialHours }: { initialHours: DayHours[] }) {
 
       <div className="flex flex-col gap-2 sm:flex-row-reverse">
         <div className="sm:flex-1">
-          <StepSubmit>Finish setup</StepSubmit>
+          <StepSubmit>{t("onboardingAdmin.finishSetup")}</StepSubmit>
         </div>
         <Button asChild variant="ghost" size="lg" className="sm:w-auto">
           <Link href="/dashboard/onboarding?step=2">
             <ArrowLeft />
-            Back
+            {t("common.back")}
           </Link>
         </Button>
       </div>

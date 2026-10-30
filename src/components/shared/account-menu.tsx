@@ -5,6 +5,7 @@ import { LogOut, Moon, Sun, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/misc";
 import { signOutAction } from "@/lib/actions/auth";
+import { useT } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -15,7 +16,7 @@ function useTheme() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("bookly-theme");
+    const stored = window.localStorage.getItem("tatnat-theme");
     const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isDark = stored ? stored === "dark" : prefers;
     setDark(isDark);
@@ -26,7 +27,7 @@ function useTheme() {
     setDark((current) => {
       const next = !current;
       document.documentElement.classList.toggle("dark", next);
-      window.localStorage.setItem("bookly-theme", next ? "dark" : "light");
+      window.localStorage.setItem("tatnat-theme", next ? "dark" : "light");
       return next;
     });
   };
@@ -44,6 +45,7 @@ export function AccountMenu({
   variant?: "compact" | "sidebar";
 }) {
   const { dark, toggle } = useTheme();
+  const t = useT();
   // The sign-out form lives outside the menu: a submit button *inside* a Radix
   // menu item never fires, because the menu (and the button with it) unmounts on
   // select before the submit propagates. The item instead submits this form.
@@ -62,7 +64,7 @@ export function AccountMenu({
               ? "w-full p-2 text-left hover:bg-surface-muted"
               : "size-11 justify-center",
           )}
-          aria-label="Account menu"
+          aria-label={t("nav.accountMenuLabel")}
         >
           <Avatar name={name} className={variant === "sidebar" ? "size-9" : "size-9"} />
           {variant === "sidebar" ? (
@@ -102,7 +104,7 @@ export function AccountMenu({
             className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-surface-muted"
           >
             {dark ? <Moon className="size-4" /> : <Sun className="size-4" />}
-            {dark ? "Dark mode" : "Light mode"}
+            {dark ? t("nav.darkMode") : t("nav.lightMode")}
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
@@ -115,7 +117,7 @@ export function AccountMenu({
             className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-3 text-sm text-danger outline-none data-[highlighted]:bg-danger-soft"
           >
             <LogOut className="size-4" />
-            Sign out
+            {t("nav.signOut")}
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

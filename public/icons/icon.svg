@@ -1,9 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <rect width="512" height="512" rx="114" fill="#1f1a16"/>
-  <g fill="none" stroke="#e8a317" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M182 118v54M330 118v54"/>
-    <path d="M118 214h276"/>
-    <rect x="118" y="150" width="276" height="244" rx="34"/>
-    <path d="m204 296 42 42 84-96"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="TatNat app icon">
+  <!--
+    TatNat app icon, full detail (180/512px use: apple-touch-icon, PWA/store
+    icon, social avatar). Light theme. Same glyph as icon-mark.svg at 8x scale,
+    plus three rim ticks (3/6/9 o'clock) and a 12 o'clock "appointment" dot —
+    the date that's actually booked. Clock = appointment, scissor-blade hands
+    = barbering; both ideas in one mark.
+    Tokens: bg #FCFAF8 (token:bg), rim/pivot/ticks #29231E (token:primary),
+    hands/marker #E18F14 (token:accent), marker ring #FCFAF8 (token:bg).
+    Safe zone: keep all marks within the r=168 rim; corners are masked by
+    platform icon shapes (iOS squircle / Android adaptive) at render time.
+  -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#FCFAF8"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#29231E" stroke-width="40"/>
+  <!-- rim ticks: 3, 6, 9 o'clock (12 o'clock carries the appointment marker instead) -->
+  <g stroke="#29231E" stroke-width="16" stroke-linecap="round">
+    <line x1="408" y1="256" x2="440" y2="256"/>
+    <line x1="256" y1="408" x2="256" y2="440"/>
+    <line x1="104" y1="256" x2="72" y2="256"/>
   </g>
+  <!-- scissor-blade hands, open at the "10:10" happy-clock angle -->
+  <g stroke="#E18F14" stroke-width="56" stroke-linecap="round">
+    <line x1="256" y1="256" x2="131.3" y2="184"/>
+    <line x1="256" y1="256" x2="380.7" y2="184"/>
+  </g>
+  <circle cx="256" cy="256" r="28" fill="#29231E"/>
+  <!-- appointment marker: the booked date, at 12 o'clock -->
+  <circle cx="256" cy="88" r="20" fill="#E18F14" stroke="#FCFAF8" stroke-width="10"/>
 </svg>

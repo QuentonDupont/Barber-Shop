@@ -6,12 +6,15 @@ import { DEFAULT_WEEK, type DayHours } from "@/lib/booking/hours";
 import { requireBusiness } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { businessToday, minutesToTimeString, parseTimeToMinutes } from "@/lib/booking/time";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = { title: "Opening hours" };
 
 export default async function HoursPage() {
   const ctx = await requireBusiness();
   const supabase = await createClient();
+  const locale = await getLocale();
 
   const today = businessToday(ctx.business.timezone);
 
@@ -50,8 +53,8 @@ export default async function HoursPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Opening hours"
-        description={`Your weekly schedule in ${ctx.business.timezone}. Bookly only ever offers slots inside these windows.`}
+        title={t(locale, "hoursAdmin.pageTitle")}
+        description={t(locale, "hoursAdmin.pageDescription", { timezone: ctx.business.timezone })}
       />
       <HoursForm initialHours={initial} />
       <OverridesManager overrides={overrides ?? []} today={today} />

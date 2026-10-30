@@ -1,5 +1,5 @@
 -- ============================================================================
--- Bookly — core schema
+-- TatNat — core schema
 -- ============================================================================
 -- Conventions:
 --   * every instant is stored as `timestamptz` (UTC). Wall-clock values that

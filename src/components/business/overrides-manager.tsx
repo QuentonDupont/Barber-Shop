@@ -27,6 +27,7 @@ import {
   minutesToDisplay,
   parseTimeToMinutes,
 } from "@/lib/booking/time";
+import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
 /**
@@ -43,29 +44,29 @@ export function OverridesManager({
   overrides: AvailabilityOverrideRow[];
   today: string;
 }) {
+  const t = useT();
   const [adding, setAdding] = useState(false);
 
   return (
     <section className="mt-10 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold tracking-tight">Holidays and one-off days</h2>
+          <h2 className="text-base font-bold tracking-tight">{t("hoursAdmin.oneOffDaysHeading")}</h2>
           <p className="mt-0.5 text-sm text-fg-muted text-pretty">
-            Close a day, or open different hours just that once. These beat the
-            weekly schedule.
+            {t("hoursAdmin.oneOffDaysDescription")}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setAdding(true)} className="shrink-0">
           <CalendarPlus />
-          Add a day
+          {t("hoursAdmin.addADay")}
         </Button>
       </div>
 
       {overrides.length === 0 ? (
         <EmptyState
           icon={CalendarOff}
-          title="No one-off days yet"
-          description="Public holidays, a half day for a wedding, a late start after stock-take — add them here and the calendar will not offer those times."
+          title={t("hoursAdmin.noOneOffDaysTitle")}
+          description={t("hoursAdmin.noOneOffDaysDescription")}
         />
       ) : (
         <ul className="space-y-2">
@@ -86,24 +87,26 @@ export function OverridesManager({
 }
 
 function OverrideRow({ row }: { row: AvailabilityOverrideRow }) {
+  const t = useT();
+  const { locale } = useLocale();
   const [state, formAction] = useActionState(deleteOverrideAction, idleState);
 
   useEffect(() => {
-    if (state.status === "success") toast.success(state.message ?? "Removed.");
+    if (state.status === "success") toast.success(state.message ?? t("common.removed"));
     if (state.status === "error" && state.message) toast.error(state.message);
-  }, [state]);
+  }, [state, t]);
 
   return (
     <li className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3.5">
       <div className="min-w-0 flex-1">
         <p className="font-semibold">
-          {formatInBusinessTz(`${row.date}T12:00:00Z`, "UTC", "EEEE d MMMM yyyy")}
+          {formatInBusinessTz(`${row.date}T12:00:00Z`, "UTC", "EEEE d MMMM yyyy", locale)}
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           {row.is_closed ? (
             <Badge tone="danger">
               <CalendarOff />
-              Closed
+              {t("hoursAdmin.closed")}
             </Badge>
           ) : (
             <Badge tone="accent">
@@ -124,11 +127,12 @@ function OverrideRow({ row }: { row: AvailabilityOverrideRow }) {
 
 function DeleteButton({ label }: { label: string }) {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <button
       type="submit"
       disabled={pending}
-      aria-label={`Remove one-off day ${label}`}
+      aria-label={t("hoursAdmin.removeOneOffDay", { date: label })}
       className="flex size-11 items-center justify-center rounded-lg text-fg-subtle transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-50"
     >
       <Trash2 className="size-4" />
@@ -145,26 +149,24 @@ function AddOverrideSheet({
   onOpenChange: (open: boolean) => void;
   today: string;
 }) {
+  const t = useT();
   const [state, formAction] = useActionState(saveOverrideAction, idleState);
   const [mode, setMode] = useState<"closed" | "custom">("closed");
   const errors = state.fieldErrors ?? {};
 
   useEffect(() => {
     if (state.status === "success") {
-      toast.success(state.message ?? "Saved.");
+      toast.success(state.message ?? t("common.saved"));
       onOpenChange(false);
     }
-  }, [state, onOpenChange]);
+  }, [state, onOpenChange, t]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent>
         <SheetHeader>
-          <SheetTitle>Add a one-off day</SheetTitle>
-          <SheetDescription>
-            If the day already has bookings, move or cancel them first — Bookly
-            will not strand a customer.
-          </SheetDescription>
+          <SheetTitle>{t("hoursAdmin.addOneOffDayTitle")}</SheetTitle>
+          <SheetDescription>{t("hoursAdmin.addOneOffDayDescription")}</SheetDescription>
         </SheetHeader>
 
         <form action={formAction} noValidate>
@@ -173,7 +175,7 @@ function AddOverrideSheet({
               <Alert tone="error">{state.message}</Alert>
             ) : null}
 
-            <Field label="Date" htmlFor="override-date" error={errors.date} required>
+            <Field label={t("hoursAdmin.dateLabel")} htmlFor="override-date" error={errors.date} required>
               <Input
                 id="override-date"
                 name="date"
@@ -186,12 +188,12 @@ function AddOverrideSheet({
             </Field>
 
             <fieldset>
-              <legend className="mb-2 text-sm font-medium">What happens that day?</legend>
+              <legend className="mb-2 text-sm font-medium">{t("hoursAdmin.whatHappensLegend")}</legend>
               <div role="radiogroup" className="grid grid-cols-2 gap-2 rounded-xl bg-surface-muted p-1.5">
                 {(
                   [
-                    ["closed", "Closed all day"],
-                    ["custom", "Different hours"],
+                    ["closed", t("hoursAdmin.closedAllDay")],
+                    ["custom", t("hoursAdmin.differentHours")],
                   ] as const
                 ).map(([value, label]) => (
                   <button
@@ -217,21 +219,26 @@ function AddOverrideSheet({
 
             {mode === "custom" ? (
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Opens" htmlFor="override-open" error={errors.openTime} required>
+                <Field label={t("hoursAdmin.opens")} htmlFor="override-open" error={errors.openTime} required>
                   <Input id="override-open" name="openTime" type="time" step={300} defaultValue="10:00" />
                 </Field>
-                <Field label="Closes" htmlFor="override-close" error={errors.closeTime} required>
+                <Field label={t("hoursAdmin.closes")} htmlFor="override-close" error={errors.closeTime} required>
                   <Input id="override-close" name="closeTime" type="time" step={300} defaultValue="16:00" />
                 </Field>
               </div>
             ) : null}
 
-            <Field label="Note" htmlFor="override-note" error={errors.note} hint="Optional. Only you see this.">
+            <Field
+              label={t("hoursAdmin.noteLabel")}
+              htmlFor="override-note"
+              error={errors.note}
+              hint={t("hoursAdmin.noteHint")}
+            >
               <Input
                 id="override-note"
                 name="note"
                 maxLength={120}
-                placeholder="Songkran"
+                placeholder={t("hoursAdmin.notePlaceholder")}
                 enterKeyHint="done"
               />
             </Field>
@@ -239,7 +246,7 @@ function AddOverrideSheet({
 
           <SheetFooter>
             <Button type="button" variant="ghost" size="md" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <SaveButton />
           </SheetFooter>
@@ -251,9 +258,10 @@ function AddOverrideSheet({
 
 function SaveButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="lg" variant="accent" loading={pending} className="sm:w-auto">
-      Save day
+      {t("hoursAdmin.saveDay")}
     </Button>
   );
 }

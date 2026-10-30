@@ -1,12 +1,15 @@
 import { TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n/dictionaries";
+import { getLocale } from "@/lib/i18n/server";
 
 /**
  * Shown when Supabase credentials are missing. Without this the first run of a
  * fresh clone fails with an SDK-level "Invalid URL", which tells a newcomer
  * nothing about what to do next.
  */
-export function SetupNotice({ className }: { className?: string }) {
+export async function SetupNotice({ className }: { className?: string }) {
+  const locale = await getLocale();
   return (
     <div
       className={cn(
@@ -17,15 +20,9 @@ export function SetupNotice({ className }: { className?: string }) {
     >
       <p className="flex items-center gap-2 font-semibold text-warning">
         <TriangleAlert className="size-4 shrink-0" />
-        Bookly is not connected to a database yet
+        {t(locale, "ui.setupTitle")}
       </p>
-      <p className="mt-2 text-fg-muted text-pretty">
-        Copy <code className="rounded bg-surface px-1 py-0.5">.env.example</code>{" "}
-        to <code className="rounded bg-surface px-1 py-0.5">.env.local</code>, add
-        your Supabase URL and anon key, then run{" "}
-        <code className="rounded bg-surface px-1 py-0.5">supabase db push</code> to
-        apply the migrations. Full steps are in the README.
-      </p>
+      <p className="mt-2 text-fg-muted text-pretty">{t(locale, "ui.setupBody")}</p>
     </div>
   );
 }
