@@ -100,7 +100,7 @@
     --ring: 35 88% 65.5%;
 
     --field-brass: 35 89% 41.4%;     --field-brass-ink: 30 33% 5.9%;
-    --field-brass-muted: 33 32% 22%;
+    --field-brass-muted: 33 32% 12%;   /* #2B2115, 4.75:1 on the night brass */
     --field-ink: 30 12% 10.2%;       --field-ink-fg: 36 28% 92.9%;
     --field-ink-muted: 35 12% 68.4%;
     --card-paper: 30 12% 10.2%;

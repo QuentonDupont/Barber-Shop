@@ -278,7 +278,7 @@ function WeekView({
               </button>
 
               {list.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-fg-subtle">
+                <p className="rounded-lg border border-border px-3 py-3 text-sm text-fg-subtle">
                   {t("calendarAdmin.nothingBooked")}
                 </p>
               ) : (

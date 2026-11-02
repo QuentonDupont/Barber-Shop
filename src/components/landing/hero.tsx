@@ -20,7 +20,7 @@ export function LandingHero({
     <section className="bg-field-brass text-field-brass-ink">
       <div className="mx-auto grid max-w-[1360px] gap-8 px-[clamp(16px,3vw,40px)] pt-10 pb-16 sm:pt-14 lg:grid-cols-12 lg:items-center lg:gap-10 lg:pt-[72px] lg:pb-24">
         <div className="lg:col-span-7">
-          <h1 className="display land-headline text-[44px] sm:text-[clamp(2.75rem,1rem+6.2vw,6rem)] lg:[&_.land-line>span]:whitespace-nowrap">
+          <h1 className="display land-headline text-[clamp(2.25rem,11vw,2.75rem)] sm:text-[clamp(2.75rem,1rem+6.2vw,6rem)] lg:[&_.land-line>span]:whitespace-nowrap">
             <span className="land-line">
               <span>{t(locale, "landing.headlineLine1")}</span>
             </span>
