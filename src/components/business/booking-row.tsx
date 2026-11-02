@@ -34,7 +34,7 @@ import { MoveBookingSheet } from "./move-booking-sheet";
 import { canMarkNoShow } from "@/lib/booking/no-show";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow, BookingStatus } from "@/lib/database.types";
-import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
+import { formatInBusinessTz, formatMoney, formatSlotTime } from "@/lib/booking/time";
 import { useT, useLocale } from "@/lib/i18n/context";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +52,7 @@ export type OwnerBooking = Pick<
   | "notes"
   | "price"
   | "currency"
->;
+> & { staff_name?: string | null };
 
 /**
  * One booking in the owner's list.
@@ -65,13 +65,17 @@ export function OwnerBookingRow({
   booking,
   timezone,
   className,
+  framed = true,
 }: {
   booking: OwnerBooking;
   timezone: string;
   className?: string;
+  /** `false` inside a panel that already draws the frame and row rules. */
+  framed?: boolean;
 }) {
   const t = useT();
   const { locale } = useLocale();
+  const th = locale === "th";
   const [open, setOpen] = useState(false);
   const [moving, setMoving] = useState(false);
   const live = booking.status === "pending" || booking.status === "confirmed";
@@ -86,36 +90,39 @@ export function OwnerBookingRow({
         data-booking-id={booking.id}
         data-status={booking.status}
         className={cn(
-          "flex items-stretch gap-3 rounded-xl border border-border bg-surface p-3 sm:p-3.5",
-          booking.status === "cancelled" && "opacity-60",
+          "flex min-h-[72px] items-stretch gap-3 px-4 py-3.5",
+          framed && "rounded-[var(--radius-panel)] border border-border bg-surface",
+          booking.status === "cancelled" && "text-fg-muted",
           className,
         )}
       >
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex min-w-0 flex-1 items-start gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent/40 rounded-lg"
+          className="flex min-w-0 flex-1 items-start gap-3 rounded-lg text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
-          <span className="flex w-16 shrink-0 flex-col items-center rounded-lg bg-surface-muted px-1 py-2 sm:w-20">
-            <span className="text-sm font-bold tabular-nums sm:text-base">
-              {formatInBusinessTz(booking.starts_at, timezone, "h:mm", locale)}
+          <span className="w-16 shrink-0">
+            <span className="num block text-[17px] font-semibold leading-snug">
+              {formatInBusinessTz(booking.starts_at, timezone, th ? "HH:mm" : "h:mm", locale)}
             </span>
-            <span className="text-[0.625rem] font-semibold uppercase text-fg-subtle">
-              {formatInBusinessTz(booking.starts_at, timezone, "a", locale)}
-            </span>
+            {th ? null : (
+              <span className="block text-xs text-fg-muted">
+                {formatInBusinessTz(booking.starts_at, timezone, "a", locale)}
+              </span>
+            )}
           </span>
 
-          <span className="min-w-0 flex-1 space-y-1">
-            <span className="block truncate font-semibold">{booking.service_name}</span>
-            <span className="flex items-center gap-1.5 text-sm text-fg-muted">
-              <UserRound className="size-3.5 shrink-0" />
-              <span className="truncate">{booking.customer_name}</span>
+          <span className="min-w-0 flex-1 space-y-0.5">
+            <span className="block truncate text-[15px] font-semibold">{booking.service_name}</span>
+            <span className="block truncate text-sm text-fg-muted">
+              {booking.customer_name}
+              {booking.staff_name ? ` · ${booking.staff_name}` : ""}
             </span>
-            <span className="flex flex-wrap items-center gap-1.5">
+            <span className="flex flex-wrap items-center gap-2 pt-1">
               <BookingStatusBadge status={booking.status} short />
-              <span className="text-xs text-fg-subtle">
+              <span className="num text-[13px] text-fg-muted">
                 {t("bookingAdmin.untilTime", {
-                  time: formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale),
+                  time: formatSlotTime(booking.ends_at, timezone, locale),
                 })}
               </span>
             </span>
@@ -202,7 +209,7 @@ function QuickActions({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          className="hidden size-9 shrink-0 items-center justify-center self-center rounded-lg text-fg-subtle transition-colors hover:bg-surface-muted hover:text-fg sm:flex"
+          className="hidden size-9 shrink-0 items-center justify-center self-center rounded-full text-fg-muted transition-colors hover:bg-surface-muted hover:text-fg sm:flex"
           aria-label={t("bookingAdmin.bookingActionsLabel")}
         >
           <MoreVertical className="size-4" />
@@ -212,7 +219,7 @@ function QuickActions({
         <DropdownMenu.Content
           align="end"
           sideOffset={6}
-          className="z-50 min-w-48 rounded-xl border border-border bg-surface p-1.5 shadow-[var(--shadow-raised)]"
+          className="animate-pop-in z-50 min-w-48 rounded-2xl bg-surface p-1.5 shadow-[var(--shadow-float)]"
         >
           {status === "pending" ? (
             <StatusMenuItem id={bookingId} status="confirmed" icon={Check}>
@@ -301,8 +308,8 @@ export function OwnerBookingSheet({
           <SheetTitle>{booking.service_name}</SheetTitle>
           <SheetDescription>
             {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM", locale)} ·{" "}
-            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)} –{" "}
-            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale)}
+            {formatSlotTime(booking.starts_at, timezone, locale)} –{" "}
+            {formatSlotTime(booking.ends_at, timezone, locale)}
           </SheetDescription>
         </SheetHeader>
 
@@ -339,7 +346,7 @@ export function OwnerBookingSheet({
                   <dd>
                     <a
                       href={`tel:${booking.customer_phone.replace(/\s/g, "")}`}
-                      className="font-semibold text-accent hover:underline"
+                      className="font-semibold text-accent-ink hover:underline"
                     >
                       {booking.customer_phone}
                     </a>
