@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Scissors, Star } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ShopMark } from "@/components/shared/shop-mark";
 import { formatDistance } from "@/lib/geo";
 import { formatMoney } from "@/lib/booking/time";
 import type { BusinessCategory } from "@/lib/database.types";
@@ -33,72 +32,62 @@ export interface BusinessSummary {
   category: BusinessCategory;
   description: string | null;
   address: string | null;
+  coverUrl?: string | null;
   distanceKm?: number | null;
   fromPrice?: number | null;
   currency?: string;
   serviceCount: number;
+  /** Next bookable time, already formatted ("วันนี้ 14:00"). */
+  nextFree?: string | null;
 }
 
 export function BusinessCard({ business }: { business: BusinessSummary }) {
   const { locale } = useLocale();
 
+  const meta = [
+    categoryLabel(business.category, locale),
+    t(
+      locale,
+      business.serviceCount === 1 ? "discover.serviceCountOne" : "discover.serviceCountMany",
+      { n: business.serviceCount },
+    ),
+    business.distanceKm != null ? formatDistance(business.distanceKm) : null,
+  ].filter(Boolean);
+
   return (
     <Link
       href={businessPath(business.slug)}
-      className="group flex min-w-0 gap-3 rounded-xl border border-border bg-surface p-3.5 transition-colors hover:border-border-strong active:bg-surface-muted"
+      className="group flex min-w-0 gap-3.5 rounded-[var(--radius-panel)] border border-border bg-surface p-4 transition-colors duration-150 hover:border-border-strong active:bg-surface-muted"
     >
-      {/* A generated monogram rather than a stock photo: a shop with no cover
-          image should not look broken next to one that has uploaded one. */}
-      <span
-        className="flex size-14 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-lg font-bold text-accent sm:size-16"
-        aria-hidden
-      >
-        {business.name.trim().charAt(0).toUpperCase() || "?"}
-      </span>
+      <ShopMark name={business.name} category={business.category} coverUrl={business.coverUrl} />
 
       <span className="min-w-0 flex-1">
-        <span className="flex items-start justify-between gap-2">
-          <span className="block min-w-0 truncate font-semibold group-hover:text-accent">
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="block min-w-0 truncate text-[17px] font-semibold group-hover:underline">
             {business.name}
           </span>
           {business.fromPrice != null ? (
-            <span className="shrink-0 text-sm font-semibold tabular-nums">
+            <span className="num shrink-0 text-sm font-semibold">
               {t(locale, "discover.fromPrice")}{" "}
               {formatMoney(business.fromPrice, business.currency ?? "THB")}
             </span>
           ) : null}
         </span>
 
-        <span className="mt-1 flex flex-wrap items-center gap-1.5">
-          <Badge tone="outline">{categoryLabel(business.category, locale)}</Badge>
-          {business.distanceKm != null ? (
-            <Badge tone="accent">
-              <MapPin />
-              {formatDistance(business.distanceKm)}
-            </Badge>
-          ) : null}
-          <Badge tone="neutral">
-            <Scissors />
-            {t(
-              locale,
-              business.serviceCount === 1 ? "discover.serviceCountOne" : "discover.serviceCountMany",
-              { n: business.serviceCount },
-            )}
-          </Badge>
-        </span>
+        <span className="mt-0.5 block truncate text-sm text-fg-muted">{meta.join(" · ")}</span>
 
-        {business.address ? (
-          <span className="mt-1.5 block truncate text-sm text-fg-subtle">
-            {business.address}
+        {business.address || business.description ? (
+          <span className="mt-0.5 block truncate text-sm text-fg-subtle">
+            {business.address ?? business.description}
           </span>
-        ) : business.description ? (
-          <span className="mt-1.5 block truncate text-sm text-fg-subtle">
-            {business.description}
+        ) : null}
+
+        {business.nextFree ? (
+          <span className="num mt-1.5 block truncate text-sm font-semibold text-accent-ink">
+            {business.nextFree}
           </span>
         ) : null}
       </span>
     </Link>
   );
 }
-
-export { Star };

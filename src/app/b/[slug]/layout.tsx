@@ -22,7 +22,7 @@ export default async function PublicBusinessLayout({
 
   return (
     <div className="min-h-dvh bg-bg">
-      <header className="sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur-md pt-safe">
+      <header className="sticky top-0 z-30 border-b border-border bg-bg pt-safe">
         <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-3 px-4 sm:px-6">
           <Link href={role === "business_owner" ? "/dashboard" : session ? "/app" : "/"}>
             <Logo />

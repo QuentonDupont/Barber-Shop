@@ -20,7 +20,7 @@ import {
 import { cancelBookingAction } from "@/lib/actions/bookings";
 import { idleState } from "@/lib/actions/types";
 import type { BookingRow } from "@/lib/database.types";
-import { formatInBusinessTz, formatMoney } from "@/lib/booking/time";
+import { formatInBusinessTz, formatMoney, formatSlotTime } from "@/lib/booking/time";
 import { cn } from "@/lib/utils";
 import { useLocale, useT } from "@/lib/i18n/context";
 import { businessPath } from "@/lib/routes";
@@ -80,19 +80,19 @@ function BookingCard({
       type="button"
       onClick={() => onOpen(booking)}
       className={cn(
-        "flex w-full items-start gap-3 rounded-xl border border-border bg-surface p-3.5 text-left",
-        "transition-colors hover:bg-surface-muted outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        "appt-press flex w-full items-start gap-3 rounded-[var(--radius-panel)] border border-border bg-surface p-4 text-left",
+        "hover:border-border-strong outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         past && "opacity-70",
       )}
     >
-      <span className="flex w-14 shrink-0 flex-col items-center rounded-lg bg-surface-muted py-2">
-        <span className="text-[0.625rem] font-semibold uppercase text-fg-subtle">
+      <span className="flex w-14 shrink-0 flex-col items-center rounded-2xl bg-surface-muted py-2">
+        <span className="text-xs font-semibold text-fg-muted">
           {formatInBusinessTz(booking.starts_at, timezone, "MMM", locale)}
         </span>
         <span className="text-xl font-bold leading-none tabular-nums">
           {formatInBusinessTz(booking.starts_at, timezone, "d")}
         </span>
-        <span className="mt-0.5 text-[0.625rem] font-medium text-fg-subtle">
+        <span className="mt-0.5 text-xs font-medium text-fg-muted">
           {formatInBusinessTz(booking.starts_at, timezone, "EEE", locale)}
         </span>
       </span>
@@ -103,7 +103,7 @@ function BookingCard({
         </span>
         <span className="block truncate text-sm text-fg-muted">
           {booking.service_name} ·{" "}
-          {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)}
+          {formatSlotTime(booking.starts_at, timezone, locale)}
           {booking.staff_name ? ` · ${booking.staff_name}` : ""}
         </span>
         <span className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -148,8 +148,8 @@ function DetailSheet({
           <SheetTitle>{booking.business?.name ?? t("bookingDetail.yourBooking")}</SheetTitle>
           <SheetDescription>
             {formatInBusinessTz(booking.starts_at, timezone, "EEEE d MMMM yyyy", locale)} ·{" "}
-            {formatInBusinessTz(booking.starts_at, timezone, "h:mm a", locale)} –{" "}
-            {formatInBusinessTz(booking.ends_at, timezone, "h:mm a", locale)}
+            {formatSlotTime(booking.starts_at, timezone, locale)} –{" "}
+            {formatSlotTime(booking.ends_at, timezone, locale)}
           </SheetDescription>
         </SheetHeader>
 
@@ -161,7 +161,7 @@ function DetailSheet({
             </span>
           </div>
 
-          <dl className="divide-y divide-border rounded-xl bg-surface-muted px-3.5">
+          <dl className="divide-y divide-border rounded-[var(--radius-panel)] bg-surface-muted px-4">
             <div className="flex items-start justify-between gap-4 py-3">
               <dt className="text-sm text-fg-muted">{t("bookingDetail.service")}</dt>
               <dd className="text-right font-semibold">{booking.service_name}</dd>
@@ -194,7 +194,7 @@ function DetailSheet({
                 rel="noreferrer"
                 className="inline-flex min-h-12 items-center gap-2.5 rounded-lg border border-border px-3.5 text-sm font-medium transition-colors hover:bg-surface-muted"
               >
-                <MapPin className="size-4 shrink-0 text-accent" />
+                <MapPin className="size-4 shrink-0 text-fg-muted" />
                 <span className="truncate">{booking.business.address}</span>
               </a>
             ) : null}
@@ -204,7 +204,7 @@ function DetailSheet({
                 href={`tel:${booking.business.phone.replace(/\s/g, "")}`}
                 className="inline-flex min-h-12 items-center gap-2.5 rounded-lg border border-border px-3.5 text-sm font-medium transition-colors hover:bg-surface-muted"
               >
-                <Phone className="size-4 shrink-0 text-accent" />
+                <Phone className="size-4 shrink-0 text-fg-muted" />
                 {t("bookingDetail.call", { phone: booking.business.phone })}
               </a>
             ) : null}
@@ -214,7 +214,7 @@ function DetailSheet({
                 href={businessPath(booking.business.slug)}
                 className="inline-flex min-h-12 items-center gap-2.5 rounded-lg border border-border px-3.5 text-sm font-medium transition-colors hover:bg-surface-muted"
               >
-                <Repeat2 className="size-4 shrink-0 text-accent" />
+                <Repeat2 className="size-4 shrink-0 text-fg-muted" />
                 {t("bookingDetail.bookAgain")}
               </Link>
             ) : null}

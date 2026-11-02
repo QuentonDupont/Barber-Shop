@@ -13,6 +13,7 @@ import {
 import { BusinessTabs } from "@/components/customer/business-tabs";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { ShopMark } from "@/components/shared/shop-mark";
 import { getSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -294,18 +295,16 @@ export default async function BusinessPage({
 
       <header className="mb-6">
         <div className="flex items-start gap-3.5">
-          <span
-            className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-xl font-bold text-accent sm:size-16"
-            aria-hidden
-          >
-            {business.name.trim().charAt(0).toUpperCase()}
-          </span>
+          <ShopMark
+            name={business.name}
+            category={business.category}
+            coverUrl={business.cover_url}
+            size={72}
+          />
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold tracking-tight text-balance sm:text-2xl">
-              {business.name}
-            </h1>
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Badge tone="outline">{categoryLabel(business.category, locale)}</Badge>
+            <h1 className="display text-[28px] sm:text-[32px]">{business.name}</h1>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+              <span className="text-sm text-fg-muted">{categoryLabel(business.category, locale)}</span>
               {business.auto_confirm ? (
                 <Badge tone="success">{t(locale, "listing.instantConfirmation")}</Badge>
               ) : (
@@ -334,9 +333,9 @@ export default async function BusinessPage({
               }
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 flex-1 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted sm:flex-none"
+              className="inline-flex min-h-11 min-w-0 max-w-full flex-1 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 text-sm font-medium text-fg transition-colors hover:bg-surface-muted sm:flex-none"
             >
-              <MapPin className="size-4 shrink-0 text-accent" />
+              <MapPin className="size-4 shrink-0 text-fg-muted" />
               <span className="truncate">{business.address}</span>
             </a>
           ) : null}
@@ -344,9 +343,9 @@ export default async function BusinessPage({
           {business.phone ? (
             <a
               href={`tel:${business.phone.replace(/\s/g, "")}`}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 text-sm font-medium text-fg transition-colors hover:bg-surface-muted"
             >
-              <Phone className="size-4 shrink-0 text-accent" />
+              <Phone className="size-4 shrink-0 text-fg-muted" />
               {t(locale, "listing.call")}
             </a>
           ) : null}
@@ -356,9 +355,9 @@ export default async function BusinessPage({
               href={`https://line.me/R/ti/p/${encodeURIComponent(business.line_id)}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-surface px-3.5 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-muted"
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border-strong bg-surface px-4 text-sm font-medium text-fg transition-colors hover:bg-surface-muted"
             >
-              <MessageCircle className="size-4 shrink-0 text-accent" />
+              <MessageCircle className="size-4 shrink-0 text-fg-muted" />
               {t(locale, "listing.line")}
             </a>
           ) : null}
@@ -366,7 +365,7 @@ export default async function BusinessPage({
 
         {/* Cancellation/no-show policy — repeated here, on the booking-confirmation
             screen and in the confirmation email (roadmap.md §1 row 6). */}
-        <div className="mt-4 rounded-xl border border-border bg-surface-muted p-3.5">
+        <div className="mt-4 rounded-[20px] bg-surface-muted p-4">
           <p className="text-sm font-semibold">{t(locale, "listing.cancellationPolicyHeading")}</p>
           <p className="mt-1 text-sm text-fg-muted text-pretty">
             {business.cancellation_policy || t(locale, "listing.cancellationPolicyFallback")}
