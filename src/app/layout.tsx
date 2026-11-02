@@ -132,7 +132,7 @@ export default async function RootLayout({
               button, and sheets/dialogs (z-50) always cover it. */}
           <div
             data-testid="locale-bar"
-            className="flex justify-end px-3 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4"
+            className="relative z-10 flex justify-end px-3 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))] sm:px-4"
           >
             <LocaleToggle />
           </div>

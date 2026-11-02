@@ -344,7 +344,11 @@ function Stat({
         {link ? (
           <>
             {" · "}
-            <a href={link.href} className="font-semibold text-accent-ink underline underline-offset-4">
+            {/* 44px tap area around a small inline link (CLAUDE.md touch-target rule). */}
+            <a
+              href={link.href}
+              className="-my-3 inline-flex min-h-11 items-center px-1 font-semibold text-accent-ink underline underline-offset-4"
+            >
               {link.label}
             </a>
           </>

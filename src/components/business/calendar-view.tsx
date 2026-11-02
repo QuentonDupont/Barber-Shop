@@ -17,8 +17,9 @@ import { useT, useLocale } from "@/lib/i18n/context";
 import type { BookingRow, BusinessRow } from "@/lib/database.types";
 import {
   formatInBusinessTz,
+  formatSlotTime,
   localMinutesFromMidnight,
-  minutesToDisplay,
+  minutesToSlotLabel,
   shiftDateKey,
   toDateKey,
   zonedDayMinutesToUtc,
@@ -522,7 +523,7 @@ function WeekGrid({
   return (
     <>
       <div className="overflow-hidden rounded-xl border border-border bg-surface">
-        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border">
+        <div className="grid grid-cols-[4rem_repeat(7,minmax(0,1fr))] border-b border-border">
           <span />
           {dates.map((date) => (
             <span
@@ -542,7 +543,7 @@ function WeekGrid({
           ))}
         </div>
 
-        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] p-2 pl-0">
+        <div className="grid grid-cols-[4rem_repeat(7,minmax(0,1fr))] p-2 pl-0">
           <HourGutter startMinute={startMinute} hours={hours} />
           {dates.map((date) => {
             const positioned = layout(byDate[date] ?? [], business.timezone, date);
@@ -578,16 +579,17 @@ function WeekGrid({
 }
 
 function HourGutter({ startMinute, hours }: { startMinute: number; hours: number }) {
+  const { locale } = useLocale();
   return (
-    <div className="w-14 shrink-0" style={{ height: hours * HOUR_HEIGHT }}>
+    <div className="w-16 shrink-0" style={{ height: hours * HOUR_HEIGHT }}>
       {Array.from({ length: hours }, (_, index) => (
         <div
           key={index}
           className="relative text-right text-xs font-medium text-fg-subtle"
           style={{ height: HOUR_HEIGHT }}
         >
-          <span className="absolute right-2 -top-1.5">
-            {minutesToDisplay(startMinute + index * 60)}
+          <span className="num absolute right-2 -top-1.5 whitespace-nowrap">
+            {minutesToSlotLabel(startMinute + index * 60, locale)}
           </span>
         </div>
       ))}
@@ -648,6 +650,9 @@ function BookingBlock({
   const top = ((item.startMinute - gridStart) / 60) * HOUR_HEIGHT;
   const height = Math.max(22, ((item.endMinute - item.startMinute) / 60) * HOUR_HEIGHT - 2);
   const width = 100 / item.lanes;
+  // Too short for service + status: show the one "time · name" line (details stay in the title and sheet).
+  const oneLine = compact || height < 48;
+  const { locale } = useLocale();
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
@@ -744,10 +749,10 @@ function BookingBlock({
       title={`${item.booking.service_name} — ${item.booking.customer_name}`}
     >
       <p className="truncate font-semibold">
-        {formatInBusinessTz(item.booking.starts_at, business.timezone, "h:mm")} ·{" "}
+        {formatSlotTime(item.booking.starts_at, business.timezone, locale)} ·{" "}
         {item.booking.customer_name}
       </p>
-      {!compact ? (
+      {!oneLine ? (
         <>
           <p className="truncate text-fg-muted">{item.booking.service_name}</p>
           <div className="mt-1">

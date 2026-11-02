@@ -199,7 +199,7 @@ function DemoBody({ shops }: { shops: DemoShop[] }) {
                 aria-pressed={i === shopIndex}
                 onClick={() => switchShop(i)}
                 className={cn(
-                  "appt-press min-h-9 min-w-0 truncate rounded-full px-3 text-[13px] font-semibold",
+                  "appt-press min-h-11 min-w-0 truncate rounded-full px-3 text-[13px] font-semibold",
                   i === shopIndex ? "bg-primary text-primary-fg" : "text-fg-muted hover:text-fg",
                 )}
               >

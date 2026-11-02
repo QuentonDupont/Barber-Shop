@@ -19,7 +19,9 @@ export default async function AuthLayout({
   );
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg md:grid md:grid-cols-2">
+    // md+: the root layout's locale bar (~3.25rem) sits above this page, so the
+    // grid takes the rest of the viewport and never scrolls by the bar's height.
+    <div className="flex min-h-dvh flex-col bg-bg md:grid md:min-h-[calc(100dvh-3.5rem)] md:grid-cols-2">
       <div className="flex flex-1 flex-col">
         <header className="pt-safe">
           <div className="mx-auto flex h-16 w-full max-w-md items-center justify-between px-4">
@@ -42,10 +44,11 @@ export default async function AuthLayout({
       </div>
 
       {/* Desktop only: a brass panel with a filled, stamped appointment card —
-          what signing in gets you. */}
+          what signing in gets you. Pinned to the full right half (top edge
+          included, under the locale bar) so it never starts part-way down. */}
       <aside
         aria-hidden
-        className="hidden bg-field-brass text-field-brass-ink md:flex md:flex-col md:items-center md:justify-center md:px-10 md:py-16"
+        className="hidden bg-field-brass text-field-brass-ink md:fixed md:inset-y-0 md:right-0 md:flex md:w-1/2 md:flex-col md:items-center md:justify-center md:px-10 md:py-16"
       >
         <div className="w-full max-w-[420px]">
           <div className="-rotate-2">
