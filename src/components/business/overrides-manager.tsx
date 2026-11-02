@@ -203,7 +203,7 @@ function AddOverrideSheet({
                     aria-checked={mode === value}
                     onClick={() => setMode(value)}
                     className={cn(
-                      "min-h-12 rounded-lg px-3 text-sm font-semibold transition-all outline-none",
+                      "min-h-12 rounded-lg px-3 text-sm font-semibold transition-colors outline-none",
                       "focus-visible:ring-2 focus-visible:ring-accent/40",
                       mode === value
                         ? "bg-surface text-fg shadow-sm ring-1 ring-accent/30"

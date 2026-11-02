@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anuphan, Noto_Sans_Thai, Plus_Jakarta_Sans } from "next/font/google";
+import { Anuphan, Mitr, Noto_Sans_Thai } from "next/font/google";
 import { Toaster } from "sonner";
 import { ServiceWorker } from "@/components/shared/service-worker";
 import { LocaleProvider } from "@/lib/i18n/context";
@@ -7,28 +7,22 @@ import { LocaleToggle } from "@/components/shared/locale-toggle";
 import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
-// Thai-capable type system, look-and-feel.md §4.3. Anuphan is one bilingual
-// Thai+Latin family (matching x-height/weight across scripts) rather than a
-// Latin font bolted to a separate Thai font — it carries headings, the
-// wordmark and body text. Noto Sans Thai is the Thai-safe second fallback so
-// a slow font load never shows missing Thai glyphs; Plus Jakarta Sans (the
-// old Latin-only brand font) stays loaded as a third fallback purely for the
-// Latin glyphs, per the spec's explicit fallback stack.
-// NOTE (Engineering, 21 Oct 2026): this sandbox has no outbound network
-// access at all — even the pre-existing Plus Jakarta Sans fetch hangs here on
-// `next build` (confirmed before this change). Anuphan/Noto Sans Thai could
-// not be fetched or visually verified in this environment; the fallback
-// stack below is real and will carry the UI in degraded form if the fonts
-// fail to load anywhere. QA/Ops should confirm the webfonts actually load in
-// an environment with internet access before sign-off.
+// Type system: Anuphan (bilingual Thai+Latin) carries every operated
+// surface; Noto Sans Thai is the Thai-safe fallback so a slow load never shows
+// tofu. Mitr (Cadson Demak, rounded Thai+Latin, close to hand-painted shop
+// signage) is the display face for public headings only — see the `.display`
+// class in globals.css. Anuphan's variable axis tops out at 700.
 const anuphan = Anuphan({
   subsets: ["thai", "latin"],
-  // "variable" loads the full weight axis (100-700 per Next's current font
-  // metadata for this family) so headings can still use 800-weight via CSS
-  // `font-weight` — the variable font exposes more than Next's discrete
-  // weight list offers as a static-subset option.
   weight: "variable",
   variable: "--font-anuphan",
+  display: "swap",
+});
+
+const mitr = Mitr({
+  subsets: ["thai", "latin"],
+  weight: ["500", "600"],
+  variable: "--font-mitr",
   display: "swap",
 });
 
@@ -36,12 +30,6 @@ const notoSansThai = Noto_Sans_Thai({
   subsets: ["thai"],
   weight: ["400", "700"],
   variable: "--font-noto-thai",
-  display: "swap",
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-plus-jakarta",
   display: "swap",
 });
 
@@ -106,8 +94,8 @@ export const viewport: Viewport = {
   // approximations — matches the page background so the browser chrome
   // doesn't seam against it.
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#FCFAF8" },
-    { media: "(prefers-color-scheme: dark)", color: "#171412" },
+    { media: "(prefers-color-scheme: light)", color: "#F2F2EF" },
+    { media: "(prefers-color-scheme: dark)", color: "#151311" },
   ],
 };
 
@@ -123,7 +111,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${anuphan.variable} ${notoSansThai.variable} ${jakarta.variable}`}
+      className={`${anuphan.variable} ${mitr.variable} ${notoSansThai.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -134,7 +122,7 @@ export default async function RootLayout({
             jolt. Kept in sync with the toggle in account-menu.tsx. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem("tatnat-theme");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(d){document.documentElement.classList.add("dark")}}catch(e){}})();`,
+            __html: `document.documentElement.classList.add("js");(function(){try{var s=localStorage.getItem("tatnat-theme");var d=s?s==="dark":window.matchMedia("(prefers-color-scheme: dark)").matches;if(d){document.documentElement.classList.add("dark")}}catch(e){}})();`,
           }}
         />
       </head>

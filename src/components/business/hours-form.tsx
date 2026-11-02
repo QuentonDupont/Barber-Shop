@@ -30,7 +30,7 @@ export function HoursForm({ initialHours }: { initialHours: DayHours[] }) {
 
       {/* Sticky on mobile so Save is reachable without scrolling back past
           seven day cards. */}
-      <div className="sticky bottom-20 z-20 -mx-4 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:backdrop-blur-none">
+      <div className="sticky bottom-20 z-20 -mx-4 border-t border-border bg-bg px-4 py-3 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0">
         <SaveButton />
       </div>
     </form>

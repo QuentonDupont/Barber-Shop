@@ -78,7 +78,7 @@ export function CampaignsManager({
               and edit controls, which are right-aligned too, and won the tap.
               A full-width bar above the tab bar keeps it in thumb reach without
               ever covering a row. Mirrors the booking flow's sticky bar. */}
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-nav backdrop-blur-lg sm:hidden">
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface p-3 pb-nav sm:hidden">
             <Button variant="accent" size="lg" block onClick={() => setCreating(true)}>
               <Plus />
               {t("shopfrontAdmin.newCampaign")}

@@ -62,7 +62,7 @@ export default async function DashboardLayout({
                   <Link
                     href={businessPath(ctx.business.slug)}
                     target="_blank"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-accent-ink hover:underline"
                   >
                     {t(locale, "nav.livePage")}
                     <ExternalLink className="size-3" />

@@ -67,7 +67,7 @@ export function InstallPrompt() {
     <Card className="border-accent/30 bg-accent-soft/35">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Smartphone className="size-5 text-accent" />
+          <Smartphone className="size-5 text-fg-muted" />
           {t("customer.installTitle")}
         </CardTitle>
         <CardDescription>{t("customer.installDescription")}</CardDescription>
@@ -94,7 +94,7 @@ export function InstallPrompt() {
                 1
               </span>
               {t("customer.installStep1a")}
-              <Share className="size-4 shrink-0 text-accent" />
+              <Share className="size-4 shrink-0 text-fg-muted" />
               {t("customer.installStep1b")}
             </li>
             <li className="flex items-center gap-2.5">
@@ -102,7 +102,7 @@ export function InstallPrompt() {
                 2
               </span>
               {t("customer.installStep2a")}
-              <SquarePlus className="size-4 shrink-0 text-accent" />
+              <SquarePlus className="size-4 shrink-0 text-fg-muted" />
               {t("customer.installStep2b")}
             </li>
           </ol>

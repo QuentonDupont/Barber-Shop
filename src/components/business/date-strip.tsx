@@ -82,11 +82,11 @@ export function DateStrip({
                 isSelected
                   ? "border-accent bg-accent text-accent-fg"
                   : isToday
-                    ? "border-accent/45 bg-accent-soft text-accent"
+                    ? "border-accent/45 bg-accent-soft text-accent-ink"
                     : "border-border bg-surface text-fg-muted hover:bg-surface-muted",
               )}
             >
-              <span className="text-[0.625rem] font-semibold uppercase tracking-wide opacity-80">
+              <span className="text-xs font-semibold">
                 {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE", locale)}
               </span>
               <span className="text-lg font-bold tabular-nums leading-none">

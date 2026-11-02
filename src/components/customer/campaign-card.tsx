@@ -37,7 +37,7 @@ export function CampaignCard({
   const [checkout, setCheckout] = useState(false);
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
+    <div className="flex flex-col rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
         <span
           className={cn(
@@ -62,7 +62,7 @@ export function CampaignCard({
           {campaign.business_name && campaign.business_slug ? (
             <Link
               href={`/b/${campaign.business_slug}`}
-              className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline"
+              className="mt-0.5 inline-flex items-center gap-1 text-sm font-medium text-accent-ink hover:underline"
             >
               <Store className="size-3.5" />
               {campaign.business_name}
@@ -73,12 +73,12 @@ export function CampaignCard({
 
       <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-fg-muted">
         <span className="inline-flex items-center gap-1.5">
-          <CalendarClock className="size-4 text-accent" />
+          <CalendarClock className="size-4 text-fg-muted" />
           {formatCampaignWhen(campaign, timezone)}
         </span>
         {isEvent && campaign.location ? (
           <span className="inline-flex items-center gap-1.5">
-            <MapPin className="size-4 text-accent" />
+            <MapPin className="size-4 text-fg-muted" />
             <span className="truncate">{campaign.location}</span>
           </span>
         ) : null}
@@ -97,7 +97,7 @@ export function CampaignCard({
               <span className="text-success">{t("customer.free")}</span>
             )
           ) : (
-            <span className="text-accent">{campaign.discount_label ?? t("customer.onNow")}</span>
+            <span className="text-accent-ink">{campaign.discount_label ?? t("customer.onNow")}</span>
           )}
         </span>
 

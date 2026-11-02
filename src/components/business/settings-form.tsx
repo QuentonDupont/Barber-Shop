@@ -117,7 +117,7 @@ export function SettingsForm({
             <Link
               href={businessPath(business.slug)}
               target="_blank"
-              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-accent-ink hover:underline"
             >
               {t("settingsAdmin.viewPublicPage")}
               <ExternalLink className="size-4" />
@@ -302,7 +302,7 @@ export function SettingsForm({
         </CardContent>
       </Card>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg/95 p-4 pb-nav backdrop-blur-md sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:pb-0 sm:backdrop-blur-none">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-bg p-4 pb-nav sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:pb-0">
         <SaveButton />
       </div>
     </form>

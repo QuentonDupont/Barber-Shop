@@ -51,8 +51,8 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
     <nav
       aria-label={t("customer.primaryNav")}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95",
-        "backdrop-blur-lg pb-safe md:hidden",
+        "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface",
+        "pb-safe md:hidden",
       )}
     >
       <ul className="flex items-stretch">
@@ -64,17 +64,16 @@ export function MobileTabBar({ items }: { items: NavItem[] }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[3.75rem] flex-col items-center justify-center gap-1 px-1 py-2",
-                  "text-[0.6875rem] font-semibold transition-colors",
-                  active ? "text-accent" : "text-fg-subtle active:text-fg",
+                  "relative flex min-h-[3.75rem] flex-col items-center justify-center gap-1 px-1 py-2",
+                  "text-xs font-semibold",
+                  active ? "text-fg" : "text-fg-muted active:text-fg",
                 )}
               >
-                {sizedIcon(
-                  item.icon,
-                  cn("size-6 transition-transform", active && "scale-105"),
-                  active ? 2.4 : 1.9,
-                )}
+                {sizedIcon(item.icon, "size-6", 2)}
                 <span className="truncate max-w-full">{item.label}</span>
+                {active ? (
+                  <span aria-hidden className="absolute bottom-1 size-1 rounded-full bg-accent" />
+                ) : null}
               </Link>
             </li>
           );
@@ -98,7 +97,7 @@ export function DesktopSidebar({
   const t = useT();
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border bg-surface md:flex md:flex-col">
+    <aside className="hidden w-64 shrink-0 border-r border-border bg-bg md:flex md:flex-col">
       {header ? <div className="border-b border-border p-4">{header}</div> : null}
 
       <nav aria-label={t("customer.primaryNav")} className="flex-1 overflow-y-auto p-3">
@@ -111,14 +110,13 @@ export function DesktopSidebar({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold",
-                    "transition-colors",
+                    "flex min-h-11 items-center gap-3 rounded-full px-3.5 py-2 text-sm",
                     active
-                      ? "bg-accent-soft text-accent"
-                      : "text-fg-muted hover:bg-surface-muted hover:text-fg",
+                      ? "bg-surface-muted font-semibold text-fg"
+                      : "font-medium text-fg-muted hover:bg-surface-muted/60 hover:text-fg",
                   )}
                 >
-                  {sizedIcon(item.icon, "size-5 shrink-0", active ? 2.3 : 1.9)}
+                  {sizedIcon(item.icon, "size-5 shrink-0", 2)}
                   {item.label}
                 </Link>
               </li>

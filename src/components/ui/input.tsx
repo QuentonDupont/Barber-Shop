@@ -10,10 +10,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       type={type}
       ref={ref}
       className={cn(
-        "flex h-12 w-full rounded-lg border border-border-strong bg-surface px-3.5 py-2",
+        "flex h-12 w-full rounded-[var(--radius-field)] border border-border-strong bg-surface px-3.5 py-2",
         "text-base text-fg placeholder:text-fg-subtle",
-        "transition-colors outline-none",
-        "focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25",
+        "transition-[border-color] duration-150 outline-none",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         "disabled:cursor-not-allowed disabled:opacity-60",
         "aria-[invalid=true]:border-danger aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-danger/20",
         className,
@@ -32,10 +32,10 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       ref={ref}
       rows={rows}
       className={cn(
-        "flex w-full rounded-lg border border-border-strong bg-surface px-3.5 py-2.5",
+        "flex w-full rounded-[var(--radius-field)] border border-border-strong bg-surface px-3.5 py-2.5",
         "text-base text-fg placeholder:text-fg-subtle resize-y min-h-24",
-        "transition-colors outline-none",
-        "focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25",
+        "transition-[border-color] duration-150 outline-none",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}

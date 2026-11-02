@@ -29,8 +29,8 @@ const SheetOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-fg/40 backdrop-blur-[2px]",
-      "data-[state=open]:animate-fade-in",
+      "fixed inset-0 z-50 bg-black/40",
+      "data-[state=open]:animate-overlay-in",
       className,
     )}
     {...props}
@@ -54,14 +54,14 @@ const SheetContent = React.forwardRef<
       ref={ref}
       onOpenAutoFocus={onOpenAutoFocus}
       className={cn(
-        "fixed z-50 bg-surface shadow-[var(--shadow-raised)] focus:outline-none",
+        "fixed z-50 bg-surface shadow-[var(--shadow-float)] focus:outline-none",
         // phone: bottom sheet, capped so the header behind stays visible
         "inset-x-0 bottom-0 max-h-[92dvh] overflow-y-auto overscroll-contain",
-        "rounded-t-2xl pb-safe data-[state=open]:animate-slide-up",
+        "rounded-t-[var(--radius-panel)] pb-safe data-[state=open]:animate-slide-up data-[state=closed]:animate-slide-down",
         // tablet and up: centred dialog
         "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2",
         "sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2",
-        "sm:rounded-xl sm:max-h-[85dvh] sm:data-[state=open]:animate-fade-in",
+        "sm:rounded-[var(--radius-panel)] sm:max-h-[85dvh] sm:data-[state=open]:animate-dialog-in sm:data-[state=closed]:animate-dialog-out",
         className,
       )}
       {...props}
@@ -127,7 +127,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold tracking-tight", className)}
+    className={cn("text-lg font-semibold", className)}
     {...props}
   />
 ));
