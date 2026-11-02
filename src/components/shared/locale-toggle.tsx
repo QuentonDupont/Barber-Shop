@@ -26,7 +26,7 @@ export function LocaleToggle({ className }: { className?: string }) {
       role="group"
       aria-label="Language / ภาษา"
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-border bg-surface p-0.5 text-xs font-semibold shadow-[var(--shadow-raised)]",
+        "inline-flex items-center gap-0.5 rounded-full border border-border bg-surface p-0.5 text-xs font-semibold",
         className,
       )}
     >
@@ -35,8 +35,8 @@ export function LocaleToggle({ className }: { className?: string }) {
         onClick={() => choose("th")}
         aria-pressed={locale === "th"}
         className={cn(
-          "min-h-8 rounded-full px-2.5 transition-colors",
-          locale === "th" ? "bg-accent text-accent-fg" : "text-fg-muted hover:text-fg",
+          "min-h-8 min-w-10 rounded-full px-2.5",
+          locale === "th" ? "bg-primary text-primary-fg" : "text-fg-muted hover:text-fg",
         )}
       >
         ไทย
@@ -46,8 +46,8 @@ export function LocaleToggle({ className }: { className?: string }) {
         onClick={() => choose("en")}
         aria-pressed={locale === "en"}
         className={cn(
-          "min-h-8 rounded-full px-2.5 transition-colors",
-          locale === "en" ? "bg-accent text-accent-fg" : "text-fg-muted hover:text-fg",
+          "min-h-8 min-w-10 rounded-full px-2.5",
+          locale === "en" ? "bg-primary text-primary-fg" : "text-fg-muted hover:text-fg",
         )}
       >
         EN

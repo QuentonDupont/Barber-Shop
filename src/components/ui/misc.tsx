@@ -21,19 +21,10 @@ function Separator({
   );
 }
 
+/** Static block at the real size of what is loading. No shimmer: a moving
+ * gradient draws the eye to the one part of the screen with nothing in it. */
 function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return (
-    <div
-      className={cn("relative overflow-hidden rounded-lg bg-surface-muted", className)}
-      {...props}
-    >
-      <div
-        className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-border/60 to-transparent"
-        style={{ animation: "tatnat-shimmer 1.6s infinite" }}
-        aria-hidden
-      />
-    </div>
-  );
+  return <div className={cn("rounded-lg bg-surface-muted", className)} {...props} />;
 }
 
 function Avatar({
@@ -49,7 +40,7 @@ function Avatar({
     <span
       className={cn(
         "inline-flex size-10 shrink-0 items-center justify-center overflow-hidden",
-        "rounded-full bg-accent-soft text-sm font-semibold text-accent",
+        "rounded-full bg-surface-muted text-sm font-semibold text-fg",
         className,
       )}
     >
@@ -80,17 +71,13 @@ function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed",
-        "border-border-strong bg-surface/60 px-6 py-12 text-center",
+        "flex flex-col items-center justify-center rounded-[var(--radius-panel)] border border-border",
+        "bg-surface px-6 py-10 text-center",
         className,
       )}
     >
-      {Icon ? (
-        <span className="mb-3 flex size-12 items-center justify-center rounded-full bg-surface-muted">
-          <Icon className="size-6 text-fg-subtle" />
-        </span>
-      ) : null}
-      <p className="font-semibold text-fg">{title}</p>
+      {Icon ? <Icon className="mb-3 size-5 text-fg-subtle" /> : null}
+      <p className="text-base font-semibold text-fg">{title}</p>
       {description ? (
         <p className="mt-1 max-w-sm text-sm text-fg-muted text-pretty">{description}</p>
       ) : null}

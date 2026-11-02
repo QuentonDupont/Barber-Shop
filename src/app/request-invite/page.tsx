@@ -20,7 +20,7 @@ export default async function RequestInvitePage() {
       <Logo />
       <Badge tone="accent">{t(locale, "pages.inviteBadge")}</Badge>
       <span className="flex size-16 items-center justify-center rounded-full bg-accent-soft">
-        <Store className="size-7 text-accent" />
+        <Store className="size-7 text-fg-muted" />
       </span>
       <div className="space-y-1.5">
         <h1 className="text-xl font-bold tracking-tight">{t(locale, "pages.inviteTitle")}</h1>

@@ -22,7 +22,7 @@ export function ProductBuyCard({ product }: { product: ProductRow }) {
   const lowStock = product.stock !== null && product.stock > 0 && product.stock <= 5;
 
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-surface p-4 shadow-[var(--shadow-card)]">
+    <div className="flex flex-col rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
         <span
           className={cn(

@@ -107,7 +107,7 @@ export function DataRightsPanel({
         <Link
           href={PRIVACY_POLICY_ROUTE}
           target="_blank"
-          className="inline-block text-sm font-semibold text-accent hover:underline"
+          className="inline-block text-sm font-semibold text-accent-ink hover:underline"
         >
           {t("privacy.viewPolicyLink")}
         </Link>

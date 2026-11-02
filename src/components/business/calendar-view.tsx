@@ -17,8 +17,9 @@ import { useT, useLocale } from "@/lib/i18n/context";
 import type { BookingRow, BusinessRow } from "@/lib/database.types";
 import {
   formatInBusinessTz,
+  formatSlotTime,
   localMinutesFromMidnight,
-  minutesToDisplay,
+  minutesToSlotLabel,
   shiftDateKey,
   toDateKey,
   zonedDayMinutesToUtc,
@@ -265,10 +266,10 @@ function WeekView({
                 onClick={() => onSelectDay(date)}
                 className={cn(
                   "flex min-h-11 w-full items-center justify-between rounded-lg px-1 text-left",
-                  date === today ? "text-accent" : "text-fg",
+                  date === today ? "text-accent-ink" : "text-fg",
                 )}
               >
-                <span className="text-sm font-bold uppercase tracking-wide">
+                <span className="text-sm font-semibold">
                   {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEEE d MMM", locale)}
                   {date === today ? t("calendarAdmin.todaySuffix") : ""}
                 </span>
@@ -278,7 +279,7 @@ function WeekView({
               </button>
 
               {list.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-border px-3 py-3 text-sm text-fg-subtle">
+                <p className="rounded-lg border border-border px-3 py-3 text-sm text-fg-subtle">
                   {t("calendarAdmin.nothingBooked")}
                 </p>
               ) : (
@@ -522,17 +523,17 @@ function WeekGrid({
   return (
     <>
       <div className="overflow-hidden rounded-xl border border-border bg-surface">
-        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-border">
+        <div className="grid grid-cols-[4rem_repeat(7,minmax(0,1fr))] border-b border-border">
           <span />
           {dates.map((date) => (
             <span
               key={date}
               className={cn(
                 "border-l border-border px-2 py-2 text-center text-xs font-semibold",
-                date === today ? "bg-accent-soft text-accent" : "text-fg-muted",
+                date === today ? "bg-accent-soft text-accent-ink" : "text-fg-muted",
               )}
             >
-              <span className="block uppercase tracking-wide">
+              <span className="block">
                 {formatInBusinessTz(`${date}T12:00:00Z`, "UTC", "EEE", locale)}
               </span>
               <span className="block text-base font-bold tabular-nums text-fg">
@@ -542,7 +543,7 @@ function WeekGrid({
           ))}
         </div>
 
-        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] p-2 pl-0">
+        <div className="grid grid-cols-[4rem_repeat(7,minmax(0,1fr))] p-2 pl-0">
           <HourGutter startMinute={startMinute} hours={hours} />
           {dates.map((date) => {
             const positioned = layout(byDate[date] ?? [], business.timezone, date);
@@ -578,16 +579,17 @@ function WeekGrid({
 }
 
 function HourGutter({ startMinute, hours }: { startMinute: number; hours: number }) {
+  const { locale } = useLocale();
   return (
-    <div className="w-14 shrink-0" style={{ height: hours * HOUR_HEIGHT }}>
+    <div className="w-16 shrink-0" style={{ height: hours * HOUR_HEIGHT }}>
       {Array.from({ length: hours }, (_, index) => (
         <div
           key={index}
-          className="relative text-right text-[0.6875rem] font-medium text-fg-subtle"
+          className="relative text-right text-xs font-medium text-fg-subtle"
           style={{ height: HOUR_HEIGHT }}
         >
-          <span className="absolute right-2 -top-1.5">
-            {minutesToDisplay(startMinute + index * 60)}
+          <span className="num absolute right-2 -top-1.5 whitespace-nowrap">
+            {minutesToSlotLabel(startMinute + index * 60, locale)}
           </span>
         </div>
       ))}
@@ -648,6 +650,9 @@ function BookingBlock({
   const top = ((item.startMinute - gridStart) / 60) * HOUR_HEIGHT;
   const height = Math.max(22, ((item.endMinute - item.startMinute) / 60) * HOUR_HEIGHT - 2);
   const width = 100 / item.lanes;
+  // Too short for service + status: show the one "time · name" line (details stay in the title and sheet).
+  const oneLine = compact || height < 48;
+  const { locale } = useLocale();
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0 && event.pointerType === "mouse") return;
@@ -722,10 +727,10 @@ function BookingBlock({
         }
       }}
       className={cn(
-        "absolute overflow-hidden rounded-md border px-1.5 py-1 text-[0.6875rem] leading-tight",
+        "absolute overflow-hidden rounded-md border px-1.5 py-1 text-xs leading-tight",
         "select-none outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         live ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
-        offset && "z-20 shadow-[var(--shadow-raised)] opacity-90",
+        offset && "z-20 shadow-[var(--shadow-float)] opacity-90",
         saving && "opacity-50",
         cancelled
           ? "border-border bg-surface-muted text-fg-subtle line-through"
@@ -744,10 +749,10 @@ function BookingBlock({
       title={`${item.booking.service_name} — ${item.booking.customer_name}`}
     >
       <p className="truncate font-semibold">
-        {formatInBusinessTz(item.booking.starts_at, business.timezone, "h:mm")} ·{" "}
+        {formatSlotTime(item.booking.starts_at, business.timezone, locale)} ·{" "}
         {item.booking.customer_name}
       </p>
-      {!compact ? (
+      {!oneLine ? (
         <>
           <p className="truncate text-fg-muted">{item.booking.service_name}</p>
           <div className="mt-1">

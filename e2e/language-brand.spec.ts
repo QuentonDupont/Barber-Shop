@@ -143,7 +143,7 @@ const THAI_PAGES: Array<{
   thai?: string;
   english: string[];
 }> = [
-  { name: "landing page", path: "/", english: ["Sign in", "Book your next appointment", "Create an account", "I already have one", "Request beta invite", "Real availability"] },
+  { name: "landing page", path: "/", english: ["Sign in", "Tap a free time", "Create an account", "I already have one", "Request beta invite", "Appointment card", "Set your hours once", "Every gap is a real opening"] },
   { name: "sign-in", path: "/sign-in", thai: "ยินดีต้อนรับกลับมา", english: ["Welcome back", "Demo mode", "Continue with Google", "Show password"] },
   { name: "sign-up", path: "/sign-up", thai: "สร้างบัญชีของคุณ", english: ["Create your account", "Full name", "Mobile number", "Create account"] },
   { name: "discover", path: "/app", as: "customer", english: ["Find a place near you", "Sort by what's nearest", "Search shops", "Explore", "What's on"] },
@@ -180,7 +180,7 @@ test.describe("Thai pages carry no untranslated English", () => {
   test("the booking detail sheet is in Thai", async ({ page, context, baseURL, snap }) => {
     await signInAs(context, "customer", baseURL!);
     await open(page, "/app/bookings");
-    await page.locator("main button").filter({ hasText: "THB" }).first().click();
+    await page.locator("main button").filter({ hasText: "฿" }).first().click();
     const sheet = page.getByRole("dialog");
     await expect(sheet).toBeVisible();
     // Labels only: the shop's own name ("Nong Barber") is data and legitimately contains "Barber".

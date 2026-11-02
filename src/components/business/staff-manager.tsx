@@ -79,7 +79,7 @@ export function StaffManager({
 
           <div className="h-[4.5rem] sm:hidden" aria-hidden />
 
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-nav backdrop-blur-lg sm:hidden">
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface p-3 pb-nav sm:hidden">
             <Button variant="accent" size="lg" block onClick={() => setCreating(true)}>
               <Plus />
               {t("staffAdmin.addButton")}
@@ -297,7 +297,7 @@ function StaffSheet({
                         "flex h-11 min-w-11 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-colors",
                         "outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
                         selected
-                          ? "border-accent bg-accent-soft text-accent"
+                          ? "border-accent bg-accent-soft text-accent-ink"
                           : "border-border-strong bg-surface text-fg-muted",
                       )}
                     >

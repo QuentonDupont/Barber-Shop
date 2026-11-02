@@ -133,7 +133,7 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t("discover.searchPlaceholder")}
-          className="pl-11 pr-11"
+          className="rounded-full pl-11 pr-11"
           enterKeyHint="search"
           aria-label={t("discover.searchAriaLabel")}
         />
@@ -165,11 +165,11 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
               onClick={() => setCategory(value)}
               aria-pressed={active}
               className={cn(
-                "min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold transition-colors",
-                "outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+                "appt-press min-h-11 shrink-0 rounded-full border px-4 text-sm font-semibold",
+                "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 active
-                  ? "border-accent bg-accent text-accent-fg"
-                  : "border-border bg-surface text-fg-muted hover:bg-surface-muted",
+                  ? "border-primary bg-primary text-primary-fg"
+                  : "border-border bg-surface text-fg-muted hover:text-fg",
               )}
             >
               {value === "all" ? t("discover.all") : categoryLabel(value, locale)}
@@ -178,26 +178,27 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
         })}
       </div>
 
-      {geo !== "granted" && geo !== "unsupported" ? (
-        <Button
-          variant="subtle"
-          size="md"
-          block
-          onClick={requestLocation}
-          loading={geo === "asking"}
-        >
-          <LocateFixed />
-          {geo === "denied" ? t("discover.locationBlocked") : t("discover.sortNearest")}
-        </Button>
-      ) : null}
-
-      <div className="flex items-baseline justify-between">
-        <p className="text-sm text-fg-muted">
+      <div className="flex items-center justify-between gap-3">
+        <p className="min-w-0 text-sm text-fg-muted">
           {t(results.length === 1 ? "discover.placeCountOne" : "discover.placeCountMany", {
             n: results.length,
           })}
           {origin ? t("discover.nearestFirstSuffix") : ""}
         </p>
+        {geo !== "granted" && geo !== "unsupported" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-w-0 shrink"
+            onClick={requestLocation}
+            loading={geo === "asking"}
+          >
+            <LocateFixed />
+            <span className="truncate">
+              {geo === "denied" ? t("discover.locationBlocked") : t("discover.sortNearest")}
+            </span>
+          </Button>
+        ) : null}
       </div>
 
       {results.length === 0 ? (
@@ -218,7 +219,7 @@ export function Discover({ businesses }: { businesses: Listing[] }) {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {results.map((business) => (
             <BusinessCard key={business.id} business={business} />
           ))}

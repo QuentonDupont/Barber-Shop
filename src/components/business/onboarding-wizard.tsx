@@ -54,7 +54,7 @@ export function OnboardingWizard({
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-10">
       <div className="mb-6 sm:mb-8">
-        <p className="text-sm font-semibold text-accent">
+        <p className="text-sm font-semibold text-accent-ink">
           {t("onboardingAdmin.stepOf", { step, total: 3 })}
         </p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -110,7 +110,7 @@ function StepRail({ current }: { current: number }) {
               <span
                 className={cn(
                   "flex items-center gap-1.5 text-xs font-semibold",
-                  active ? "text-accent" : done ? "text-fg-muted" : "text-fg-subtle",
+                  active ? "text-accent-ink" : done ? "text-fg-muted" : "text-fg-subtle",
                 )}
               >
                 {done ? (

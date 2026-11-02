@@ -16,7 +16,7 @@ test.describe("customer flow", () => {
     // Landing page, signed out.
     await open(page, "/");
     await expectHealthy(page);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("under a minute");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("It’s yours");
     await snap(page, "landing page");
 
     // Sign in with the one-tap demo customer.

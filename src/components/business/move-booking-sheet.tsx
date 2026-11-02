@@ -157,7 +157,7 @@ export function MoveBookingSheet({
                         active
                           ? "border-accent bg-accent text-accent-fg"
                           : isCurrent
-                            ? "border-accent/50 bg-accent-soft text-accent"
+                            ? "border-accent/50 bg-accent-soft text-accent-ink"
                             : "border-border bg-surface hover:border-accent/50 hover:bg-accent-soft",
                       )}
                     >

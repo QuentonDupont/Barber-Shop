@@ -151,8 +151,38 @@ export function formatInBusinessTz(
   );
 }
 
+/**
+ * A slot time as people say it: Thai uses the 24-hour clock ("14:00"),
+ * English the 12-hour one ("2:00 PM"). Always read in the business's zone.
+ */
+export function formatSlotTime(
+  instant: Date | string,
+  timezone: string,
+  locale: Locale = "en",
+): string {
+  return formatInBusinessTz(instant, timezone, locale === "th" ? "HH:mm" : "h:mm a", locale);
+}
+
+/** Minutes past midnight in the same house style as `formatSlotTime`. */
+export function minutesToSlotLabel(minutes: number, locale: Locale = "en"): string {
+  if (locale !== "th") return minutesToDisplay(minutes);
+  const total = ((Math.round(minutes) % 1440) + 1440) % 1440;
+  return minutesToTimeString(total);
+}
+
+/**
+ * Baht is written with the symbol in front in both languages ("฿1,500"),
+ * the way Thai shops price things. Other currencies use Intl's own form.
+ */
 export function formatMoney(amount: number, currency = "THB"): string {
   const rounded = Math.round(Number(amount) * 100) / 100;
+  if (currency === "THB") {
+    const n = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: rounded % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(rounded);
+    return `฿${n}`;
+  }
   try {
     return new Intl.NumberFormat("en-US", {
       style: "currency",

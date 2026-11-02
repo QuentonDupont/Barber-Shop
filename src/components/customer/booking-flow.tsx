@@ -6,18 +6,15 @@ import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { toast } from "sonner";
 import {
-  CalendarDays,
   CalendarX2,
   Check,
   ChevronRight,
-  Clock3,
   Loader2,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
-import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { EmptyState } from "@/components/ui/misc";
 import {
@@ -37,11 +34,12 @@ import {
   formatDuration,
   formatInBusinessTz,
   formatMoney,
+  formatSlotTime,
   type DateKey,
 } from "@/lib/booking/time";
 import { businessPath } from "@/lib/routes";
 import { useT, useLocale } from "@/lib/i18n/context";
-import { cn } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
 
 /**
  * Who is looking at the page decides what the final button does:
@@ -135,9 +133,6 @@ export function BookingFlow({
   const loaded = effectiveLoadedDays.find((day) => day.date === selectedDate);
   const slots = loaded?.slots ?? null;
 
-  const dateStepNumber = hasStaffStep ? 3 : 2;
-  const timeStepNumber = hasStaffStep ? 4 : 3;
-
   const navigate = (next: { service?: string; date?: DateKey }) => {
     const params = new URLSearchParams();
     params.set("service", next.service ?? selectedService?.id ?? "");
@@ -164,10 +159,12 @@ export function BookingFlow({
   }
 
   return (
-    <div className="space-y-7 pb-28 md:pb-8">
+    <div className="pb-28 md:pb-8">
+      <ol className="list-none space-y-8">
       {/* ---- 1. Service ---------------------------------------------------- */}
-      <section aria-labelledby="pick-service" className="space-y-2.5">
-        <StepHeading number={1} id="pick-service">
+      <li>
+      <section aria-labelledby="pick-service" className="space-y-3">
+        <StepHeading done={selectedService != null} id="pick-service">
           {t("booking.stepService")}
         </StepHeading>
 
@@ -181,11 +178,11 @@ export function BookingFlow({
                 onClick={() => navigate({ service: service.id })}
                 aria-pressed={active}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-colors",
-                  "outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+                  "appt-press flex w-full items-center gap-3 rounded-[var(--radius-field)] border p-4 text-left",
+                  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   active
-                    ? "border-accent bg-accent-soft/60"
-                    : "border-border bg-surface hover:bg-surface-muted",
+                    ? "border-accent bg-accent-soft"
+                    : "border-border bg-surface hover:border-border-strong",
                 )}
               >
                 <span className="min-w-0 flex-1">
@@ -195,12 +192,9 @@ export function BookingFlow({
                       {service.description}
                     </span>
                   ) : null}
-                  <span className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <Badge tone="neutral">
-                      <Clock3 />
-                      {formatDuration(service.duration_min)}
-                    </Badge>
-                    <span className="text-sm font-semibold">
+                  <span className="num mt-1 block text-sm text-fg-muted">
+                    {formatDuration(service.duration_min)} ·{" "}
+                    <span className="font-semibold text-fg">
                       {formatMoney(service.price, service.currency)}
                     </span>
                   </span>
@@ -220,11 +214,13 @@ export function BookingFlow({
           })}
         </div>
       </section>
+      </li>
 
       {/* ---- 2. Staff (only when this business has bookable staff) --------- */}
       {hasStaffStep ? (
-        <section aria-labelledby="pick-staff" className="space-y-2.5">
-          <StepHeading number={2} id="pick-staff">
+        <li>
+        <section aria-labelledby="pick-staff" className="space-y-3">
+          <StepHeading done id="pick-staff">
             {t("booking.stepStaff")}
           </StepHeading>
 
@@ -247,15 +243,17 @@ export function BookingFlow({
             ))}
           </div>
         </section>
+        </li>
       ) : null}
 
       {/* ---- 3. Date ------------------------------------------------------- */}
+      <li>
       <section aria-labelledby="pick-date" className="space-y-3">
-        <StepHeading number={dateStepNumber} id="pick-date">
+        <StepHeading done={effectiveOpenDays[selectedDate] === true} id="pick-date">
           {t("booking.stepDate")}
         </StepHeading>
 
-        <div className="rounded-xl border border-border bg-surface p-3.5">
+        <div className="rounded-[var(--radius-panel)] border border-border bg-surface p-3 sm:p-5">
           <Calendar
             selected={selectedDate}
             onSelect={(date) => navigate({ date })}
@@ -266,26 +264,28 @@ export function BookingFlow({
           />
         </div>
       </section>
+      </li>
 
       {/* ---- 4. Time ------------------------------------------------------- */}
+      <li>
       <section aria-labelledby="pick-time" className="space-y-3">
-        <StepHeading number={timeStepNumber} id="pick-time">
+        <StepHeading done={slotIso != null} id="pick-time">
           {t("booking.stepTime")}
         </StepHeading>
 
-        <p className="flex items-center gap-2 text-sm text-fg-muted">
-          <CalendarDays className="size-4 shrink-0" />
+        <p className="text-sm text-fg-muted">
           {formatInBusinessTz(`${selectedDate}T12:00:00Z`, "UTC", "EEEE d MMMM", locale)}
-          <span className="text-fg-subtle">· {business.timezone}</span>
+          {" · "}
+          {business.timezone}
         </p>
 
         {pending ? (
-          <div className="flex min-h-24 items-center justify-center gap-2 rounded-xl border border-border bg-surface text-sm text-fg-muted">
+          <div className="flex min-h-24 items-center justify-center gap-2 rounded-[var(--radius-panel)] border border-border bg-surface text-sm text-fg-muted">
             <Loader2 className="size-4 animate-spin" />
             {t("booking.checkingAvailability")}
           </div>
         ) : slots === null ? (
-          <div className="flex min-h-24 items-center justify-center rounded-xl border border-border bg-surface text-sm text-fg-muted">
+          <div className="flex min-h-24 items-center justify-center rounded-[var(--radius-panel)] border border-border bg-surface text-sm text-fg-muted">
             {t("booking.loadingTimes")}
           </div>
         ) : slots.length === 0 ? (
@@ -297,7 +297,7 @@ export function BookingFlow({
         ) : (
           // 3 columns on the narrowest phone keeps each chip comfortably over
           // 44px wide; more columns appear as the screen allows.
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-6">
             {slots.map((slot) => {
               const active = slot.startsAt === slotIso;
               return (
@@ -307,32 +307,34 @@ export function BookingFlow({
                   onClick={() => setSlotIso(active ? null : slot.startsAt)}
                   aria-pressed={active}
                   className={cn(
-                    "min-h-12 rounded-lg border text-sm font-semibold tabular-nums transition-colors",
-                    "outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+                    "appt-press num min-h-12 rounded-full border text-[15px] font-semibold",
+                    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                     active
                       ? "border-accent bg-accent text-accent-fg"
-                      : "border-border bg-surface text-fg hover:border-accent/50 hover:bg-accent-soft",
+                      : "border-border-strong bg-surface text-fg hover:border-fg/30",
                   )}
                 >
-                  {slot.label}
+                  {formatSlotTime(slot.startsAt, business.timezone, locale)}
                 </button>
               );
             })}
           </div>
         )}
       </section>
+      </li>
+      </ol>
 
       {/* ---- Sticky confirm bar -------------------------------------------
           Fixed above the tab bar so the action is always one thumb-tap away,
           however far down the slot grid the user has scrolled. -------------- */}
       {selectedService && slotIso ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-lg md:sticky md:bottom-4 md:rounded-xl md:border md:pb-3 md:shadow-[var(--shadow-raised)]">
+        <div className="fixed inset-x-0 bottom-0 z-30 mt-6 border-t border-border bg-surface p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:sticky md:bottom-4 md:rounded-[var(--radius-panel)] md:border-0 md:px-4 md:pb-3 md:shadow-[var(--shadow-float)]">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{selectedService.name}</p>
-              <p className="truncate text-xs text-fg-muted">
+              <p className="num truncate text-[13px] text-fg-muted">
                 {formatInBusinessTz(`${selectedDate}T12:00:00Z`, "UTC", "EEE d MMM", locale)} ·{" "}
-                {formatInBusinessTz(slotIso, business.timezone, "h:mm a", locale)} ·{" "}
+                {formatSlotTime(slotIso, business.timezone, locale)} ·{" "}
                 {formatMoney(selectedService.price, selectedService.currency)}
               </p>
             </div>
@@ -356,7 +358,7 @@ export function BookingFlow({
                 </Link>
               </Button>
             ) : (
-              <span className="shrink-0 rounded-lg bg-surface-muted px-3 py-2 text-xs font-semibold text-fg-muted">
+              <span className="shrink-0 rounded-full bg-surface-muted px-3 py-2 text-[13px] font-semibold text-fg-muted">
                 {t("booking.previewOnly")}
               </span>
             )}
@@ -388,19 +390,27 @@ export function BookingFlow({
   );
 }
 
+/** A state marker, not a number: an empty ring until the step has a value,
+ * then a brass check. */
 function StepHeading({
-  number,
+  done,
   id,
   children,
 }: {
-  number: number;
+  done: boolean;
   id: string;
   children: React.ReactNode;
 }) {
   return (
-    <h2 id={id} className="flex items-center gap-2.5 text-base font-bold tracking-tight">
-      <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-fg">
-        {number}
+    <h2 id={id} className="flex items-center gap-2.5 text-lg font-semibold">
+      <span
+        aria-hidden
+        className={cn(
+          "flex size-[22px] shrink-0 items-center justify-center rounded-full transition-colors duration-150",
+          done ? "bg-accent text-accent-fg" : "border-2 border-border-strong",
+        )}
+      >
+        {done ? <Check className="size-3.5" strokeWidth={3} /> : null}
       </span>
       {children}
     </h2>
@@ -487,7 +497,7 @@ function ConfirmSheet({
             <input type="hidden" name="startsAt" value={startsAt} />
             {staffId ? <input type="hidden" name="staffId" value={staffId} /> : null}
 
-            <dl className="divide-y divide-border rounded-xl bg-surface-muted px-3.5">
+            <dl className="divide-y divide-border rounded-[var(--radius-panel)] bg-surface-muted px-4">
               <Row label={t("confirm.rowWhere")} value={business.name} sub={business.address} />
               <Row
                 label={t("confirm.rowWhat")}
@@ -503,10 +513,9 @@ function ConfirmSheet({
               <Row
                 label={t("confirm.rowWhen")}
                 value={formatInBusinessTz(startsAt, business.timezone, "EEEE d MMMM", locale)}
-                sub={`${formatInBusinessTz(startsAt, business.timezone, "h:mm a", locale)} – ${formatInBusinessTz(
+                sub={`${formatSlotTime(startsAt, business.timezone, locale)} – ${formatSlotTime(
                   endsAt,
                   business.timezone,
-                  "h:mm a",
                   locale,
                 )} (${business.timezone})`}
               />
@@ -520,7 +529,7 @@ function ConfirmSheet({
             {/* Cancellation/no-show policy — shown here, on the listing page, and in
                 the confirmation email (roadmap.md §1 row 6; ux-benchmark.md §4.2's
                 "repeat it everywhere" pattern). */}
-            <div className="rounded-xl border border-border bg-surface p-3.5">
+            <div className="rounded-[var(--radius-panel)] border border-border bg-surface p-4">
               <p className="text-sm font-semibold">{t("confirm.cancellationPolicyLabel")}</p>
               <p className="mt-1 text-sm text-fg-muted text-pretty">
                 {business.cancellation_policy || t("confirm.cancellationPolicyFallback")}
@@ -573,11 +582,11 @@ function StaffChoiceButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-colors",
-        "outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+        "appt-press flex w-full items-center gap-3 rounded-[var(--radius-field)] border p-4 text-left",
+        "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         active
-          ? "border-accent bg-accent-soft/60"
-          : "border-border bg-surface hover:bg-surface-muted",
+          ? "border-accent bg-accent-soft"
+          : "border-border bg-surface hover:border-border-strong",
       )}
     >
       {avatarUrl ? (
@@ -592,10 +601,10 @@ function StaffChoiceButton({
         />
       ) : (
         <span
-          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-sm font-bold text-accent"
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-sm font-semibold text-fg"
           aria-hidden
         >
-          {anyAvailable ? <Users className="size-4" /> : name.trim().charAt(0).toUpperCase()}
+          {anyAvailable ? <Users className="size-4" /> : initials(name)}
         </span>
       )}
 
@@ -629,9 +638,9 @@ function Row({
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <dt className="shrink-0 text-sm text-fg-muted">{label}</dt>
-      <dd className="min-w-0 text-right">
+      <dd className="min-w-0 text-right text-[15px]">
         <span className="block font-semibold">{value}</span>
-        {sub ? <span className="block text-sm text-fg-subtle text-pretty">{sub}</span> : null}
+        {sub ? <span className="num block text-sm text-fg-muted text-pretty">{sub}</span> : null}
       </dd>
     </div>
   );

@@ -1,23 +1,144 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  CalendarCheck,
-  Clock3,
-  MapPin,
-  Scissors,
-  Smartphone,
-  Store,
-  Users,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/shared/logo";
 import { SetupNotice } from "@/components/shared/setup-notice";
+import type { DemoShop } from "@/components/shared/appointment-card";
+import { LandingHero } from "@/components/landing/hero";
+import { DayStrip } from "@/components/landing/day-strip";
+import { ForShops } from "@/components/landing/for-shops";
+import { SmallThings } from "@/components/landing/small-things";
+import { LandingClose } from "@/components/landing/close";
 import { getSession } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isMockMode } from "@/lib/mock/config";
-import { BETA_INVITE_HREF } from "@/lib/beta";
+import { createClient } from "@/lib/supabase/server";
+import { availabilityForRange, loadAvailabilitySources } from "@/lib/booking/availability";
+import type { Slot } from "@/lib/booking/slots";
+import {
+  businessToday,
+  formatInBusinessTz,
+  formatMoney,
+  formatSlotTime,
+  shiftDateKey,
+} from "@/lib/booking/time";
 import { t, type Locale } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
+
+/** At most six times, spread across the day rather than the first six in a
+ * row (a 15-minute grid would otherwise show 11:00 11:15 11:30 …). */
+function pickTimes(slots: Slot[]): Slot[] {
+  const round = slots.filter((slot) => slot.startMinute % 30 === 0);
+  const pool = round.length >= 6 ? round : slots;
+  if (pool.length <= 6) return pool;
+  const step = (pool.length - 1) / 5;
+  return Array.from({ length: 6 }, (_, i) => pool[Math.round(i * step)]!);
+}
+
+function dateLabel(dateKey: string, timezone: string, locale: Locale): string {
+  // Noon keeps the instant safely inside the calendar day in any zone.
+  return formatInBusinessTz(
+    new Date(`${dateKey}T12:00:00Z`),
+    timezone,
+    locale === "th" ? "EEEE d MMM" : "EEE d MMM",
+    locale,
+  );
+}
+
+/** Static stand-in when there is no backend (or it fails): two demo shops and
+ * plausible free times, captioned as a sample rather than live data. */
+function sampleShops(locale: Locale): DemoShop[] {
+  const today = businessToday("Asia/Bangkok");
+  const th = locale === "th";
+  const label = dateLabel(today, "Asia/Bangkok", locale);
+  const en = (times: string[]) =>
+    times.map((time) => {
+      const [h, m] = time.split(":").map(Number);
+      const h12 = h! % 12 === 0 ? 12 : h! % 12;
+      return `${h12}:${String(m).padStart(2, "0")} ${h! < 12 ? "AM" : "PM"}`;
+    });
+  const barber = ["11:00", "13:30", "14:00", "15:30", "16:00", "18:30"];
+  const spa = ["14:00", "14:30", "15:00", "16:30", "17:00", "19:00"];
+  return [
+    {
+      slug: "nong-barber",
+      name: "Nong Barber",
+      serviceId: null,
+      serviceName: "Men's cut",
+      price: formatMoney(350),
+      dateKey: today,
+      day: "today",
+      dateLabel: label,
+      times: th ? barber : en(barber),
+    },
+    {
+      slug: "baan-suan-spa",
+      name: "Baan Suan Spa",
+      serviceId: null,
+      serviceName: "Thai massage (60 min)",
+      price: formatMoney(600),
+      dateKey: today,
+      day: "today",
+      dateLabel: label,
+      times: th ? spa : en(spa),
+    },
+  ];
+}
+
+/**
+ * Real free times for the first two published shops, from the same
+ * availability engine the shop page uses, so the card's claim is true.
+ */
+async function loadDemoShops(locale: Locale): Promise<DemoShop[] | null> {
+  const supabase = await createClient();
+  const { data: businesses } = await supabase
+    .from("businesses")
+    .select("*")
+    .eq("is_published", true)
+    .order("created_at", { ascending: true })
+    .limit(2);
+  if (!businesses || businesses.length === 0) return null;
+
+  const shops: DemoShop[] = [];
+  for (const business of businesses) {
+    const { data: service } = await supabase
+      .from("services")
+      .select("*")
+      .eq("business_id", business.id)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (!service) continue;
+
+    const today = businessToday(business.timezone);
+    const sources = await loadAvailabilitySources(
+      supabase,
+      business,
+      today,
+      shiftDateKey(today, 2),
+    );
+    const days = availabilityForRange(business, service, sources, today, 2);
+    const day = days.find((d) => d.slots.length > 0) ?? days[0];
+    if (!day) continue;
+
+    shops.push({
+      slug: business.slug,
+      name: business.name,
+      serviceId: service.id,
+      serviceName: service.name,
+      price: formatMoney(service.price, service.currency),
+      dateKey: day.date,
+      day: day.date === today ? "today" : "tomorrow",
+      dateLabel: dateLabel(day.date, business.timezone, locale),
+      times: pickTimes(day.slots).map((slot) =>
+        formatSlotTime(slot.startsAt, business.timezone, locale),
+      ),
+    });
+  }
+  return shops.length > 0 ? shops : null;
+}
 
 export default async function LandingPage() {
   const locale = await getLocale();
@@ -26,190 +147,57 @@ export default async function LandingPage() {
   const signedInHome =
     session?.profile.role === "business_owner" ? "/dashboard" : "/app";
 
+  let shops: DemoShop[] | null = null;
+  if (configured) {
+    try {
+      shops = await loadDemoShops(locale);
+    } catch {
+      shops = null;
+    }
+  }
+  const live = shops !== null;
+
   return (
     <div className="min-h-dvh bg-bg">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-bg/85 backdrop-blur-md pt-safe">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <header className="pt-safe">
+        <div className="mx-auto flex h-[72px] max-w-[1360px] items-center justify-between gap-3 px-[clamp(16px,3vw,40px)]">
           <Logo />
-          {session ? (
-            <Button asChild size="sm" variant="primary">
-              <Link href={signedInHome}>
-                {t(locale, "landing.openApp")}
-                <ArrowRight />
-              </Link>
-            </Button>
-          ) : (
-            <Button asChild size="sm" variant="ghost">
-              <Link href="/sign-in">{t(locale, "landing.signIn")}</Link>
-            </Button>
-          )}
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <a
+              href="#for-shops"
+              className="hidden min-h-11 items-center rounded-full px-4 text-[15px] font-semibold text-fg hover:underline sm:inline-flex"
+            >
+              {t(locale, "landing.navForShops")}
+            </a>
+            {session ? (
+              <Button asChild size="sm" variant="outline">
+                <Link href={signedInHome}>
+                  {t(locale, "landing.openApp")}
+                  <ArrowRight />
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="outline">
+                <Link href="/sign-in">{t(locale, "landing.signIn")}</Link>
+              </Button>
+            )}
+          </nav>
         </div>
+        {!configured ? (
+          <div className="mx-auto max-w-[1360px] px-[clamp(16px,3vw,40px)] pb-6">
+            <SetupNotice />
+          </div>
+        ) : null}
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        {!configured ? <SetupNotice className="mt-6" /> : null}
-
-        {/* ---- Hero ------------------------------------------------------ */}
-        <section className="pt-10 pb-4 sm:pt-16 sm:pb-8">
-          <p className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent">
-            <Clock3 className="size-3.5" />
-            {t(locale, "landing.badge")}
-          </p>
-          <h1 className="mt-4 text-balance text-[2rem] font-bold leading-[1.1] tracking-tight sm:text-5xl lg:text-6xl">
-            {t(locale, "landing.headlineStart")}{" "}
-            <span className="text-accent">{t(locale, "landing.headlineAccent")}</span>
-          </h1>
-          <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-fg-muted sm:text-lg">
-            {t(locale, "landing.intro")}
-          </p>
-        </section>
-
-        {/* ---- The two doors --------------------------------------------
-            The whole product forks here, so the choice gets the full width of
-            a phone screen rather than being buried in a nav menu. ---------- */}
-        <section aria-labelledby="choose-portal" className="mt-4 sm:mt-8">
-          <h2 id="choose-portal" className="sr-only">
-            {t(locale, "landing.chooseSr")}
-          </h2>
-
-          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
-            <PortalCard
-              href="/sign-up?role=customer"
-              signInHref="/sign-in?role=customer"
-              locale={locale}
-              eyebrow={t(locale, "landing.custEyebrow")}
-              title={t(locale, "landing.custTitle")}
-              description={t(locale, "landing.custDesc")}
-              icon={Users}
-              tone="accent"
-              points={[
-                { icon: MapPin, text: t(locale, "landing.custPoint1") },
-                { icon: CalendarCheck, text: t(locale, "landing.custPoint2") },
-                { icon: Smartphone, text: t(locale, "landing.custPoint3") },
-              ]}
-            />
-
-            <PortalCard
-              href={BETA_INVITE_HREF}
-              ctaLabel={t(locale, "landing.requestInvite")}
-              signInHref="/sign-in?role=business_owner"
-              locale={locale}
-              eyebrow={t(locale, "landing.bizEyebrow")}
-              title={t(locale, "landing.bizTitle")}
-              description={t(locale, "landing.bizDesc")}
-              icon={Store}
-              tone="primary"
-              points={[
-                { icon: Clock3, text: t(locale, "landing.bizPoint1") },
-                { icon: Scissors, text: t(locale, "landing.bizPoint2") },
-                { icon: CalendarCheck, text: t(locale, "landing.bizPoint3") },
-              ]}
-            />
-          </div>
-        </section>
-
-        {/* ---- Reassurance ------------------------------------------------ */}
-        <section className="mt-12 grid gap-4 sm:mt-16 sm:grid-cols-3">
-          {[
-            {
-              title: t(locale, "landing.r1Title"),
-              body: t(locale, "landing.r1Body"),
-            },
-            {
-              title: t(locale, "landing.r2Title"),
-              body: t(locale, "landing.r2Body"),
-            },
-            {
-              title: t(locale, "landing.r3Title"),
-              body: t(locale, "landing.r3Body"),
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
-              className="rounded-xl border border-border bg-surface p-5 shadow-[var(--shadow-card)]"
-            >
-              <h3 className="font-semibold tracking-tight">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-fg-muted text-pretty">
-                {item.body}
-              </p>
-            </div>
-          ))}
-        </section>
+      <main>
+        <LandingHero locale={locale} shops={shops ?? sampleShops(locale)} live={live} />
+        <DayStrip locale={locale} />
+        <ForShops locale={locale} />
+        <SmallThings locale={locale} />
       </main>
 
-      <footer className="border-t border-border py-8 pb-safe">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 text-sm text-fg-subtle sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <Logo />
-          <p>© {new Date().getFullYear()} TatNat</p>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function PortalCard({
-  href,
-  ctaLabel,
-  locale,
-  signInHref,
-  eyebrow,
-  title,
-  description,
-  icon: Icon,
-  tone,
-  points,
-}: {
-  href: string;
-  ctaLabel?: string;
-  locale: Locale;
-  signInHref: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  tone: "accent" | "primary";
-  points: { icon: React.ComponentType<{ className?: string }>; text: string }[];
-}) {
-  return (
-    <div className="flex flex-col rounded-2xl border border-border bg-surface p-5 shadow-[var(--shadow-card)] sm:p-6">
-      <div className="flex items-center gap-3">
-        <span
-          className={
-            tone === "accent"
-              ? "flex size-11 items-center justify-center rounded-xl bg-accent-soft text-accent"
-              : "flex size-11 items-center justify-center rounded-xl bg-primary text-primary-fg"
-          }
-        >
-          <Icon className="size-5.5" />
-        </span>
-        <p className="text-sm font-semibold text-fg-muted">{eyebrow}</p>
-      </div>
-
-      <h3 className="mt-4 text-xl font-bold tracking-tight sm:text-2xl">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-fg-muted text-pretty">
-        {description}
-      </p>
-
-      <ul className="mt-5 space-y-2.5">
-        {points.map((point) => (
-          <li key={point.text} className="flex items-start gap-2.5 text-sm">
-            <point.icon className="mt-0.5 size-4 shrink-0 text-accent" />
-            <span className="text-fg-muted">{point.text}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-6 flex flex-col gap-2 sm:mt-auto sm:pt-6">
-        <Button asChild size="lg" block variant={tone === "accent" ? "accent" : "primary"}>
-          <Link href={href}>
-            {ctaLabel ?? t(locale, "landing.createAccount")}
-            <ArrowRight />
-          </Link>
-        </Button>
-        <Button asChild size="md" block variant="ghost">
-          <Link href={signInHref}>{t(locale, "landing.haveOne")}</Link>
-        </Button>
-      </div>
+      <LandingClose locale={locale} />
     </div>
   );
 }

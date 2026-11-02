@@ -1,74 +1,116 @@
 @import "tailwindcss";
 
 /* ==========================================================================
-   TatNat design tokens
+   TatNat design tokens — "ป้ายร้าน + บัตรนัด" (shop sign + appointment card)
    --------------------------------------------------------------------------
-   Warm ink + gold. Reads as "premium local salon" rather than "enterprise SaaS",
-   and holds up on the cheap, glare-heavy phone screens this is mostly used on.
-   Every colour is defined for light first, then overridden for dark.
+   Neutral stone ground, white paper surfaces, ink for structure and brass
+   for booking moments only. Text on brass is always ink (white on brass is
+   2.6:1 and fails AA). Every colour is defined for light, then dark.
    ========================================================================== */
 
 @layer base {
   :root {
-    --bg: 40 33% 98%;
-    --surface: 0 0% 100%;
-    --surface-muted: 40 20% 96%;
-    --border: 36 16% 88%;
-    --border-strong: 36 14% 78%;
+    color-scheme: light;
 
-    --fg: 25 18% 12%;
-    --fg-muted: 28 8% 42%;
-    --fg-subtle: 30 7% 56%;
+    /* ground & surfaces: neutral stone, white paper */
+    --bg: 60 10% 94.3%;              /* #F2F2EF */
+    --surface: 0 0% 100%;            /* #FFFFFF */
+    --surface-muted: 48 11% 90.8%;   /* #EAE9E5 */
+    --border: 43 11% 88%;            /* #E4E2DD */
+    --border-strong: 42 9% 78.4%;    /* #CDCAC3 */
 
-    --primary: 24 16% 14%;
-    --primary-fg: 40 33% 98%;
+    --fg: 27 15% 13.9%;              /* #29231E */
+    --fg-muted: 34 8% 34.1%;         /* #5E5850 */
+    --fg-subtle: 34 7% 39.2%;        /* #6B655D */
 
-    --accent: 36 84% 48%;
-    --accent-fg: 30 40% 99%;
-    --accent-soft: 38 92% 94%;
+    --primary: 27 15% 13.9%;
+    --primary-fg: 45 29% 97.3%;      /* #FAF9F6 */
 
-    --success: 152 46% 34%;
-    --success-soft: 152 45% 94%;
-    --warning: 34 92% 44%;
-    --warning-soft: 38 92% 94%;
-    --danger: 2 68% 48%;
-    --danger-soft: 4 80% 96%;
-    --info: 214 60% 44%;
-    --info-soft: 214 80% 95%;
+    --accent: 36 84% 48%;            /* #E18F14 brass: fills only */
+    --accent-fg: 30 19% 10.2%;       /* #1F1A15 ink on brass */
+    --accent-ink: 35 100% 28%;       /* #8F5300 brass as text/links */
+    --accent-soft: 36 85% 92%;       /* #FCEED9 */
 
-    --ring: 36 84% 48%;
+    --success: 150 55% 31.2%;   --success-soft: 145 44% 92.4%;
+    --warning: 23 83% 31.4%;    --warning-soft: 42 100% 92.9%;
+    --danger: 358 69% 45.5%;    --danger-soft: 9 100% 95.9%;
+    --info: 216 56% 42.2%;      --info-soft: 215 68% 95.1%;
+
+    --ring: 35 100% 28%;
+
+    /* landing fields */
+    --field-brass: 36 84% 48%;        --field-brass-ink: 30 19% 10.2%;
+    --field-brass-muted: 31 27% 18.2%;
+    --field-ink: 27 15% 13.9%;        --field-ink-fg: 39 44% 93.7%;
+    --field-ink-muted: 34 18% 74.3%;
+    --card-paper: 0 0% 100%;
+
+    /* ShopMark category tints (shop-mark.tsx) */
+    --tile-barber: #FCEED9;   --tile-barber-ink: #8F5300;
+    --tile-salon: #FBE4E6;    --tile-salon-ink: #9E2B3A;
+    --tile-spa: #E2F2E6;      --tile-spa-ink: #256B3E;
+    --tile-clinic: #E1EEF8;   --tile-clinic-ink: #24578A;
+    --tile-fitness: #EDF0D9;  --tile-fitness-ink: #5A6516;
+    --tile-other: #ECEAE6;    --tile-other-ink: #3E3832;
 
     --radius: 0.875rem;
+    --radius-panel: 1.25rem;   /* 20px cards/panels */
+    --radius-field: 0.875rem;  /* 14px inputs, service rows */
+    --radius-tile: 1rem;       /* 16px ShopMark */
+
+    /* motion */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --t-press: 140ms;
+    --t-hover: 180ms;
+    --t-ui: 220ms;
+    --t-sheet-in: 320ms;
+    --t-sheet-out: 200ms;
+    --t-reveal: 700ms;
   }
 
   .dark {
-    --bg: 26 14% 8%;
-    --surface: 26 13% 11%;
-    --surface-muted: 26 12% 15%;
-    --border: 28 10% 20%;
-    --border-strong: 28 10% 28%;
+    color-scheme: dark;
 
-    --fg: 38 24% 95%;
-    --fg-muted: 34 9% 68%;
-    --fg-subtle: 32 8% 54%;
+    --bg: 30 11% 7.5%;               /* #151311 */
+    --surface: 30 12% 10.2%;         /* #1D1A17 */
+    --surface-muted: 30 9% 13.7%;    /* #262320 */
+    --border: 30 10% 16.5%;          /* #2E2A26 */
+    --border-strong: 33 9% 24.9%;    /* #45403A */
 
-    --primary: 38 24% 95%;
-    --primary-fg: 26 14% 10%;
+    --fg: 36 28% 92.9%;              /* #F2EEE8 */
+    --fg-muted: 35 12% 68.4%;        /* #B8B0A5 */
+    --fg-subtle: 32 8% 57.1%;        /* #9A9289 */
 
-    --accent: 38 88% 56%;
-    --accent-fg: 26 20% 10%;
-    --accent-soft: 34 40% 18%;
+    --primary: 36 28% 92.9%;
+    --primary-fg: 30 11% 7.5%;
 
-    --success: 152 44% 52%;
-    --success-soft: 154 30% 16%;
-    --warning: 38 88% 58%;
-    --warning-soft: 34 40% 18%;
-    --danger: 4 76% 62%;
-    --danger-soft: 4 34% 18%;
-    --info: 212 70% 62%;
-    --info-soft: 212 34% 18%;
+    --accent: 34 86% 58.4%;          /* #F0A23A */
+    --accent-fg: 32 33% 7.6%;        /* #1A140D */
+    --accent-ink: 35 88% 65.5%;      /* #F4B45A */
+    --accent-soft: 36 53% 14.9%;     /* #3A2A12 */
 
-    --ring: 38 88% 56%;
+    --success: 151 50% 53.1%;  --success-soft: 145 28% 12%;
+    --warning: 35 85% 65.3%;   --warning-soft: 38 55% 12.9%;
+    --danger: 0 80% 67.8%;     --danger-soft: 0 34% 15.5%;
+    --info: 217 70% 70.4%;     --info-soft: 219 43% 15.9%;
+
+    --ring: 35 88% 65.5%;
+
+    --field-brass: 35 89% 41.4%;     --field-brass-ink: 30 33% 5.9%;
+    --field-brass-muted: 33 32% 12%;   /* #2B2115, 4.75:1 on the night brass */
+    --field-ink: 30 12% 10.2%;       --field-ink-fg: 36 28% 92.9%;
+    --field-ink-muted: 35 12% 68.4%;
+    --card-paper: 30 12% 10.2%;
+
+    --tile-barber: #3A2A12;   --tile-barber-ink: #F4B45A;
+    --tile-salon: #3A1A1F;    --tile-salon-ink: #F2A0AA;
+    --tile-spa: #16271D;      --tile-spa-ink: #8FD3A6;
+    --tile-clinic: #17233A;   --tile-clinic-ink: #9CC2EE;
+    --tile-fitness: #262A12;  --tile-fitness-ink: #C9D27A;
+    --tile-other: #262320;    --tile-other-ink: #D9D2C7;
   }
 }
 
@@ -88,6 +130,7 @@
 
   --color-accent: hsl(var(--accent));
   --color-accent-fg: hsl(var(--accent-fg));
+  --color-accent-ink: hsl(var(--accent-ink));
   --color-accent-soft: hsl(var(--accent-soft));
 
   --color-success: hsl(var(--success));
@@ -101,20 +144,29 @@
 
   --color-ring: hsl(var(--ring));
 
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 0.25rem);
+  --color-field-brass: hsl(var(--field-brass));
+  --color-field-brass-ink: hsl(var(--field-brass-ink));
+  --color-field-brass-muted: hsl(var(--field-brass-muted));
+  --color-field-ink: hsl(var(--field-ink));
+  --color-field-ink-fg: hsl(var(--field-ink-fg));
+  --color-field-ink-muted: hsl(var(--field-ink-muted));
+  --color-card-paper: hsl(var(--card-paper));
+
   --radius-sm: calc(var(--radius) - 0.5rem);
-  --radius-xl: calc(var(--radius) + 0.375rem);
+  --radius-md: calc(var(--radius) - 0.25rem);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius-panel);
+  --radius-2xl: var(--radius-panel);
 
-  /* Thai-capable type system, look-and-feel.md §4.3: Anuphan (bilingual
-     Thai+Latin) first, Noto Sans Thai as the Thai-safe fallback so a slow
-     load never shows tofu boxes, Plus Jakarta Sans (the old Latin-only font)
-     kept for its Latin glyphs, then the system stack. */
-  --font-sans: var(--font-anuphan), var(--font-noto-thai), var(--font-plus-jakarta),
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Anuphan (bilingual Thai+Latin) carries the UI; Noto Sans Thai is the
+     Thai-safe fallback. Mitr is the display face for public headings only. */
+  --font-sans: var(--font-anuphan), var(--font-noto-thai), ui-sans-serif, system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-mitr), var(--font-anuphan), var(--font-noto-thai),
+    ui-sans-serif, sans-serif;
 
-  --shadow-card: 0 1px 2px hsl(var(--fg) / 0.04), 0 8px 24px -12px hsl(var(--fg) / 0.12);
-  --shadow-raised: 0 2px 6px hsl(var(--fg) / 0.06), 0 18px 40px -18px hsl(var(--fg) / 0.22);
+  /* Only floating things (sheets, dialogs, menus, sticky bar, toasts). */
+  --shadow-float: 0 12px 32px -12px hsl(var(--fg) / 0.28), 0 2px 6px hsl(var(--fg) / 0.08);
 }
 
 @layer base {
@@ -133,9 +185,28 @@
     color: hsl(var(--fg));
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    caret-color: hsl(var(--accent-ink));
     /* Nothing may ever push the page sideways on a phone. */
     overflow-x: hidden;
     overscroll-behavior-y: none;
+  }
+
+  /* Thai stacks tone marks above and vowels below the line: it needs more
+     leading than Latin or ั ่ ้ ุ ู clip. */
+  /* Set on body (not on every :lang(th) element) so it inherits like any
+     line-height and utilities/.display on an ancestor still flow down. */
+  html:lang(th) body {
+    line-height: 1.7;
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-fg));
+  }
+
+  a {
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 0.07em;
   }
 
   /* 16px minimum on every control: anything smaller makes iOS Safari zoom in
@@ -151,14 +222,158 @@
     outline-offset: 2px;
   }
 
+  /* Reduced motion means fewer and gentler, not zero: opacity and colour
+     feedback stay, travel/scale/rotation go. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+    .animate-slide-up,
+  .animate-dialog-in,
+  .animate-pop-in,
+  .animate-fade-in {
+    animation-name: tatnat-overlay-in !important;
+  }
+  .animate-slide-down,
+  .animate-dialog-out {
+    animation: none !important;
+  }
+  [data-motion="travel"] {
+      transform: none !important;
+      translate: none !important;
+      rotate: none !important;
+      scale: none !important;
+    }
+  }
+}
+
+@layer components {
+  /* Display face: public headings only (landing, auth h1, shop name, ShopMark). */
+  .display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+    line-height: 1.02;
+  }
+  :lang(th) .display,
+  .display:lang(th) {
+    letter-spacing: 0;
+    line-height: 1.2;
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---- Landing ------------------------------------------------------- */
+  .land-line {
+    display: block;
+    /* Room for Thai tone marks and lower vowels inside the clip. */
+    overflow: clip;
+    padding-block: 0.14em;
+    margin-block: -0.14em;
+  }
+  .land-line > span {
+    display: block;
+  }
+  .land-card {
+    rotate: -1deg;
+  }
+  @media (min-width: 1024px) {
+    .land-card {
+      rotate: -2deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html.js .land-line > span {
+      animation: land-rise var(--t-reveal) var(--ease-expo) both;
+    }
+    html.js .land-line:nth-child(2) > span {
+      animation-delay: 90ms;
+    }
+    html.js .land-card {
+      animation: land-settle 600ms var(--ease-expo) 180ms both;
+    }
+
+    html.js [data-reveal] .rv {
+      opacity: 0;
+      transform: translateY(16px);
+      transition:
+        opacity 600ms var(--ease-expo),
+        transform 600ms var(--ease-expo);
+      transition-delay: calc(var(--i, 0) * 80ms);
+    }
+    html.js [data-reveal][data-in="true"] .rv {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Day strip: booked blocks wipe in left to right. */
+    html.js [data-reveal] .rv-wipe {
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 600ms var(--ease-expo) 200ms;
+    }
+    html.js [data-reveal][data-in="true"] .rv-wipe {
+      clip-path: inset(0);
+    }
+    /* Today fragment: rows arrive 60ms apart. */
+    html.js [data-reveal] .rv-row {
+      opacity: 0;
+      transform: translateY(8px);
+      transition:
+        opacity 500ms var(--ease-expo),
+        transform 500ms var(--ease-expo);
+      transition-delay: calc(var(--i, 0) * 60ms + 200ms);
+    }
+    html.js [data-reveal][data-in="true"] .rv-row {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Press feedback for hand-rolled controls (Button has its own). */
+  .appt-press {
+    transition:
+      transform var(--t-press) var(--ease-out),
+      background-color var(--t-hover) ease,
+      border-color var(--t-hover) ease,
+      color var(--t-hover) ease;
+  }
+  .appt-press:active {
+    transform: scale(0.97);
+  }
+
+  /* Appointment card signature move: the time writes in left to right, then
+     the stamp lands. Transitions keyed on data attributes, so a second tap
+     interrupts cleanly. */
+  .appt-stamp {
+    opacity: 0;
+    transform: scale(1.12) rotate(-14deg);
+    transition:
+      opacity var(--t-ui) var(--ease-out) 120ms,
+      transform var(--t-ui) var(--ease-out) 120ms;
+  }
+  .appt-stamp[data-shown="true"] {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .appt-time {
+      clip-path: inset(0 100% 0 0);
+      transition: clip-path 320ms var(--ease-out);
+    }
+    .appt-time[data-inked="true"] {
+      clip-path: inset(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .appt-stamp,
+    .appt-stamp[data-shown="true"] {
+      transform: rotate(-10deg) !important;
     }
   }
 }
@@ -242,17 +457,100 @@
   }
 }
 
-@keyframes tatnat-shimmer {
-  100% {
-    transform: translateX(100%);
+@keyframes tatnat-slide-down {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes tatnat-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Desktop dialog: never from scale(0). Tailwind's centring uses the
+   `translate` property, so `transform` here composes with it. */
+@keyframes tatnat-dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes tatnat-dialog-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes tatnat-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes land-rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes land-settle {
+  from {
+    opacity: 0;
+    transform: translateY(16px) rotate(-2deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
 @layer utilities {
+  .animate-overlay-in {
+    animation: tatnat-overlay-in var(--t-ui) ease both;
+  }
+  .animate-slide-down {
+    animation: tatnat-slide-down var(--t-sheet-out) var(--ease-drawer) both;
+  }
+  .animate-dialog-in {
+    animation: tatnat-dialog-in var(--t-ui) var(--ease-out) both;
+  }
+  .animate-dialog-out {
+    animation: tatnat-dialog-out var(--t-sheet-out) var(--ease-out) both;
+  }
+  .animate-pop-in {
+    animation: tatnat-pop-in 150ms var(--ease-out) both;
+    transform-origin: var(--radix-dropdown-menu-content-transform-origin, center);
+  }
   .animate-fade-in {
-    animation: tatnat-fade-in 0.22s ease-out both;
+    animation: tatnat-fade-in var(--t-ui) var(--ease-out) both;
   }
   .animate-slide-up {
-    animation: tatnat-slide-up 0.26s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: tatnat-slide-up var(--t-sheet-in) var(--ease-drawer) both;
   }
 }

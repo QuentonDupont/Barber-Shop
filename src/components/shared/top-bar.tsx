@@ -20,14 +20,15 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 border-b border-border bg-bg/90 backdrop-blur-md pt-safe",
-        "md:bg-surface",
+        // Phone only: from md the sidebar carries the brand and the account
+        // menu, so a desktop top bar would be an empty 56px band.
+        "sticky top-0 z-30 border-b border-border bg-bg pt-safe md:hidden",
         className,
       )}
     >
       <div className="flex h-14 items-center justify-between gap-3 px-4 sm:px-6">
         {title ? (
-          <p className="truncate text-base font-bold tracking-tight">{title}</p>
+          <p className="truncate text-base font-semibold">{title}</p>
         ) : (
           <Link href={href} className="md:hidden">
             <Logo />

@@ -93,7 +93,7 @@ export function Calendar({
           type="button"
           onClick={() => step(-1)}
           disabled={!canGoBack}
-          className="flex size-11 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted disabled:opacity-30"
+          className="flex size-11 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-surface-muted disabled:opacity-30"
           aria-label={t("ui.prevMonth")}
         >
           <ChevronLeft className="size-5" />
@@ -107,7 +107,7 @@ export function Calendar({
           type="button"
           onClick={() => step(1)}
           disabled={!canGoForward}
-          className="flex size-11 items-center justify-center rounded-lg text-fg-muted transition-colors hover:bg-surface-muted disabled:opacity-30"
+          className="flex size-11 items-center justify-center rounded-full text-fg-muted transition-colors hover:bg-surface-muted disabled:opacity-30"
           aria-label={t("ui.nextMonth")}
         >
           <ChevronRight className="size-5" />
@@ -119,7 +119,7 @@ export function Calendar({
           <div
             key={label}
             role="columnheader"
-            className="pb-1 text-center text-[0.6875rem] font-semibold uppercase tracking-wide text-fg-subtle"
+            className="pb-1 text-center text-[13px] font-medium text-fg-muted"
           >
             {locale === "th" ? WEEKDAY_TH[weekdayIndex] : label.charAt(0)}
           </div>
@@ -143,15 +143,15 @@ export function Calendar({
               aria-label={date}
               onClick={() => onSelect(date)}
               className={cn(
-                "flex aspect-square min-h-11 items-center justify-center rounded-lg",
-                "text-sm font-semibold tabular-nums transition-colors outline-none",
-                "focus-visible:ring-2 focus-visible:ring-accent/40",
+                "mx-auto flex size-11 items-center justify-center rounded-full",
+                "text-sm font-semibold tabular-nums transition-colors duration-150 outline-none",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 isSelected
                   ? "bg-accent text-accent-fg"
                   : available
-                    ? "bg-surface-muted text-fg hover:bg-accent-soft hover:text-accent"
-                    : "text-fg-subtle/45 line-through decoration-1",
-                !isSelected && isToday && available && "ring-1 ring-accent/50",
+                    ? "bg-surface-muted text-fg hover:bg-border-strong/50"
+                    : "text-fg-subtle line-through decoration-1",
+                !isSelected && isToday && "ring-1 ring-fg",
               )}
             >
               {Number(date.slice(8))}
@@ -160,13 +160,13 @@ export function Calendar({
         })}
       </div>
 
-      <p className="mt-3 flex items-center gap-3 text-xs text-fg-subtle">
+      <p className="mt-3 flex items-center gap-4 text-[13px] text-fg-muted">
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded bg-surface-muted" aria-hidden />
+          <span className="size-2 rounded-full bg-border-strong" aria-hidden />
           {t("ui.legendAvailable")}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-3 rounded border border-border" aria-hidden />
+          <span className="size-2 rounded-full border border-fg-subtle" aria-hidden />
           {t("ui.legendClosed")}
         </span>
       </p>

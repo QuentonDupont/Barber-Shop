@@ -84,7 +84,7 @@ export function AccountMenu({
           sideOffset={8}
           className={cn(
             "z-50 min-w-56 rounded-xl border border-border bg-surface p-1.5",
-            "shadow-[var(--shadow-raised)] data-[state=open]:animate-fade-in",
+            "shadow-[var(--shadow-float)] data-[state=open]:animate-pop-in",
           )}
         >
           <div className="px-3 py-2">
