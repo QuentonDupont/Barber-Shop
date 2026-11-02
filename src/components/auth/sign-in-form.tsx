@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/misc";
 import { GoogleButton } from "./google-button";
 import type { Role } from "./role-toggle";
 import { signInAction } from "@/lib/actions/auth";
@@ -21,7 +20,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   const t = useT();
   return (
-    <Button type="submit" size="lg" block loading={pending}>
+    <Button type="submit" size="lg" variant="primary" block loading={pending}>
       {t("auth.signIn")}
     </Button>
   );
@@ -53,20 +52,20 @@ export function SignInForm({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("auth.welcomeBack")}</h1>
+        <h1 className="display text-[30px] sm:text-4xl">{t("auth.welcomeBack")}</h1>
         <p className="mt-1.5 text-sm text-fg-muted">
           {t("auth.newToTatnat")}{" "}
           <Link
             href={`/sign-up?role=${role}${next ? `&next=${encodeURIComponent(next)}` : ""}`}
-            className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">
+            className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent-ink underline underline-offset-4">
             {t("auth.createAnAccount")}
           </Link>
         </p>
       </div>
 
       {MOCK_MODE ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface-muted/60 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+        <div className="rounded-[20px] bg-surface-muted p-4">
+          <p className="mb-3 text-[13px] text-fg-muted">
             {t("auth.demoModeLabel")}
           </p>
           <div className="grid grid-cols-2 gap-2">
@@ -132,13 +131,7 @@ export function SignInForm({
         <SubmitButton />
       </form>
 
-      <div className="flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
-          {t("auth.or")}
-        </span>
-        <Separator className="flex-1" />
-      </div>
+      <p className="my-4 text-center text-[13px] text-fg-muted">{t("auth.or")}</p>
 
       <GoogleButton role={role} />
     </div>

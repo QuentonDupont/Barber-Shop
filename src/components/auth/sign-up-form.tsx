@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Field } from "@/components/ui/field";
 import { Alert } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/misc";
 import { BETA_INVITE_HREF } from "@/lib/beta";
 import { GoogleButton } from "./google-button";
 import { signUpAction } from "@/lib/actions/auth";
@@ -41,12 +40,12 @@ export function SignUpForm({
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+        <h1 className="display text-[30px] sm:text-4xl">
           {t("auth.createYourAccount")}
         </h1>
         <p className="mt-1.5 text-sm text-fg-muted">
           {t("auth.alreadyWithUs")}{" "}
-          <Link href={next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"} className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent hover:underline">
+          <Link href={next ? `/sign-in?next=${encodeURIComponent(next)}` : "/sign-in"} className="inline-block -my-3.5 px-1 py-3.5 font-semibold text-accent-ink underline underline-offset-4">
             {t("auth.signIn")}
           </Link>
         </p>
@@ -168,7 +167,7 @@ export function SignUpForm({
               <Link
                 href={PRIVACY_POLICY_ROUTE}
                 target="_blank"
-                className="font-semibold text-accent hover:underline"
+                className="font-semibold text-accent-ink hover:underline"
               >
                 {t("privacy.policyLinkLabel")}
               </Link>
@@ -184,13 +183,7 @@ export function SignUpForm({
         <SubmitButton />
       </form>
 
-      <div className="flex items-center gap-3">
-        <Separator className="flex-1" />
-        <span className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
-          {t("auth.or")}
-        </span>
-        <Separator className="flex-1" />
-      </div>
+      <p className="my-4 text-center text-[13px] text-fg-muted">{t("auth.or")}</p>
 
       <GoogleButton role="customer" />
 

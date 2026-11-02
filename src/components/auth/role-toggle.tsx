@@ -29,7 +29,7 @@ export function RoleToggle({
       <legend className="mb-2 text-sm font-medium text-fg">{t("auth.iAmSigningUpAs")}</legend>
       <div
         role="radiogroup"
-        className="grid grid-cols-2 gap-2 rounded-xl bg-surface-muted p-1.5"
+        className="grid grid-cols-2 gap-2 rounded-[20px] bg-surface-muted p-1.5"
       >
         {OPTIONS.map((option) => {
           const selected = option.value === value;
@@ -41,19 +41,19 @@ export function RoleToggle({
               aria-checked={selected}
               onClick={() => onChange(option.value)}
               className={cn(
-                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-lg px-3 py-2",
-                "text-sm font-semibold transition-all outline-none",
-                "focus-visible:ring-2 focus-visible:ring-accent/40",
+                "flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-[14px] px-3 py-2",
+                "text-sm font-semibold transition-colors duration-150 outline-none",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                 selected
-                  ? "bg-surface text-fg shadow-sm ring-1 ring-accent/30"
+                  ? "bg-primary text-primary-fg"
                   : "text-fg-muted hover:text-fg",
               )}
             >
               <option.icon
-                className={cn("size-5", selected ? "text-accent" : "text-fg-subtle")}
+                className={cn("size-5", selected ? "text-primary-fg" : "text-fg-subtle")}
               />
               {option.label}
-              <span className="text-[0.6875rem] font-normal text-fg-subtle">
+              <span className={cn("text-xs font-normal", selected ? "text-primary-fg/80" : "text-fg-muted")}>
                 {option.hint}
               </span>
             </button>
