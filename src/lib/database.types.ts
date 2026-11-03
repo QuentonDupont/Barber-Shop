@@ -36,7 +36,10 @@ export type ProfileRow = {
   full_name: string;
   phone: string | null;
   email: string | null;
+  /** Photo: a storage path `<uid>/...` (real mode) or a data URL (mock mode). */
   avatar_url: string | null;
+  /** New email waiting for its confirm link; `email` stays the sign-in address until then. */
+  pending_email: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -176,6 +179,22 @@ export type CustomerNoteRow = {
  * (handoff 07 items 4, 14-15). RLS: a user may only select/insert/update
  * their own row (`user_id = auth.uid()`).
  */
+/**
+ * Customer notification choices (migration 20261104000000). Booking
+ * confirmations and reminders are service messages (default on); marketing is
+ * a separate opt-in (default off) with its own consent time.
+ */
+export type NotificationPrefsRow = {
+  user_id: string;
+  booking_confirmations: boolean;
+  reminders: boolean;
+  marketing: boolean;
+  marketing_consented_at: string | null;
+  marketing_withdrawn_at: string | null;
+  marketing_consent_version: string | null;
+  updated_at: string;
+};
+
 export type ConsentRecordRow = {
   id: string;
   user_id: string;
@@ -485,6 +504,24 @@ export type Database = {
             foreignKeyName: "customer_notes_customer_id_fkey";
             columns: ["customer_id"];
             isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notification_prefs: {
+        Row: NotificationPrefsRow;
+        Insert: Insertable<
+          NotificationPrefsRow,
+          "user_id",
+          "updated_at"
+        >;
+        Update: Partial<NotificationPrefsRow>;
+        Relationships: [
+          {
+            foreignKeyName: "notification_prefs_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
