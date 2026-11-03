@@ -57,13 +57,14 @@ const TABLES_WITH_UPDATED_AT = new Set([
   "campaigns",
   "customer_notes",
   "business_legal",
+  "notification_prefs",
 ]);
 
 function insertDefaults(table: string): Row {
   const now = nowIso();
   switch (table) {
     case "profiles":
-      return { role: "customer", full_name: "", phone: null, email: null, avatar_url: null, created_at: now, updated_at: now };
+      return { role: "customer", full_name: "", phone: null, email: null, avatar_url: null, pending_email: null, created_at: now, updated_at: now };
     case "businesses":
       return {
         category: "other", description: null, timezone: "Asia/Bangkok", place_id: null,
@@ -119,6 +120,12 @@ function insertDefaults(table: string): Row {
       };
     case "consent_records":
       return { consented_at: now, withdrawn_at: null };
+    case "notification_prefs":
+      return {
+        booking_confirmations: true, reminders: true, marketing: false,
+        marketing_consented_at: null, marketing_withdrawn_at: null,
+        marketing_consent_version: null, updated_at: now,
+      };
     case "deletion_requests":
       return { requested_at: now, status: "pending", completed_at: null };
     default:
@@ -521,6 +528,7 @@ function makeAuth(db: MockDB, cookieStore: MockCookieStore | null) {
         phone: user.user_metadata.phone,
         email,
         avatar_url: null,
+        pending_email: null,
         created_at: nowIso(),
         updated_at: nowIso(),
       });

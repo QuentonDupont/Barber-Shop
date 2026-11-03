@@ -5,12 +5,17 @@ import Link from "next/link";
 import { PageContainer, PageHeader } from "@/components/shared/app-shell";
 import { ProfileForm } from "@/components/customer/profile-form";
 import { DataRightsPanel } from "@/components/customer/data-rights-panel";
+import { EmailChangeCard } from "@/components/customer/email-change-card";
+import { PhotoCard } from "@/components/customer/photo-card";
+import { NotificationPrefsCards } from "@/components/customer/notification-prefs-card";
 import { InstallPrompt } from "@/components/shared/install-prompt";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireCustomer } from "@/lib/auth";
 import { signOutAction } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isMockMode } from "@/lib/mock/config";
+import { avatarDisplayUrl } from "@/lib/storage";
 import { t } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 
@@ -24,7 +29,7 @@ export default async function AccountPage() {
   // Latest consent record and any still-pending deletion request (handoff 07,
   // items 11 and 13) — scoped to the signed-in user only, same as every other
   // read on this page.
-  const [{ data: consentRow }, { data: deletionRow }] = await Promise.all([
+  const [{ data: consentRow }, { data: deletionRow }, { data: prefsRow }, photoUrl] = await Promise.all([
     supabase
       .from("consent_records")
       .select("policy_version, consented_at, withdrawn_at")
@@ -38,6 +43,8 @@ export default async function AccountPage() {
       .eq("user_id", session.userId)
       .eq("status", "pending")
       .maybeSingle(),
+    supabase.from("notification_prefs").select("*").eq("user_id", session.userId).maybeSingle(),
+    avatarDisplayUrl(supabase, session.profile.avatar_url),
   ]);
 
   const consent = consentRow
@@ -65,10 +72,19 @@ export default async function AccountPage() {
             <ProfileForm
               fullName={session.profile.full_name}
               phone={session.profile.phone}
-              email={session.email}
             />
           </CardContent>
         </Card>
+
+        <EmailChangeCard
+          email={session.email}
+          pendingEmail={session.profile.pending_email}
+          demo={isMockMode()}
+        />
+
+        <PhotoCard photoUrl={photoUrl} />
+
+        <NotificationPrefsCards prefs={prefsRow ?? null} />
 
         <DataRightsPanel consent={consent} deletionPending={deletionPending} />
 

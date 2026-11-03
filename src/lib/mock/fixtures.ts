@@ -18,6 +18,7 @@ import type {
   CampaignRow,
   CampaignSubscriptionRow,
   ConsentRecordRow,
+  NotificationPrefsRow,
   CustomerNoteRow,
   DeletionRequestRow,
   InvoiceLineRow,
@@ -90,6 +91,8 @@ export interface MockDB {
   invoices: InvoiceRow[];
   invoice_lines: InvoiceLineRow[];
   payment_methods: PaymentMethodRow[];
+  /** Customer account: notification choices (migration 20261104000000). Empty = defaults. */
+  notification_prefs: NotificationPrefsRow[];
 }
 
 const TZ = "Asia/Bangkok"; // +07:00, no DST
@@ -172,6 +175,7 @@ export function buildDB(): MockDB {
     phone,
     email,
     avatar_url: null,
+    pending_email: null,
     created_at: now,
     updated_at: now,
   });
@@ -702,6 +706,7 @@ export function buildDB(): MockDB {
     consent_records,
     deletion_requests,
     ...seedBilling(now, today),
+    notification_prefs: [],
   };
 }
 
