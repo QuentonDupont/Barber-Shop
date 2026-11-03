@@ -169,6 +169,12 @@ export default async function LandingPage() {
             >
               {t(locale, "landing.navForShops")}
             </a>
+            <Link
+              href="/about"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-[15px] font-semibold text-fg hover:underline sm:px-4"
+            >
+              {t(locale, "about.navAbout")}
+            </Link>
             {session ? (
               <Button asChild size="sm" variant="outline">
                 <Link href={signedInHome}>
