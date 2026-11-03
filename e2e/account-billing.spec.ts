@@ -61,8 +61,8 @@ test.describe("owner billing", () => {
     // F4: only shipped features are listed as plain facts; anything future carries a "Soon" tag.
     await expect(page.getByTestId("plan-card-free")).not.toContainText("LINE");
     await expect(page.getByTestId("plan-card-pro")).toContainText("LINE reminders and messages to customers");
-    await expect(page.getByTestId("plan-card-pro").getByText("Soon", { exact: true })).toBeVisible();
-    await expect(page.getByTestId("plan-card-studio").getByText("Soon", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("plan-card-pro").getByText("Soon", { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId("plan-card-studio").getByText("Soon", { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId("next-charge")).not.toBeEmpty();
     await expect(page.getByTestId("payment-method")).toContainText("Visa ending 4242");
     await expect(page.getByTestId("payment-method")).toContainText("Demo card");
