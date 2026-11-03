@@ -250,11 +250,37 @@ export function AboutPlans({ locale }: { locale: Locale }) {
           {a("plansTitle")}
         </h2>
         <p className="rv mt-3 text-lg text-fg-muted [&:lang(th)]:leading-[1.7]">{a("plansLead")}</p>
+        <div className="rv mt-8 space-y-4 sm:hidden" data-testid="plan-cards">
+          {PLANS.map((p, i) => (
+            <Card
+              key={p.id}
+              data-plan-card={p.id}
+              className={cn("p-4 text-fg", p.id === "pro" && "border-2 border-accent")}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-xl font-bold">{planName(p.id)}</h3>
+                {p.id === "pro" ? <Badge tone="accent">{a("planBadge")}</Badge> : null}
+              </div>
+              <p data-plan-price className="num mt-1 text-3xl font-bold">
+                {formatMoney(p.pricePerMonth)}
+                <span className="ml-2 text-sm font-medium text-fg-muted">{a("perMonth")}</span>
+              </p>
+              <dl className="mt-3 divide-y divide-border">
+                {rows.slice(1).map((row) => (
+                  <div key={row.label} className="flex min-h-11 items-center justify-between gap-3 py-2 text-[15px]">
+                    <dt className="[&:lang(th)]:leading-[1.5]">{row.label}</dt>
+                    <dd className="shrink-0 text-right">{row.cells[i]}</dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
+          ))}
+        </div>
         <div
           role="region"
           tabIndex={0}
           aria-label={a("plansTableLabel")}
-          className="rv mt-8 overflow-x-auto rounded-[var(--radius-panel)] border border-border bg-surface text-fg focus-visible:outline-2 focus-visible:outline-ring"
+          className="rv mt-8 hidden overflow-x-auto rounded-[var(--radius-panel)] sm:block border border-border bg-surface text-fg focus-visible:outline-2 focus-visible:outline-ring"
         >
           <table className="w-full min-w-[520px] border-collapse text-center text-[15px]">
             <caption className="sr-only">{a("plansTableLabel")}</caption>

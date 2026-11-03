@@ -32,7 +32,7 @@ export function LandingClose({ locale }: { locale: Locale }) {
           <Link href="/about" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
             {t(locale, "about.navAbout")}
           </Link>
-          <Link href="/privacy"className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
+          <Link href="/privacy" className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
             {t(locale, "landing.footerPrivacy")}
           </Link>
           <span className="inline-flex min-h-11 items-center">© {new Date().getFullYear()} TatNat</span>

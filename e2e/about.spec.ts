@@ -9,7 +9,7 @@ const THAI = /[฀-๿]/;
 const ENGLISH_PHRASES = [
   "Book easy",
   "Book in 3 steps",
-  "Always free for customers",
+  "Free for customers",
   "Pick a shop",
   "Pick your barber",
   "Confirm and show up",
@@ -74,8 +74,17 @@ for (const lang of ["th", "en"] as const) {
       await expect(page.locator("#owners-title")).toHaveText(lang === "th" ? "ให้ปฏิทินทำงานแทนแชต" : "Let a calendar do the chat's job");
 
       // Price table: prices from decisions #24/#25 and the required notice.
-      const table = page.getByRole("table");
-      for (const price of ["฿0", "฿490", "฿990"]) await expect(table).toContainText(price);
+      const phone = (page.viewportSize()?.width ?? 1280) < 640;
+      const plans = phone ? page.getByTestId("plan-cards") : page.getByRole("table");
+      await expect(plans).toBeVisible();
+      for (const price of ["฿0", "฿490", "฿990"]) await expect(plans).toContainText(price);
+      if (phone) {
+        // Studio's price must be on screen without sideways scrolling (QA 3 P1).
+        const box = (await page.locator('[data-plan-card="studio"] [data-plan-price]').boundingBox())!;
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+        await expect(page.getByRole("table")).toBeHidden();
+      }
       await expect(page.getByRole("note")).toContainText(
         lang === "th" ? "แผนเสียเงินยังไม่เปิดให้ซื้อ" : "Paid plans are not on sale yet",
       );
