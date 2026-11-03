@@ -12,6 +12,7 @@ import type {
   AvailabilityOverrideRow,
   BusinessBreakRow,
   BusinessHoursRow,
+  BusinessLegalRow,
   BusinessRow,
   BookingRow,
   CampaignRow,
@@ -73,6 +74,8 @@ export interface MockDB {
    * read it.
    */
   customer_notes: CustomerNoteRow[];
+  /** Owner-only legal / tax details (accounts, owner stream). Empty until an owner saves some. */
+  business_legal: BusinessLegalRow[];
   consent_records: ConsentRecordRow[];
   deletion_requests: DeletionRequestRow[];
 }
@@ -683,6 +686,7 @@ export function buildDB(): MockDB {
     campaign_subscriptions,
     orders,
     customer_notes,
+    business_legal: [],
     consent_records,
     deletion_requests,
   };

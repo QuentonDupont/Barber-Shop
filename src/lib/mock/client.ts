@@ -56,6 +56,7 @@ const TABLES_WITH_UPDATED_AT = new Set([
   "products",
   "campaigns",
   "customer_notes",
+  "business_legal",
 ]);
 
 function insertDefaults(table: string): Row {
@@ -111,6 +112,11 @@ function insertDefaults(table: string): Row {
       };
     case "customer_notes":
       return { note: "", created_at: now, updated_at: now };
+    case "business_legal":
+      return {
+        legal_name: null, tax_id: null, branch_code: "00000", tax_address: null,
+        vat_registered: false, created_at: now, updated_at: now,
+      };
     case "consent_records":
       return { consented_at: now, withdrawn_at: null };
     case "deletion_requests":

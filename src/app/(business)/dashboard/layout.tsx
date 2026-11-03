@@ -76,12 +76,12 @@ export default async function DashboardLayout({
         </div>
       }
       sidebarFooter={
-        <AccountMenu name={accountName} email={ctx.email} variant="sidebar" />
+        <AccountMenu name={accountName} email={ctx.email} variant="sidebar" accountHref="/dashboard/account" />
       }
       topBar={
         <TopBar
           href="/dashboard"
-          right={<AccountMenu name={accountName} email={ctx.email} variant="compact" />}
+          right={<AccountMenu name={accountName} email={ctx.email} variant="compact" accountHref="/dashboard/account" />}
         />
       }
     >
