@@ -167,6 +167,21 @@ export type CustomerNoteRow = {
   updated_at: string;
 };
 
+/**
+ * Owner-only legal / tax details (tatnat-accounts-billing, handoff 07). Lives in
+ * its own table so the public `businesses` row never carries a tax id.
+ */
+export type BusinessLegalRow = {
+  business_id: string;
+  legal_name: string | null;
+  tax_id: string | null;
+  branch_code: string;
+  tax_address: string | null;
+  vat_registered: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 /* ---- PDPA: consent capture, deletion requests (handoff 07) --------------- */
 
 /**
@@ -558,6 +573,24 @@ export type Database = {
             columns: ["customer_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      business_legal: {
+        Row: BusinessLegalRow;
+        Insert: Insertable<
+          BusinessLegalRow,
+          "business_id",
+          "created_at" | "updated_at"
+        >;
+        Update: Partial<BusinessLegalRow>;
+        Relationships: [
+          {
+            foreignKeyName: "business_legal_business_id_fkey";
+            columns: ["business_id"];
+            isOneToOne: true;
+            referencedRelation: "businesses";
             referencedColumns: ["id"];
           },
         ];
