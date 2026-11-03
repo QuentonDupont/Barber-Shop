@@ -307,7 +307,7 @@ test.describe("customer account - layout (C7)", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "th");
     await expect(page.getByText("อีเมลเข้าสู่ระบบ")).toBeVisible();
     await expect(page.getByText("รูปโปรไฟล์")).toBeVisible();
-    await expect(page.getByText("ข่าวสารและโปรโมชัน")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "ข่าวสารและโปรโมชัน" })).toBeVisible();
     await expect(page.getByText("Sign-in email")).toHaveCount(0);
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);

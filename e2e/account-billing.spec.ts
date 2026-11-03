@@ -29,6 +29,12 @@ async function changePlan(page: Page, plan: "free" | "pro" | "studio", opts: { f
 
 async function ensureOn(page: Page, plan: "free" | "pro") {
   await open(page, BILLING);
+  // A test that failed half way may have left the shop in a notice state: put it right first.
+  if (await page.getByTestId(/billing-notice-(past_due|grace|downgraded)/).count()) {
+    await page.getByTestId("scenario-reset").click();
+    await expect(toast(page).filter({ hasText: "Simulation applied." })).toBeVisible();
+    await open(page, BILLING);
+  }
   const name = plan === "pro" ? "Pro" : "Free";
   if ((await currentPlan(page)) !== name) await changePlan(page, plan);
 }
@@ -97,7 +103,7 @@ test.describe("owner billing", () => {
     const link = page.getByTestId("billing-link");
     await expect(link).toContainText("Plan & billing");
     await expect(link).toContainText(/Pro · \d+ of 5 barbers/);
-    await link.click();
+    await Promise.all([page.waitForURL(/\/dashboard\/account\/billing$/), link.click()]);
     await expect(page.getByRole("heading", { name: "Plan & billing", level: 1 })).toBeVisible();
   });
 
@@ -290,7 +296,8 @@ test.describe("owner billing", () => {
     await ensureOn(page, "pro");
     await open(page, BILLING);
     const card = page.getByTestId("payment-method");
-    await expect(card.locator("input")).toHaveCount(0);
+    // Hidden inputs are the form plumbing; there must be no field a card number could go in.
+    await expect(card.locator("input:not([type=hidden])")).toHaveCount(0);
     await card.getByTestId("remove-card").click();
     await expect(card).toContainText("No card yet");
     await card.getByTestId("add-card").click();
@@ -349,7 +356,7 @@ test.describe("customers never see billing", () => {
     try {
       await anon.page.goto(BILLING);
       await anon.page.waitForLoadState("networkidle");
-      await expect(anon.page).not.toHaveURL(/dashboard/);
+      expect(new URL(anon.page.url()).pathname).toBe("/sign-in");
       await expect(anon.page.locator("body")).not.toContainText(/Demo — no real charges|Receipts/);
     } finally {
       await anon.context.close();

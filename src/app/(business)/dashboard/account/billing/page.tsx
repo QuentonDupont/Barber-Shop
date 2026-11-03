@@ -17,7 +17,7 @@ import { FOUNDING, PLANS, PLAN_IDS, type PlanId } from "@/lib/billing/plans";
 import { amountDueSatang, effectivePlanId } from "@/lib/billing/state";
 import { formatDate, formatMoney } from "@/lib/billing/invoice";
 import { loadBillingView } from "@/lib/billing/repo";
-import { billingNotice, previewPlanChange, type PlanChangePreview } from "@/lib/billing/ui";
+import { billingNotice, isUrgent, previewPlanChange, type PlanChangePreview } from "@/lib/billing/ui";
 
 export const metadata: Metadata = { title: "Plan & billing" };
 
@@ -74,7 +74,9 @@ export default async function BillingPage() {
       <div className="space-y-5">
         <DemoBanner />
 
-        {notice ? <BillingNoticeAlert notice={notice} locale={locale} /> : null}
+        {/* Urgent notices (past due, grace, back on Free) are already shown above every
+            dashboard page by the layout; this page adds the quieter ones. */}
+        {notice && !isUrgent(notice) ? <BillingNoticeAlert notice={notice} locale={locale} /> : null}
 
         <Card data-testid="plan-summary">
           <CardHeader>

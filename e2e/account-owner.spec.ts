@@ -58,12 +58,14 @@ test.describe("owner account", () => {
       await snap(page, "invalid tax id refused");
 
       // Bad branch code is refused.
+      // (React clears the form after every save attempt, so each attempt fills it again.)
       await page.locator("#taxId").fill(GOOD_TAX_ID);
       await page.locator("#branchCode").fill("12");
       await save();
       await expect(page.getByText("Branch code must be 5 digits")).toBeVisible();
 
       // Valid values save and survive a reload.
+      await page.locator("#taxId").fill(GOOD_TAX_ID);
       await page.locator("#branchCode").fill("00001");
       await page.locator("#legalName").fill(legalName);
       await page.locator("#taxAddress").fill("1 Test Road, Bangkok");
