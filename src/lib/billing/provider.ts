@@ -34,8 +34,14 @@ export interface PaymentProvider {
   readonly live: false;
   /** May throw ProviderTimeoutError: the outcome is then unknown; retry with the same key. */
   charge(req: ChargeRequest): Promise<ChargeResult>;
-  refund(providerRef: string, amountSatang: number): Promise<{ providerRef: string }>;
+  /**
+   * Refund a charge once. The same `idempotencyKey` returns the first result;
+   * refunding the same charge again under another key throws AlreadyRefundedError.
+   */
+  refund(providerRef: string, amountSatang: number, idempotencyKey?: string): Promise<{ providerRef: string }>;
 }
+
+export class AlreadyRefundedError extends Error {}
 
 export type MockOutcome = "succeeded" | "declined" | "insufficient_funds" | "expired_card" | "timeout";
 
@@ -45,6 +51,8 @@ export class MockPaymentProvider implements PaymentProvider {
   readonly live = false as const;
   private script = new Map<string, MockOutcome[]>();
   private done = new Map<string, ChargeResult>();
+  private refunds = new Map<string, { providerRef: string }>();
+  private refundedCharges = new Set<string>();
   private counter = 0;
   /** Number of real (non-replayed) charges that succeeded, for tests. */
   succeededCount = 0;
@@ -73,11 +81,17 @@ export class MockPaymentProvider implements PaymentProvider {
     return result;
   }
 
-  async refund(providerRef: string, amountSatang: number): Promise<{ providerRef: string }> {
+  async refund(providerRef: string, amountSatang: number, idempotencyKey?: string): Promise<{ providerRef: string }> {
     assertBillingNotLive();
     if (!providerRef.startsWith("mock_")) throw new Error("not a mock charge");
     if (amountSatang <= 0) throw new RangeError("refund must be positive");
-    return { providerRef: `mock_re_${++this.counter}` };
+    const replay = idempotencyKey ? this.refunds.get(idempotencyKey) : undefined;
+    if (replay) return replay;
+    if (this.refundedCharges.has(providerRef)) throw new AlreadyRefundedError(`${providerRef} was already refunded`);
+    const result = { providerRef: `mock_re_${++this.counter}` };
+    this.refundedCharges.add(providerRef);
+    if (idempotencyKey) this.refunds.set(idempotencyKey, result);
+    return result;
   }
 }
 

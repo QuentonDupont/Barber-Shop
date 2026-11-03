@@ -19,6 +19,10 @@ import type {
   ConsentRecordRow,
   CustomerNoteRow,
   DeletionRequestRow,
+  InvoiceLineRow,
+  InvoiceRow,
+  PaymentMethodRow,
+  SubscriptionRow,
   OrderRow,
   ProductRow,
   ProfileRow,
@@ -28,6 +32,9 @@ import type {
   UserRole,
 } from "@/lib/database.types";
 import { PRIVACY_POLICY_VERSION } from "@/lib/privacy/policy";
+import { formatInvoiceNumber } from "@/lib/billing/invoice";
+import { periodPriceSatang } from "@/lib/billing/plans";
+import { addDays, addMonths, startOfBangkokDay } from "@/lib/billing/time";
 
 export interface MockAuthUser {
   id: string;
@@ -75,6 +82,11 @@ export interface MockDB {
   customer_notes: CustomerNoteRow[];
   consent_records: ConsentRecordRow[];
   deletion_requests: DeletionRequestRow[];
+  /** Billing, demo data only (tatnat-accounts-billing handoff 07). */
+  subscriptions: SubscriptionRow[];
+  invoices: InvoiceRow[];
+  invoice_lines: InvoiceLineRow[];
+  payment_methods: PaymentMethodRow[];
 }
 
 const TZ = "Asia/Bangkok"; // +07:00, no DST
@@ -685,5 +697,111 @@ export function buildDB(): MockDB {
     customer_notes,
     consent_records,
     deletion_requests,
+    ...seedBilling(now, today),
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Billing demo data                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Nong Barber is on Pro with three paid months of receipts and a demo card, so
+ * the billing screens have something to show; the spa is on Free. Nothing here
+ * is real money: the provider is "mock" everywhere.
+ */
+function seedBilling(
+  now: string,
+  today: string,
+): Pick<MockDB, "subscriptions" | "invoices" | "invoice_lines" | "payment_methods"> {
+  const anchor = addMonths(today, -2); // periods 0, 1, 2 are paid; period 2 started today
+  const sub = (business_id: string, over: Partial<SubscriptionRow>): SubscriptionRow => ({
+    business_id,
+    plan_id: "free",
+    previous_plan_id: null,
+    status: "active",
+    founding: false,
+    founding_granted_at: null,
+    card_on_file: false,
+    first_charge_reminders: [],
+    anchor: today,
+    period_index: 0,
+    due_date: null,
+    grace_until: null,
+    reminder_sent_for: null,
+    dunning_sent: [],
+    cancel_at_period_end: false,
+    provider: "mock",
+    created_at: now,
+    updated_at: now,
+    ...over,
+  });
+  const subscriptions = [
+    sub(BARBER, {
+      plan_id: "pro",
+      anchor,
+      period_index: 2,
+      due_date: addMonths(anchor, 3),
+      card_on_file: true,
+    }),
+    sub(SPA, {}),
+  ];
+  const invoices: InvoiceRow[] = [];
+  const invoice_lines: InvoiceLineRow[] = [];
+  const counters = new Map<number, number>();
+  for (let i = 0; i < 3; i++) {
+    const issue = addMonths(anchor, i);
+    const year = Number(issue.slice(0, 4));
+    const seq = (counters.get(year) ?? 0) + 1;
+    counters.set(year, seq);
+    const total = periodPriceSatang("pro", false, i);
+    const id = `inv-demo-${i + 1}`;
+    invoices.push({
+      id,
+      business_id: BARBER,
+      year,
+      seq,
+      number: formatInvoiceNumber(year, seq),
+      kind: "receipt",
+      full_form: false,
+      status: "paid",
+      issued_at: startOfBangkokDay(issue).toISOString(),
+      issue_date: issue,
+      period_start: issue,
+      period_end: addDays(addMonths(anchor, i + 1), -1),
+      currency: "THB",
+      subtotal_satang: total,
+      vat_satang: 0,
+      vat_rate_bp: 0,
+      vat_applied: false,
+      total_satang: total,
+      buyer: { displayName: "Nong Barber" },
+      payment_ref: `mock_ch_demo_${i + 1}`,
+      refunded_at: null,
+      refund_ref: null,
+      created_at: now,
+    });
+    invoice_lines.push({
+      id: `${id}-line-1`,
+      invoice_id: id,
+      position: 1,
+      description_th: "แพ็กเกจ โปร รายเดือน",
+      description_en: "Pro plan, monthly",
+      quantity: 1,
+      unit_satang: total,
+      amount_satang: total,
+    });
+  }
+  const payment_methods: PaymentMethodRow[] = [
+    {
+      business_id: BARBER,
+      brand: "Visa",
+      last4: "4242",
+      exp_month: 12,
+      exp_year: 2030,
+      provider_ref: "mock_pm_demo",
+      created_at: now,
+    },
+  ];
+  return { subscriptions, invoices, invoice_lines, payment_methods };
 }

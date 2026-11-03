@@ -282,6 +282,78 @@ export type OrderRow = {
   created_at: string;
 };
 
+/* ---- Billing (20261103000000_billing_core.sql, 20261104000002_billing_ui.sql) ---- */
+export type SubscriptionStatusDb = "trialing" | "active" | "past_due" | "grace" | "downgraded" | "cancelled";
+
+export type SubscriptionRow = {
+  business_id: string;
+  plan_id: "free" | "pro" | "studio";
+  previous_plan_id: "free" | "pro" | "studio" | null;
+  status: SubscriptionStatusDb;
+  founding: boolean;
+  founding_granted_at: string | null;
+  card_on_file: boolean;
+  first_charge_reminders: number[];
+  anchor: string;
+  period_index: number;
+  due_date: string | null;
+  grace_until: string | null;
+  reminder_sent_for: string | null;
+  dunning_sent: number[];
+  cancel_at_period_end: boolean;
+  provider: "mock";
+  created_at: string;
+  updated_at: string;
+};
+
+export type InvoiceRow = {
+  id: string;
+  business_id: string;
+  year: number;
+  seq: number;
+  number: string;
+  kind: "receipt" | "receipt_tax_invoice";
+  full_form: boolean;
+  status: "paid" | "void";
+  issued_at: string;
+  issue_date: string;
+  period_start: string;
+  period_end: string;
+  currency: "THB";
+  subtotal_satang: number;
+  vat_satang: number;
+  vat_rate_bp: number;
+  vat_applied: boolean;
+  total_satang: number;
+  buyer: Record<string, string | undefined>;
+  payment_ref: string;
+  refunded_at: string | null;
+  refund_ref: string | null;
+  created_at: string;
+};
+
+export type InvoiceLineRow = {
+  id: string;
+  invoice_id: string;
+  position: number;
+  description_th: string;
+  description_en: string;
+  quantity: number;
+  unit_satang: number;
+  amount_satang: number;
+};
+
+/** Demo card shown on the billing page. Brand and last four digits only; never a card number. */
+export type PaymentMethodRow = {
+  business_id: string;
+  brand: string;
+  last4: string;
+  exp_month: number;
+  exp_year: number;
+  provider_ref: string;
+  created_at: string;
+};
+
 type Insertable<T, Required extends keyof T, Generated extends keyof T> = Pick<
   T,
   Required
@@ -564,6 +636,38 @@ export type Database = {
           "id" | "created_at"
         >;
         Update: Partial<OrderRow>;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: SubscriptionRow;
+        Insert: Insertable<SubscriptionRow, "business_id", "created_at" | "updated_at">;
+        Update: Partial<SubscriptionRow>;
+        Relationships: [];
+      };
+      invoices: {
+        Row: InvoiceRow;
+        Insert: Insertable<
+          InvoiceRow,
+          "business_id" | "year" | "seq" | "number" | "kind" | "issue_date" | "period_start" | "period_end" | "subtotal_satang" | "total_satang" | "payment_ref",
+          "created_at"
+        >;
+        Update: Partial<InvoiceRow>;
+        Relationships: [];
+      };
+      invoice_lines: {
+        Row: InvoiceLineRow;
+        Insert: Insertable<
+          InvoiceLineRow,
+          "invoice_id" | "position" | "description_th" | "description_en" | "quantity" | "unit_satang" | "amount_satang",
+          "id"
+        >;
+        Update: Partial<InvoiceLineRow>;
+        Relationships: [];
+      };
+      payment_methods: {
+        Row: PaymentMethodRow;
+        Insert: Insertable<PaymentMethodRow, "business_id" | "brand" | "last4" | "exp_month" | "exp_year" | "provider_ref", "created_at">;
+        Update: Partial<PaymentMethodRow>;
         Relationships: [];
       };
     };

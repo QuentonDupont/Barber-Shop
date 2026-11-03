@@ -8,6 +8,8 @@ import { errorState, fieldErrorsFrom, successState, type ActionState } from "./t
 import { businessPath } from "@/lib/routes";
 import { t, type Locale } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
+import { checkBarberLimit, isBarberLimitError } from "@/lib/billing/staff-limit";
+import { PLANS, type PlanId } from "@/lib/billing/plans";
 
 const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6] as const;
 
@@ -64,6 +66,23 @@ export async function saveStaffAction(
     is_active: isActive,
   };
 
+  // A4: adding a barber, or switching an inactive one back on, must fit the plan.
+  // Renaming or editing a barber who is already active is never blocked.
+  let becomesActive = isActive && !id;
+  if (id && isActive) {
+    const { data: before } = await supabase
+      .from("staff")
+      .select("is_active")
+      .eq("id", id)
+      .eq("business_id", ctx.business.id)
+      .maybeSingle();
+    becomesActive = before ? !before.is_active : false;
+  }
+  if (becomesActive) {
+    const check = await checkBarberLimit(supabase, ctx.business.id, new Date(), id || undefined);
+    if (!check.ok) return limitState(locale, check.plan, check.limit);
+  }
+
   let staffId: string;
 
   if (id) {
@@ -73,14 +92,14 @@ export async function saveStaffAction(
       .update(payload)
       .eq("id", id)
       .eq("business_id", ctx.business.id);
-    if (error) return errorState(error.message);
+    if (error) return isBarberLimitError(error.message) ? limitState(locale, "free", PLANS.free.maxBarbers) : errorState(error.message);
   } else {
     const { data, error } = await supabase
       .from("staff")
       .insert({ ...payload, business_id: ctx.business.id })
       .select("id")
       .single();
-    if (error) return errorState(error.message);
+    if (error) return isBarberLimitError(error.message) ? limitState(locale, "free", PLANS.free.maxBarbers) : errorState(error.message);
     staffId = data.id;
   }
 
@@ -101,21 +120,59 @@ export async function saveStaffAction(
   return successState(t(locale, id ? "msg.staffUpdated" : "msg.staffAdded"));
 }
 
-/** Deactivate/reactivate from the list — no confirmation sheet needed. */
-export async function toggleStaffAction(formData: FormData): Promise<void> {
+/**
+ * Friendly refusal when the plan's barber limit is reached (QA advisory A4).
+ * `limitReached` lets the form offer a direct link to the plans.
+ */
+function limitState(locale: Locale, plan: PlanId, limit: number): ActionState {
+  return {
+    ...errorState(
+      t(locale, "billing.limitReached", {
+        plan: locale === "th" ? PLANS[plan].nameTh : PLANS[plan].nameEn,
+        count: limit,
+      }),
+    ),
+    limitReached: true,
+  };
+}
+
+/** Deactivate/reactivate from the list. A refused re-activation says why. */
+export async function toggleStaffAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const locale = await getLocale();
   const id = String(formData.get("id") ?? "");
   const nextActive = formData.get("isActive") === "true";
-  if (!id) return;
+  if (!id) return { status: "idle" };
 
   const ctx = await requireBusiness();
   const supabase = await createClient();
 
-  await supabase
+  if (nextActive) {
+    const check = await checkBarberLimit(supabase, ctx.business.id, new Date(), id);
+    if (!check.ok) {
+      return {
+        ...errorState(
+          t(locale, "billing.reactivateRefused", {
+            plan: locale === "th" ? PLANS[check.plan].nameTh : PLANS[check.plan].nameEn,
+            count: check.limit,
+          }),
+        ),
+        limitReached: true,
+      };
+    }
+  }
+
+  const { error } = await supabase
     .from("staff")
     .update({ is_active: nextActive })
     .eq("id", id)
     .eq("business_id", ctx.business.id);
+  if (error) {
+    return isBarberLimitError(error.message)
+      ? limitState(locale, "free", PLANS.free.maxBarbers)
+      : errorState(error.message);
+  }
 
   revalidatePath("/dashboard/staff");
   revalidatePath(businessPath(ctx.business.slug));
+  return { status: "success" };
 }

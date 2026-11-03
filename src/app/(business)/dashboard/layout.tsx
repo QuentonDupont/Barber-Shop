@@ -17,6 +17,10 @@ import { AccountMenu } from "@/components/shared/account-menu";
 import { Badge } from "@/components/ui/badge";
 import type { NavItem } from "@/components/shared/nav";
 import { getOwnerContext } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { BillingNoticeAlert } from "@/components/billing/billing-notice";
+import { loadBillingView } from "@/lib/billing/repo";
+import { billingNotice, isUrgent } from "@/lib/billing/ui";
 import { businessPath } from "@/lib/routes";
 import { t } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -43,6 +47,15 @@ export default async function DashboardLayout({
     { href: "/dashboard/numbers", label: t(locale, "nav.numbers"), icon: <BarChart3 />, matchPrefix: true },
     { href: "/dashboard/settings", label: t(locale, "nav.settings"), icon: <Settings />, matchPrefix: true },
   ];
+
+  // Owner-only billing notice (grace / past due / back on Free). This layout is
+  // the owner dashboard: customers never render it, and no public page reads it.
+  let urgentNotice = null;
+  if (ctx.business) {
+    const view = await loadBillingView(await createClient(), ctx.business.id, new Date());
+    const n = billingNotice(view.sub, new Date());
+    urgentNotice = isUrgent(n) ? n : null;
+  }
 
   const accountName = ctx.profile.full_name || t(locale, "nav.defaultAccountName");
 
@@ -85,6 +98,11 @@ export default async function DashboardLayout({
         />
       }
     >
+      {urgentNotice ? (
+        <div className="mx-auto w-full max-w-5xl px-4 pt-4 sm:px-6">
+          <BillingNoticeAlert notice={urgentNotice} locale={locale} withLink />
+        </div>
+      ) : null}
       {children}
     </AppShell>
   );

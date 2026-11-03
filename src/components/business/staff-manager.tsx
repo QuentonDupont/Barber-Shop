@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Pencil, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -184,11 +185,23 @@ function ToggleForm({ member }: { member: StaffWithServices }) {
   const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
   const switchId = `active-${member.id}`;
+  const [state, action] = useActionState(toggleStaffAction, idleState);
+
+  // A4: a refused re-activation says why, with a way to the plans.
+  useEffect(() => {
+    if (state.status === "error" && state.message) {
+      toast.error(state.message, {
+        action: state.limitReached
+          ? { label: t("billing.seePlans"), onClick: () => window.location.assign("/dashboard/account/billing") }
+          : undefined,
+      });
+    }
+  }, [state, t]);
 
   return (
     <form
       ref={formRef}
-      action={toggleStaffAction}
+      action={action}
       className="flex min-h-11 items-center gap-2.5 pl-1.5"
     >
       <input type="hidden" name="id" value={member.id} />
@@ -256,6 +269,14 @@ function StaffSheet({
             {state.status === "error" && state.message ? (
               <p className="rounded-lg bg-danger-soft p-3 text-sm text-danger" role="alert">
                 {state.message}
+                {state.limitReached ? (
+                  <>
+                    {" "}
+                    <Link href="/dashboard/account/billing" className="font-semibold underline">
+                      {t("billing.seePlans")}
+                    </Link>
+                  </>
+                ) : null}
               </p>
             ) : null}
 

@@ -121,3 +121,37 @@ describe("first-charge refund (mock only)", () => {
     await expect(refundFirstCharge({ invoice: inv, isFirstCharge: false, now: new Date("2026-04-11T03:00:00Z"), provider: p })).rejects.toBeInstanceOf(RefundNotAllowedError);
   });
 });
+
+describe("refund idempotency (QA advisory N1)", () => {
+  const mk = async () => {
+    const { buildInvoice } = await import("./invoice");
+    return buildInvoice({
+      businessId: "b1", plan: "pro", founding: false, anchor: "2026-03-10", periodIndex: 1, buyer: { displayName: "x" },
+      issuedAt: new Date("2026-04-10T03:00:00Z"), numbering: { year: 2026, seq: 7, number: "TN-2026-000007" }, paymentRef: "mock_ch_9",
+    });
+  };
+  const when = new Date("2026-04-12T03:00:00Z");
+
+  it("the same refund twice (double click) returns the first refund and refunds once", async () => {
+    const { refundFirstCharge } = await import("./service");
+    const p = new MockPaymentProvider();
+    const inv = await mk();
+    const a = await refundFirstCharge({ invoice: inv, isFirstCharge: true, now: when, provider: p });
+    const b = await refundFirstCharge({ invoice: inv, isFirstCharge: true, now: when, provider: p });
+    expect(b).toEqual(a);
+  });
+  it("an invoice that already carries a refund reference is refused", async () => {
+    const { refundFirstCharge, RefundNotAllowedError } = await import("./service");
+    const p = new MockPaymentProvider();
+    await expect(
+      refundFirstCharge({ invoice: await mk(), isFirstCharge: true, now: when, provider: p, alreadyRefundedRef: "mock_re_1" }),
+    ).rejects.toBeInstanceOf(RefundNotAllowedError);
+  });
+  it("the provider refuses a second refund of one charge under a different key", async () => {
+    const { AlreadyRefundedError } = await import("./provider");
+    const p = new MockPaymentProvider();
+    await p.refund("mock_ch_1", 100, "k1");
+    expect(await p.refund("mock_ch_1", 100, "k1")).toEqual(await p.refund("mock_ch_1", 100, "k1"));
+    await expect(p.refund("mock_ch_1", 100, "k2")).rejects.toBeInstanceOf(AlreadyRefundedError);
+  });
+});

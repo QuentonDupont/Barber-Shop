@@ -84,12 +84,16 @@ export async function refundFirstCharge(input: {
   isFirstCharge: boolean;
   now: Date;
   provider: PaymentProvider;
+  /** The refund reference already stored on this invoice, if any (N1: never refund twice). */
+  alreadyRefundedRef?: string | null;
 }): Promise<{ providerRef: string; amountSatang: number }> {
   const { invoice, now, provider } = input;
+  if (input.alreadyRefundedRef) throw new RefundNotAllowedError("This charge was already refunded");
   if (!input.isFirstCharge) throw new RefundNotAllowedError("Only the first charge has a refund right");
   if (daysBetween(invoice.issueDate, bangkokDate(now)) > FOUNDING.firstChargeRefundDays) {
     throw new RefundNotAllowedError("The 7-day first-charge refund window has passed");
   }
-  const r = await provider.refund(invoice.paymentRef, invoice.totalSatang);
+  // The key is derived from the invoice, so a retry or a double click replays the first refund.
+  const r = await provider.refund(invoice.paymentRef, invoice.totalSatang, `refund:${invoice.number}`);
   return { providerRef: r.providerRef, amountSatang: invoice.totalSatang };
 }
