@@ -92,14 +92,14 @@ export async function saveStaffAction(
       .update(payload)
       .eq("id", id)
       .eq("business_id", ctx.business.id);
-    if (error) return isBarberLimitError(error.message) ? limitState(locale, "free", PLANS.free.maxBarbers) : errorState(error.message);
+    if (error) return isBarberLimitError(error.message) ? await raceLimitState(supabase, ctx.business.id, locale) : errorState(error.message);
   } else {
     const { data, error } = await supabase
       .from("staff")
       .insert({ ...payload, business_id: ctx.business.id })
       .select("id")
       .single();
-    if (error) return isBarberLimitError(error.message) ? limitState(locale, "free", PLANS.free.maxBarbers) : errorState(error.message);
+    if (error) return isBarberLimitError(error.message) ? await raceLimitState(supabase, ctx.business.id, locale) : errorState(error.message);
     staffId = data.id;
   }
 
@@ -136,6 +136,16 @@ function limitState(locale: Locale, plan: PlanId, limit: number): ActionState {
   };
 }
 
+/** The database refused a race that slipped past the pre-check: name the plan really in force. */
+async function raceLimitState(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  businessId: string,
+  locale: Locale,
+): Promise<ActionState> {
+  const check = await checkBarberLimit(supabase, businessId, new Date());
+  return limitState(locale, check.plan, check.limit);
+}
+
 /** Deactivate/reactivate from the list. A refused re-activation says why. */
 export async function toggleStaffAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const locale = await getLocale();
@@ -168,7 +178,7 @@ export async function toggleStaffAction(_prev: ActionState, formData: FormData):
     .eq("business_id", ctx.business.id);
   if (error) {
     return isBarberLimitError(error.message)
-      ? limitState(locale, "free", PLANS.free.maxBarbers)
+      ? await raceLimitState(supabase, ctx.business.id, locale)
       : errorState(error.message);
   }
 

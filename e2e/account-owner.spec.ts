@@ -9,6 +9,12 @@ import { test, expect, open, signInAs, newVisitor, toast, expectHealthy, SHOP } 
 const stamp = () => String(Date.now()).slice(-7);
 
 // 13 digits with a correct Thai check digit / the same with a wrong last digit.
+/** Tick "Remove the saved tax ID" if one is saved, so the shop is left as the test found it. */
+async function clearSavedTaxId(page: import("@playwright/test").Page) {
+  const box = page.locator('input[name="clearTaxId"]');
+  if (await box.count()) await box.check();
+}
+
 const GOOD_TAX_ID = "1234567890121";
 const BAD_TAX_ID = "1234567890122";
 
@@ -74,14 +80,17 @@ test.describe("owner account", () => {
 
       await open(page, "/dashboard/account");
       await expect(page.locator("#legalName")).toHaveValue(legalName);
-      await expect(page.locator("#taxId")).toHaveValue(GOOD_TAX_ID);
+      // F1: only the last 4 digits come back; the full number is never in the page.
+      await expect(page.locator("#taxId")).toHaveValue("");
+      await expect(page.getByText("Saved: *********0121")).toBeVisible();
+      expect(await page.content()).not.toContain(GOOD_TAX_ID);
       await expect(page.locator("#branchCode")).toHaveValue("00001");
       await expect(page.locator("#taxAddress")).toHaveValue("1 Test Road, Bangkok");
       await snap(page, "tax details saved");
     } finally {
       await open(page, "/dashboard/account");
       await page.locator("#legalName").fill(original.legalName);
-      await page.locator("#taxId").fill(original.taxId);
+      await clearSavedTaxId(page);
       await page.locator("#branchCode").fill(original.branch || "00000");
       await page.locator("#taxAddress").fill(original.taxAddress);
       await page.getByRole("button", { name: "Save account" }).click();
@@ -93,7 +102,6 @@ test.describe("owner account", () => {
     const visitor = await newVisitor(browser, baseURL!);
     await open(page, "/dashboard/account");
     const originalAddress = await page.locator("#address").inputValue();
-    const originalTaxId = await page.locator("#taxId").inputValue();
     const originalLegal = await page.locator("#legalName").inputValue();
     const address = `${stamp()} E2E Soi 11, Bangkok`;
     const legalName = `Secret Legal ${stamp()} Ltd`;
@@ -115,7 +123,7 @@ test.describe("owner account", () => {
       await open(page, "/dashboard/account");
       await page.locator("#address").fill(originalAddress);
       await page.locator("#legalName").fill(originalLegal);
-      await page.locator("#taxId").fill(originalTaxId);
+      await clearSavedTaxId(page);
       await page.getByRole("button", { name: "Save account" }).click();
       await expect(toast(page).first()).toBeVisible();
       await visitor.context.close();

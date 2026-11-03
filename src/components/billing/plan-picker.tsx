@@ -81,9 +81,8 @@ export function PlanPicker(props: PlanPickerProps) {
                 <Feature>{t("billing.featureBarbers", { count: plan.maxBarbers })}</Feature>
                 <Feature>{t("billing.featureBookings")}</Feature>
                 {id === "free" ? <Feature>{t("billing.featureFree")}</Feature> : null}
-                {id !== "free" ? <Feature>{t("billing.featureProLine")}</Feature> : null}
-                {id !== "free" ? <Feature>{t("billing.featureNotes")}</Feature> : null}
-                {id === "studio" ? <Feature>{t("billing.featureStudio")}</Feature> : null}
+                {id !== "free" ? <Feature soon={t("billing.soonTag")}>{t("billing.featureProLine")}</Feature> : null}
+                {id === "studio" ? <Feature soon={t("billing.soonTag")}>{t("billing.featureStudio")}</Feature> : null}
               </ul>
               <Button
                 className="mt-4"
@@ -117,11 +116,15 @@ export function PlanPicker(props: PlanPickerProps) {
   );
 }
 
-function Feature({ children }: { children: React.ReactNode }) {
+/** `soon` tags a feature that is not shipped yet, same "Soon" label as the About page. */
+function Feature({ children, soon }: { children: React.ReactNode; soon?: string }) {
   return (
     <li className="flex items-start gap-2">
       <Check className="mt-0.5 size-4 shrink-0 text-success" aria-hidden />
-      <span>{children}</span>
+      <span>
+        {children}
+        {soon ? <Badge tone="neutral" className="ml-2 align-middle">{soon}</Badge> : null}
+      </span>
     </li>
   );
 }

@@ -40,7 +40,17 @@ export function BillingNoticeAlert({
   const tone = notice.kind === "past_due" || notice.kind === "grace" ? "warning" : "info";
   return (
     <div data-testid={`billing-notice-${notice.kind}`}>
-      <Alert tone={tone} title={t(locale, `billing.${TITLE[notice.kind]}`)}>
+      <Alert
+        tone={tone}
+        title={
+          <>
+            {t(locale, `billing.${TITLE[notice.kind]}`)}{" "}
+            <span className="ml-1 rounded-full bg-surface px-2 py-0.5 text-xs font-semibold" data-testid="notice-demo-tag">
+              {t(locale, "billing.demoTag")}
+            </span>
+          </>
+        }
+      >
         <p>{t(locale, `billing.${BODY[notice.kind]}`, { date })}</p>
         {withLink ? (
           <div className="mt-2">

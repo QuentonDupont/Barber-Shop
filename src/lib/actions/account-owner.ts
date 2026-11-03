@@ -33,6 +33,7 @@ const accountSchema = (locale: Locale) => {
       .refine((v) => v === "" || isValidBranchCode(v), t(locale, "accountOwner.branchInvalid")),
     taxAddress: optionalText(400, tooLong),
     vatRegistered: z.boolean(),
+    clearTaxId: z.boolean(),
   });
 };
 
@@ -54,10 +55,12 @@ export async function saveOwnerAccountAction(
     shopPhone: formData.get("shopPhone") ?? "",
     lineId: formData.get("lineId") ?? "",
     legalName: formData.get("legalName") ?? "",
-    taxId: formData.get("taxId") ?? "",
+    // A pasted-back masked value ("*********0121") means "unchanged", never a new number.
+    taxId: String(formData.get("taxId") ?? "").includes("*") ? "" : formData.get("taxId") ?? "",
     branchCode: formData.get("branchCode") ?? "",
     taxAddress: formData.get("taxAddress") ?? "",
     vatRegistered: formData.get("vatRegistered") === "on",
+    clearTaxId: formData.get("clearTaxId") === "on",
   });
 
   if (!parsed.success) {
@@ -94,7 +97,9 @@ export async function saveOwnerAccountAction(
     {
       business_id: ctx.business.id,
       legal_name: d.legalName || null,
-      tax_id: d.taxId || null,
+      // Blank means "keep what is saved" (the form only ever shows the last 4 digits);
+      // clearing is its own explicit tick box.
+      ...(d.taxId ? { tax_id: d.taxId } : d.clearTaxId ? { tax_id: null } : {}),
       branch_code: d.branchCode || "00000",
       tax_address: d.taxAddress || null,
       vat_registered: d.vatRegistered,

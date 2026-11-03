@@ -14,11 +14,15 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select value ~ '^[0-9]{13}$'
-     and ((11 - (
-            select sum(substr(value, i, 1)::int * (14 - i))
-            from generate_series(1, 12) as i
-          ) % 11) % 10) = substr(value, 13, 1)::int;
+  -- CASE guarantees the digits are only cast once the shape is known to be 13 digits.
+  select case
+    when value ~ '^[0-9]{13}$' then
+      ((11 - (
+        select sum(substr(value, i, 1)::int * (14 - i))
+        from generate_series(1, 12) as i
+      ) % 11) % 10) = substr(value, 13, 1)::int
+    else false
+  end;
 $$;
 
 create table if not exists public.business_legal (

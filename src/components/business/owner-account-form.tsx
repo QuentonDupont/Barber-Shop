@@ -19,7 +19,8 @@ export interface OwnerAccountFormProps {
   business: { name: string; address: string; phone: string; lineId: string };
   legal: {
     legalName: string;
-    taxId: string;
+    /** Masked (last 4 digits only); the full number is never sent to the browser. */
+    taxIdMasked: string;
     branchCode: string;
     taxAddress: string;
     vatRegistered: boolean;
@@ -105,10 +106,16 @@ export function OwnerAccountForm({ email, profile, business, legal }: OwnerAccou
             label={optional(t("accountOwner.taxIdLabel"))}
             htmlFor="taxId"
             error={errors.taxId}
-            hint={t("accountOwner.taxIdHint")}
+            hint={legal.taxIdMasked ? t("accountOwner.taxIdSaved", { masked: legal.taxIdMasked }) : t("accountOwner.taxIdHint")}
           >
-            <Input id="taxId" name="taxId" inputMode="numeric" defaultValue={legal.taxId} autoComplete="off" />
+            <Input id="taxId" name="taxId" inputMode="numeric" defaultValue="" autoComplete="off" data-testid="tax-id-input" />
           </Field>
+          {legal.taxIdMasked ? (
+            <label className="flex min-h-11 items-center gap-3 text-sm">
+              <input type="checkbox" name="clearTaxId" className="size-5 accent-[var(--color-accent)]" />
+              <span>{t("accountOwner.taxIdClear")}</span>
+            </label>
+          ) : null}
           <Field
             label={optional(t("accountOwner.branchLabel"))}
             htmlFor="branchCode"

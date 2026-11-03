@@ -216,6 +216,34 @@ select test_assert(
                from storage.buckets where id = 'avatars') end,
   'avatars bucket is private, 2 MB, jpg/png/webp only (skipped without a storage schema)');
 
+-- --- F2: account deletion clears pending_email, the prefs row and queues the photo file
+update public.profiles
+   set pending_email = 'pending-ben@example.com', avatar_url = '44444444-4444-4444-4444-444444444444/photo-1.jpg'
+ where id = '44444444-4444-4444-4444-444444444444';
+insert into public.notification_prefs (user_id) values ('44444444-4444-4444-4444-444444444444')
+  on conflict (user_id) do nothing;
+insert into public.deletion_requests (user_id, requested_at)
+values ('44444444-4444-4444-4444-444444444444', now() - interval '45 days');
+
+set role service_role;
+select public.pdpa_process_deletion_requests(30);
+reset role;
+
+select test_assert(
+  (select pending_email is null and avatar_url is null from public.profiles
+    where id = '44444444-4444-4444-4444-444444444444'),
+  'deletion clears pending_email and the photo link');
+select test_assert(
+  not exists (select 1 from public.notification_prefs where user_id = '44444444-4444-4444-4444-444444444444'),
+  'deletion removes the notification_prefs row');
+select test_assert(
+  exists (select 1 from public.avatar_cleanup_queue
+           where path = '44444444-4444-4444-4444-444444444444/photo-1.jpg'),
+  'deletion queues the stored photo file for removal');
+delete from public.avatar_cleanup_queue where path like '44444444-4444-4444-4444-444444444444/%';
+delete from public.deletion_requests
+ where user_id = '44444444-4444-4444-4444-444444444444' and requested_at < now() - interval '44 days';
+
 -- --- clean up so later files see an unchanged database -----------------------
 delete from public.notification_prefs
  where user_id in ('33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444');

@@ -63,6 +63,23 @@ function concat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
+/**
+ * After the scan header, the entropy-coded data runs until the next marker that
+ * is not a stuffed 0xFF00 or a restart (D0-D7). Returns the index just after the
+ * end-of-image marker, or null if the picture never ends. Anything after it
+ * (trailing bytes can hide data) is dropped.
+ */
+function findJpegEnd(b: Uint8Array, from: number): number | null {
+  for (let i = from; i + 1 < b.length; i++) {
+    if (b[i] !== 0xff) continue;
+    const m = b[i + 1];
+    if (m === 0xd9) return i + 2;
+    if (m === 0x00 || m === 0xff || (m !== undefined && m >= 0xd0 && m <= 0xd7)) continue;
+    // another scan (progressive JPEG) or table segment: keep going past it
+  }
+  return null;
+}
+
 /** JPEG: copy every segment except Exif/XMP (E1), E3-EF and comments (FE). */
 function stripJpeg(b: Uint8Array): Uint8Array | null {
   const parts: Uint8Array[] = [b.subarray(0, 2)];
@@ -84,8 +101,10 @@ function stripJpeg(b: Uint8Array): Uint8Array | null {
     if (i + 4 > b.length) return null;
     const len = ((b[i + 2] ?? 0) << 8) | (b[i + 3] ?? 0);
     if (len < 2 || i + 2 + len > b.length) return null;
-    if (marker === 0xda) { // SOS: entropy-coded data follows, copy the rest as is
-      parts.push(b.subarray(i));
+    if (marker === 0xda) { // SOS: copy the header and entropy-coded data up to the end marker
+      const end = findJpegEnd(b, i + 2 + len);
+      if (end === null) return null;
+      parts.push(b.subarray(i, end));
       return concat(parts);
     }
     const drop = marker === 0xe1 || (marker >= 0xe3 && marker <= 0xef) || marker === 0xfe;

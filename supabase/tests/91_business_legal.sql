@@ -30,14 +30,16 @@ select test_assert(
   'a customer sees nothing');
 -- --- writes -----------------------------------------------------------------
 select test_assert(
-  test_sqlstate('22222222-2222-2222-2222-222222222222', $q$
+  -- Rival Cuts has no legal row, so without the policy the insert would simply succeed
+  -- (not hit the primary key): only the row-level-security refusal can give 42501.
+  test_sqlstate('11111111-1111-1111-1111-111111111111', $q$
     with ins as (
       insert into public.business_legal (business_id, legal_name)
-      values ('aaaaaaaa-0000-0000-0000-000000000001', 'rival overwrite')
+      values ('bbbbbbbb-0000-0000-0000-000000000002', 'owner overwrite')
       returning 0 as z)
     select 1/z from ins
-  $q$) in ('42501', '23505'),
-  'a rival owner cannot insert a legal row for another business');
+  $q$) = '42501',
+  'an owner cannot insert a legal row for another business (row-level security, 42501 only)');
 
 select test_assert(
   test_count_as('22222222-2222-2222-2222-222222222222', $q$

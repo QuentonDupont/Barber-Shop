@@ -57,6 +57,22 @@ function webp(withMeta: boolean) {
   return cat(enc("RIFF"), le32(body.length), body);
 }
 
+describe("prepareAvatar: bytes after the JPEG end marker (QA A3)", () => {
+  it("drops anything appended after the end of the picture", () => {
+    const sneaky = cat(jpeg(false), enc("SECRET-TRAILING-DATA"));
+    const r = prepareAvatar(sneaky);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(has(r.bytes, "SECRET-TRAILING-DATA")).toBe(false);
+      expect(r.bytes[r.bytes.length - 1]).toBe(0xd9);
+    }
+  });
+  it("a picture that never ends is refused", () => {
+    const cut = jpeg(false).slice(0, -2);
+    expect(prepareAvatar(cut).ok).toBe(false);
+  });
+});
+
 describe("prepareAvatar", () => {
   it("accepts jpg, png and webp and strips location/device data", () => {
     const j = prepareAvatar(jpeg(true));

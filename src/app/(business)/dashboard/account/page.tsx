@@ -12,6 +12,7 @@ import type { BusinessLegalRow } from "@/lib/database.types";
 import { loadBillingView } from "@/lib/billing/repo";
 import { effectivePlanId } from "@/lib/billing/state";
 import { PLANS } from "@/lib/billing/plans";
+import { maskTaxId } from "@/lib/billing/invoice";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -71,7 +72,7 @@ export default async function OwnerAccountPage() {
         }}
         legal={{
           legalName: legal?.legal_name ?? "",
-          taxId: legal?.tax_id ?? "",
+          taxIdMasked: legal?.tax_id ? maskTaxId(legal.tax_id) : "",
           branchCode: legal?.branch_code ?? "00000",
           taxAddress: legal?.tax_address ?? "",
           vatRegistered: legal?.vat_registered ?? false,

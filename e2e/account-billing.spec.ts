@@ -58,6 +58,11 @@ test.describe("owner billing", () => {
     await expect(page.getByTestId("demo-banner")).toContainText("Demo — no real charges");
     await expect(page.getByTestId("current-plan-name")).toHaveText("Pro");
     await expect(page.getByTestId("barber-usage")).toHaveText(/^\d+ of 5 barbers$/);
+    // F4: only shipped features are listed as plain facts; anything future carries a "Soon" tag.
+    await expect(page.getByTestId("plan-card-free")).not.toContainText("LINE");
+    await expect(page.getByTestId("plan-card-pro")).toContainText("LINE reminders and messages to customers");
+    await expect(page.getByTestId("plan-card-pro").getByText("Soon", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("plan-card-studio").getByText("Soon", { exact: true })).toBeVisible();
     await expect(page.getByTestId("next-charge")).not.toBeEmpty();
     await expect(page.getByTestId("payment-method")).toContainText("Visa ending 4242");
     await expect(page.getByTestId("payment-method")).toContainText("Demo card");
@@ -246,6 +251,7 @@ test.describe("owner billing", () => {
     await page.getByTestId("scenario-failed").click();
     await expect(page.getByTestId("billing-notice-past_due")).toBeVisible();
     await expect(page.getByTestId("billing-notice-past_due")).toContainText("customers can still book your shop");
+    await expect(page.getByTestId("billing-notice-past_due").getByTestId("notice-demo-tag")).toHaveText("Demo");
     await expect(page.getByTestId("demo-banner")).toBeVisible();
     await snap(page, "payment declined notice");
 
@@ -320,7 +326,7 @@ test.describe("billing in Thai", () => {
     await expect(page.getByTestId("choose-free")).toContainText("ฟรี");
     await noSidewaysScroll(page);
     await snap(page, "Thai plan and billing");
-    await page.getByTestId("invoice-row").first().click();
+    await Promise.all([page.waitForURL(/\/billing\/invoices\//), page.getByTestId("invoice-row").first().click()]);
     await expect(page.getByTestId("receipt-title")).toHaveText("ใบเสร็จรับเงิน");
     await expect(page.getByTestId("receipt-date")).toHaveText(/25\d\d$/);
     await snap(page, "Thai receipt");
