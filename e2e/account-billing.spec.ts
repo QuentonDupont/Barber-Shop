@@ -232,8 +232,11 @@ test.describe("owner billing", () => {
     const again = page.locator("div.rounded-xl").filter({ has: page.getByText(extra, { exact: true }) });
     await again.getByRole("switch", { name: new RegExp(`Activate ${extra}`) }).click();
     await expect(again.getByText("Active", { exact: true }).first()).toBeVisible();
-    await again.getByRole("switch", { name: new RegExp(`Deactivate ${extra}`) }).click();
-    await expect(again.getByText("Deactivated").first()).toBeVisible();
+    // Tidy up from a fresh page, so the second switch does not race the first one's refresh.
+    await open(page, "/dashboard/staff");
+    const last = page.locator("div.rounded-xl").filter({ has: page.getByText(extra, { exact: true }) });
+    await last.getByRole("switch", { name: new RegExp(`Deactivate ${extra}`) }).click();
+    await expect(last.getByText("Deactivated").first()).toBeVisible();
   });
 
   test("owner notices: payment declined, grace period, back on Free, and reset", async ({ page, browser, baseURL, snap }) => {

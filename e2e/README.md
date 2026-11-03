@@ -9,6 +9,8 @@ One spec per area:
 | `auth.spec.ts` | sign-up blocked server-side without the consent box, demo sign-in (customer, owner), role separation, invite-only business sign-up |
 | `privacy.spec.ts` | the privacy policy in Thai and English, account "Your data" (download, request deletion, withdraw consent), booking blocked after withdrawing |
 | `account-customer.spec.ts` | customer account: name and phone, verified email change (demo confirm), photo (types, size, EXIF stripped, remove), notification switches and marketing consent, privacy panel still there, 360px layout |
+| `account-owner.spec.ts` | owner account: personal and shop details in one place, optional fields marked, tax details validated and saved, tax details never on the public shop page, customers redirected |
+| `account-billing.spec.ts` | owner plan and billing (demo data): plan and barber usage, receipts and the Thai/English receipt view, upgrade and downgrade with the barber picker, founding offer, barber-limit messages, past-due/grace/back-on-Free notices, cancel, demo card, and that customers never see billing |
 | `owner.spec.ts` | Today, Calendar with the barber filter, Staff (add, edit, deactivate, customer list follows), Services, Hours, Settings (cancellation policy reaches the shop page) |
 | `language-brand.spec.ts` | TH/EN toggle persists, logo in light and dark, no untranslated English on Thai pages |
 
