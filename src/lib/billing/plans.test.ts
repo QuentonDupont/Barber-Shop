@@ -46,3 +46,12 @@ describe("plans (decision 25)", () => {
     expect(barbersToKeep(b.slice(0, 1), 2)).toEqual(["c"]);
   });
 });
+
+describe("founding cohort", () => {
+  it("is capped at 20 and one use per business", async () => {
+    const { foundingAvailable } = await import("./plans");
+    expect(foundingAvailable({ everGranted: false, grantedCount: 19 })).toBe(true);
+    expect(foundingAvailable({ everGranted: false, grantedCount: 20 })).toBe(false);
+    expect(foundingAvailable({ everGranted: true, grantedCount: 0 })).toBe(false);
+  });
+});

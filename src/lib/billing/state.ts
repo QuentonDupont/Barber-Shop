@@ -8,7 +8,7 @@
 //   D+15  00:00 Bangkok (end of day D+14) -> automatic drop to Free (downgraded)
 // Paid extras keep working through past_due and grace. Customers never see any
 // of this: nothing here touches a shop's booking page (see BillingAction).
-import { PLANS, periodPriceSatang, periodStart, type PlanId } from "./plans";
+import { FOUNDING, PLANS, periodPriceSatang, periodStart, type PlanId } from "./plans";
 import { addDays, bangkokDate, daysBetween, startOfBangkokDay, type BDate } from "./time";
 
 export type SubscriptionStatus = "trialing" | "active" | "past_due" | "grace" | "downgraded" | "cancelled";
@@ -35,6 +35,10 @@ export interface Subscription {
   /** Instant the grace period ends (00:00 Bangkok of due + 15); null unless past_due/grace. */
   graceUntil: Date | null;
   reminderSentFor: BDate | null;
+  /** A card is on file. Founding shops take none in the free months unless they choose. */
+  cardOnFile: boolean;
+  /** Founding first-charge reminders already sent (7 and 2 days before). */
+  firstChargeRemindersSent: number[];
   dunningSent: number[];
   cancelAtPeriodEnd: boolean;
 }
@@ -46,6 +50,7 @@ export interface Subscription {
  */
 export type BillingAction =
   | { type: "send_reminder"; dueDate: BDate; amountSatang: number }
+  | { type: "send_first_charge_reminder"; dueDate: BDate; daysBefore: number; amountSatang: number }
   | { type: "send_dunning"; dueDate: BDate; dayOffset: number; graceUntil: Date }
   | { type: "downgrade_to_free"; from: PlanId; reason: "non_payment" | "cancelled" }
   | { type: "issue_invoice"; periodIndex: number; amountSatang: number };
@@ -64,6 +69,7 @@ export function startSubscription(input: {
   businessId: string;
   plan: PlanId;
   founding?: boolean;
+  cardOnFile?: boolean;
   today: BDate;
 }): Subscription {
   const founding = input.founding ?? false;
@@ -81,6 +87,8 @@ export function startSubscription(input: {
     dueDate: periodStart(input.today, 1),
     graceUntil: null,
     reminderSentFor: null,
+    cardOnFile: input.cardOnFile ?? false,
+    firstChargeRemindersSent: [],
     dunningSent: [],
     cancelAtPeriodEnd: false,
   };
@@ -98,7 +106,15 @@ export function effectivePlanId(sub: Subscription | null, now: Date): PlanId {
 export const amountDueSatang = (sub: Subscription): number =>
   periodPriceSatang(sub.planId, sub.founding, sub.periodIndex + 1);
 
-const clone = (s: Subscription): Subscription => ({ ...s, dunningSent: [...s.dunningSent] });
+const clone = (s: Subscription): Subscription => ({
+  ...s,
+  dunningSent: [...s.dunningSent],
+  firstChargeRemindersSent: [...s.firstChargeRemindersSent],
+});
+
+/** The first real charge of a founding shop (period 3), with a card on file. */
+const isFoundingFirstCharge = (s: Subscription): boolean =>
+  s.founding && s.cardOnFile && s.periodIndex + 1 === FOUNDING.freeMonths;
 
 function graceEnd(dueDate: BDate): Date {
   return startOfBangkokDay(addDays(dueDate, GRACE_DAYS + 1));
@@ -141,9 +157,20 @@ export function tick(input: Subscription, now: Date): Step {
     return { sub, actions };
   }
 
-  // Reminder, once, from 3 days before the due date up to the due date.
   const left = daysBetween(today, sub.dueDate);
+  // Founding first charge with a card: reminders 7 and 2 days before, each once (Legal C).
+  if (isFoundingFirstCharge(sub) && sub.status === "trialing" && !sub.cancelAtPeriodEnd && left >= 0) {
+    const days = FOUNDING.firstChargeReminderDays;
+    const due = days.find((d) => left <= d && !sub.firstChargeRemindersSent.includes(d) && !days.some((x) => x < d && left <= x));
+    if (due !== undefined) {
+      sub.firstChargeRemindersSent.push(due);
+      actions.push({ type: "send_first_charge_reminder", dueDate: sub.dueDate, daysBefore: due, amountSatang: amountDueSatang(sub) });
+    }
+  }
+
+  // Reminder, once, from 3 days before the due date up to the due date.
   if (
+    !isFoundingFirstCharge(sub) &&
     (sub.status === "trialing" || sub.status === "active") &&
     !sub.cancelAtPeriodEnd &&
     left >= 0 &&
@@ -191,6 +218,7 @@ export function paymentSucceeded(input: Subscription): Step {
   sub.status = "active";
   sub.graceUntil = null;
   sub.reminderSentFor = null;
+  sub.firstChargeRemindersSent = [];
   sub.dunningSent = [];
   const actions: BillingAction[] = amount > 0 ? [{ type: "issue_invoice", periodIndex: sub.periodIndex, amountSatang: amount }] : [];
   return { sub, actions };

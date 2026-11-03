@@ -184,3 +184,25 @@ describe("job properties", () => {
     expect(effectivePlanId(null, noon("2026-04-01"))).toBe("free");
   });
 });
+
+describe("founding first-charge reminders (Legal C)", () => {
+  const withCard = () => startSubscription({ businessId: "b1", plan: "pro", founding: true, cardOnFile: true, today: "2026-11-03" });
+  it("7 and 2 days before the first charge, each once, and no 3-day one", () => {
+    let s = tick(withCard(), noon("2027-01-20")).sub; // roll to period 2, due 2027-02-03
+    expect(s.dueDate).toBe("2027-02-03");
+    const seen: number[] = [];
+    for (const d of ["2027-01-26", "2027-01-27", "2027-01-30", "2027-01-31", "2027-02-01", "2027-02-02"]) {
+      const r = tick(s, noon(d));
+      s = r.sub;
+      for (const a of r.actions) {
+        expect(a.type).toBe("send_first_charge_reminder");
+        if (a.type === "send_first_charge_reminder") seen.push(a.daysBefore);
+      }
+    }
+    expect(seen).toEqual([7, 2]);
+  });
+  it("a founding shop with no card gets the ordinary 3-day reminder", () => {
+    const s = tick(founding(), noon("2027-01-20")).sub;
+    expect(tick(s, noon("2027-01-31")).actions.map((a) => a.type)).toEqual(["send_reminder"]);
+  });
+});

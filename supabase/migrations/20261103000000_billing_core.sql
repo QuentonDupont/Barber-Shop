@@ -45,6 +45,8 @@ create table public.billing_settings (
   vat_enabled          boolean not null default false,
   vat_rate_bp          integer not null default 700 check (vat_rate_bp between 0 and 2000),
   vat_threshold_satang bigint  not null default 180000000,
+  -- Founding offer: first 10-20 shops only (feasibility). Cap on shops ever granted it.
+  founding_cap         integer not null default 20 check (founding_cap >= 0),
   updated_at           timestamptz not null default now()
 );
 insert into public.billing_settings default values;
@@ -59,6 +61,12 @@ create table public.subscriptions (
   status               text not null default 'active'
                        check (status in ('trialing', 'active', 'past_due', 'grace', 'downgraded', 'cancelled')),
   founding             boolean not null default false,
+  -- Set once when the founding offer is granted; never cleared. One use per business.
+  founding_granted_at  timestamptz,
+  -- A card is on file (taken in the free months only if the shop chose to).
+  card_on_file         boolean not null default false,
+  -- Founding first-charge reminders already sent (7 and 2 days before).
+  first_charge_reminders integer[] not null default '{}',
   anchor               date not null default ((now() at time zone 'Asia/Bangkok')::date),
   period_index         integer not null default 0 check (period_index >= 0),
   due_date             date,
@@ -85,6 +93,44 @@ grant select on public.subscriptions to authenticated;
 create policy "subscriptions: owner reads own business"
   on public.subscriptions for select to authenticated
   using (public.owns_business(business_id));
+
+-- Founding offer: capped cohort, one use per business. Service-role writes only,
+-- so the check is about honesty of the job, not about a hostile browser.
+create or replace function public.guard_founding()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  cap integer;
+  granted integer;
+begin
+  if tg_op = 'UPDATE' and old.founding_granted_at is not null then
+    new.founding_granted_at := old.founding_granted_at; -- never cleared
+  end if;
+  if new.founding and (tg_op = 'INSERT' or not old.founding) then
+    if tg_op = 'UPDATE' and old.founding_granted_at is not null then
+      raise exception 'founding_already_used: this business has had the founding offer'
+        using errcode = 'P0001';
+    end if;
+    select founding_cap into cap from public.billing_settings for update; -- serialise grants
+    select count(*) into granted from public.subscriptions
+      where founding_granted_at is not null and business_id <> new.business_id;
+    if granted >= cap then
+      raise exception 'founding_cap_reached: the founding cohort is full (%)', cap
+        using errcode = 'P0001';
+    end if;
+    new.founding_granted_at := now();
+  end if;
+  return new;
+end $$;
+
+revoke all on function public.guard_founding() from public, anon, authenticated;
+
+create trigger subscriptions_guard_founding
+  before insert or update on public.subscriptions
+  for each row execute function public.guard_founding();
 
 -- Every business has a subscription; a new business starts on Free.
 create or replace function public.create_free_subscription()
@@ -287,6 +333,11 @@ begin
   end if;
   if tg_op = 'UPDATE' and old.is_active and old.business_id = new.business_id then
     return new; -- already counted; renaming etc. is never blocked
+  end if;
+  -- Not their shop: say nothing about it and take no lock; row-level security refuses the write.
+  -- (Service role / superuser have no auth.uid(), so the limit still applies to them.)
+  if (select auth.uid()) is not null and not public.owns_business(new.business_id) then
+    return new;
   end if;
 
   -- Serialise concurrent adds for one business so two requests cannot both squeeze in.

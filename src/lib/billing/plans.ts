@@ -35,7 +35,16 @@ export const FOUNDING = {
   freeMonths: 3,
   discountedMonths: 12,
   discountedPriceSatang: thb(290),
+  /** First 10-20 shops only (feasibility); the database enforces the same cap. */
+  cohortCap: 20,
+  firstChargeReminderDays: [7, 2],
+  firstChargeRefundDays: 7,
 } as const;
+
+/** Founding is offered once per business and only while the cohort has room. */
+export function foundingAvailable(input: { everGranted: boolean; grantedCount: number; cap?: number }): boolean {
+  return !input.everGranted && input.grantedCount < (input.cap ?? FOUNDING.cohortCap);
+}
 
 /**
  * Price of billing period `index` (0-based) on a plan. Founding: periods 0-2

@@ -2,9 +2,10 @@
 // Pure orchestration over the state machine; no database access here (the
 // Supabase-backed store arrives with the UI work).
 import { buildInvoice, InvoiceNumberer, type Buyer, type Invoice, type BillingSettings } from "./invoice";
+import { FOUNDING } from "./plans";
 import { ProviderTimeoutError, type PaymentProvider } from "./provider";
 import { amountDueSatang, paymentFailed, paymentSucceeded, tick, type BillingAction, type Subscription } from "./state";
-import { bangkokDate } from "./time";
+import { bangkokDate, daysBetween } from "./time";
 
 export interface CollectResult {
   sub: Subscription;
@@ -70,3 +71,25 @@ export async function collectDue(input: {
   }
 }
 
+
+export class RefundNotAllowedError extends Error {}
+
+/**
+ * Refund of a shop's FIRST charge within 7 days (Legal C, applied conservatively).
+ * Mock provider only: the interface has no live implementation. The caller marks
+ * the subscription and voids/credits the receipt.
+ */
+export async function refundFirstCharge(input: {
+  invoice: Invoice;
+  isFirstCharge: boolean;
+  now: Date;
+  provider: PaymentProvider;
+}): Promise<{ providerRef: string; amountSatang: number }> {
+  const { invoice, now, provider } = input;
+  if (!input.isFirstCharge) throw new RefundNotAllowedError("Only the first charge has a refund right");
+  if (daysBetween(invoice.issueDate, bangkokDate(now)) > FOUNDING.firstChargeRefundDays) {
+    throw new RefundNotAllowedError("The 7-day first-charge refund window has passed");
+  }
+  const r = await provider.refund(invoice.paymentRef, invoice.totalSatang);
+  return { providerRef: r.providerRef, amountSatang: invoice.totalSatang };
+}

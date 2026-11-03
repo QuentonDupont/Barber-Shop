@@ -105,3 +105,19 @@ describe("collecting a due payment", () => {
     expect(p.succeededCount).toBe(0);
   });
 });
+
+describe("first-charge refund (mock only)", () => {
+  it("within 7 days of the first charge only", async () => {
+    const { refundFirstCharge, RefundNotAllowedError } = await import("./service");
+    const { buildInvoice } = await import("./invoice");
+    const inv = buildInvoice({
+      businessId: "b1", plan: "pro", founding: false, anchor: "2026-03-10", periodIndex: 1, buyer: { displayName: "x" },
+      issuedAt: new Date("2026-04-10T03:00:00Z"), numbering: { year: 2026, seq: 1, number: "TN-2026-000001" }, paymentRef: "mock_ch_1",
+    });
+    const p = new MockPaymentProvider();
+    const ok = await refundFirstCharge({ invoice: inv, isFirstCharge: true, now: new Date("2026-04-17T03:00:00Z"), provider: p });
+    expect(ok).toMatchObject({ amountSatang: 49_000 });
+    await expect(refundFirstCharge({ invoice: inv, isFirstCharge: true, now: new Date("2026-04-18T03:00:00Z"), provider: p })).rejects.toBeInstanceOf(RefundNotAllowedError);
+    await expect(refundFirstCharge({ invoice: inv, isFirstCharge: false, now: new Date("2026-04-11T03:00:00Z"), provider: p })).rejects.toBeInstanceOf(RefundNotAllowedError);
+  });
+});

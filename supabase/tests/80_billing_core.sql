@@ -291,6 +291,12 @@ select test_assert(
 
 set role authenticated;
 select test_assert(
+  coalesce(test_error_as80('11111111-1111-1111-1111-111111111111', $q$insert into public.staff (business_id, name)
+     values ('bbbbbbbb-0000-0000-0000-000000000002', 'Planted')$q$), '') like '%row-level security%'
+  and coalesce(test_error_as80('11111111-1111-1111-1111-111111111111', $q$insert into public.staff (business_id, name)
+     values ('bbbbbbbb-0000-0000-0000-000000000002', 'Planted')$q$), '') not like 'staff_limit_exceeded%',
+  'a rival owner is refused by row-level security and learns nothing about the other shop''s limit');
+select test_assert(
   test_error_as80('22222222-2222-2222-2222-222222222222', $q$insert into public.staff (business_id, name)
      values ('bbbbbbbb-0000-0000-0000-000000000002', 'B3')$q$) like 'staff_limit_exceeded%',
   'a third active barber is rejected for the owner, with the upgrade message');
@@ -406,16 +412,52 @@ select test_assert(
   'the downgraded shop is exactly as published as before');
 
 -- ---------------------------------------------------------------------------
+-- Gap-free numbering survives a rollback (fails if the counter becomes a sequence)
+-- ---------------------------------------------------------------------------
+do $$ declare s integer; begin begin perform * from public.allocate_invoice_number(2101); raise exception 'rollback_probe'; exception when others then null; end; select a.seq into s from public.allocate_invoice_number(2101) a; if s <> 1 then raise exception 'FAIL: a rolled-back allocation burned an invoice number (got %)', s; end if; end $$;
+select test_assert(true, 'a rolled-back invoice number is handed out again (no gaps)');
+
+-- ---------------------------------------------------------------------------
+-- Founding offer: capped, one use per business
+-- ---------------------------------------------------------------------------
+-- (Rival Cuts was granted the offer earlier in this file, so one shop is already in the cohort.)
+update public.billing_settings set founding_cap = 1;
+select test_assert(
+  test_error_as80(null, $q$update public.subscriptions set plan_id = 'pro', status = 'trialing', founding = true
+     where business_id = 'aaaaaaaa-0000-0000-0000-000000000001'$q$) like 'founding_cap_reached%',
+  'the founding cohort stops at the cap');
+update public.billing_settings set founding_cap = 20;
+
+update public.subscriptions set plan_id = 'pro', status = 'trialing', founding = true
+ where business_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+select test_assert(
+  (select founding_granted_at is not null from public.subscriptions where business_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  'granting the founding offer records when');
+
+update public.subscriptions set plan_id = 'free', status = 'cancelled', founding = false
+ where business_id = 'aaaaaaaa-0000-0000-0000-000000000001';
+select test_assert(
+  (select founding_granted_at is not null from public.subscriptions where business_id = 'aaaaaaaa-0000-0000-0000-000000000001'),
+  'the grant record survives a cancel');
+select test_assert(
+  test_error_as80(null, $q$update public.subscriptions set plan_id = 'pro', status = 'trialing', founding = true
+     where business_id = 'aaaaaaaa-0000-0000-0000-000000000001'$q$) like 'founding_already_used%',
+  'a business cannot use the founding offer twice');
+
+
+-- ---------------------------------------------------------------------------
 -- Clean up so later files see an unchanged database.
 -- ---------------------------------------------------------------------------
 delete from public.bookings where id = 'dddddddd-0000-0000-0000-0000000000b1';
 delete from public.staff where id::text like '88888888-0000-0000-0000-%';
 delete from public.invoices where id::text like 'dddddddd-0000-0000-0000-00000000000%';
-delete from public.invoice_counters where year in (2099, 2100);
+delete from public.invoice_counters where year in (2099, 2100, 2101);
+alter table public.subscriptions disable trigger subscriptions_guard_founding;
 update public.subscriptions
    set plan_id = 'free', status = 'active', previous_plan_id = null, founding = false,
-       grace_until = null
+       grace_until = null, founding_granted_at = null
  where business_id in ('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000002');
+alter table public.subscriptions enable trigger subscriptions_guard_founding;
 
 select test_assert(
   (select count(*) from public.invoices) = 0
