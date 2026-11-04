@@ -1,7 +1,8 @@
 "use client";
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { LogOut, Moon, Sun, User } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Moon, Sun, User, UserCog } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/misc";
 import { signOutAction } from "@/lib/actions/auth";
@@ -39,10 +40,13 @@ export function AccountMenu({
   name,
   email,
   variant = "compact",
+  accountHref,
 }: {
   name: string;
   email?: string | null;
   variant?: "compact" | "sidebar";
+  /** Owner dashboard only: adds a "My account" item linking here. */
+  accountHref?: string;
 }) {
   const { dark, toggle } = useTheme();
   const t = useT();
@@ -95,6 +99,18 @@ export function AccountMenu({
           </div>
 
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
+
+          {accountHref ? (
+            <DropdownMenu.Item asChild>
+              <Link
+                href={accountHref}
+                className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-3 text-sm outline-none data-[highlighted]:bg-surface-muted"
+              >
+                <UserCog className="size-4" />
+                {t("accountOwner.menuLabel")}
+              </Link>
+            </DropdownMenu.Item>
+          ) : null}
 
           <DropdownMenu.Item
             onSelect={(event) => {

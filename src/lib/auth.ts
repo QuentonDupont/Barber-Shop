@@ -42,6 +42,7 @@ export const getSession = cache(async (): Promise<SessionContext | null> => {
         phone: (user.user_metadata?.phone as string) ?? null,
         email: user.email ?? null,
         avatar_url: null,
+        pending_email: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },

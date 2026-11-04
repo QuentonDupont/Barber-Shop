@@ -22,7 +22,10 @@ import { buildDB, type MockDB } from "./fixtures";
 // v4: handoff 08 (runtime fix) — registered staff_services and seeded
 // staff for the barber shop, so multi-staff booking is exercisable in mock
 // mode instead of 500ing the moment a shop has barbers.
-const SCHEMA_VERSION = 5;
+// v6: tatnat-accounts-billing handoff 07 — subscriptions, invoices, invoice_lines,
+// payment_methods (billing demo data), business_legal, notification_prefs,
+// profiles.pending_email.
+const SCHEMA_VERSION = 6;
 
 const globalForMock = globalThis as unknown as {
   __tatnatMockDB?: MockDB;

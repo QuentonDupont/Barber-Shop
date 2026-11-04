@@ -30,6 +30,17 @@ export default async function SettingsPage() {
         title={t(locale, "settingsAdmin.pageTitle")}
         description={t(locale, "settingsAdmin.pageDescription")}
       />
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>{t(locale, "accountOwner.settingsLinkTitle")}</CardTitle>
+          <CardDescription>{t(locale, "accountOwner.settingsLinkDescription")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" size="md">
+            <Link href="/dashboard/account">{t(locale, "accountOwner.settingsLinkButton")}</Link>
+          </Button>
+        </CardContent>
+      </Card>
       <SettingsForm business={ctx.business} activeServiceCount={count ?? 0} />
 
       {/* Handoff 07 (PDPA, legal-review.md §3): a single link out to the
