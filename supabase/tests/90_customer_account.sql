@@ -74,9 +74,11 @@ select test_assert(
   'Ann can create her own prefs row');
 
 select test_assert(
-  (select booking_confirmations and reminders and not marketing
-          and marketing_consented_at is null and marketing_withdrawn_at is null
-     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'),
+  -- Read as Ann (the uid is per statement), not as a bare role that RLS shows nothing.
+  test_bool_as90('33333333-3333-3333-3333-333333333333', $q$
+    select booking_confirmations and reminders and not marketing
+           and marketing_consented_at is null and marketing_withdrawn_at is null
+      from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'$q$),
   'defaults: confirmations on, reminders on, marketing OFF and no consent time');
 
 -- --- inserting with marketing on stamps the time, whatever the client sent ----
@@ -98,8 +100,8 @@ select test_assert(
        where user_id = '33333333-3333-3333-3333-333333333333'$q$) = 1,
   'Ann turns marketing on');
 select test_assert(
-  (select marketing and marketing_consented_at is not null and marketing_withdrawn_at is null
-     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'),
+  test_bool_as90('33333333-3333-3333-3333-333333333333', $q$select marketing and marketing_consented_at is not null and marketing_withdrawn_at is null
+     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'$q$),
   'marketing on: consent time set, no withdrawal time');
 
 select test_assert(
@@ -108,8 +110,8 @@ select test_assert(
        where user_id = '33333333-3333-3333-3333-333333333333'$q$) = 1,
   'Ann turns reminders off (a different switch)');
 select test_assert(
-  (select marketing and not reminders and marketing_withdrawn_at is null
-     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'),
+  test_bool_as90('33333333-3333-3333-3333-333333333333', $q$select marketing and not reminders and marketing_withdrawn_at is null
+     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'$q$),
   'switching reminders does not touch the marketing consent');
 
 select test_assert(
@@ -118,8 +120,8 @@ select test_assert(
        where user_id = '33333333-3333-3333-3333-333333333333'$q$) = 1,
   'Ann withdraws marketing, trying to wipe the consent time too');
 select test_assert(
-  (select not marketing and marketing_consented_at is not null and marketing_withdrawn_at is not null
-     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'),
+  test_bool_as90('33333333-3333-3333-3333-333333333333', $q$select not marketing and marketing_consented_at is not null and marketing_withdrawn_at is not null
+     from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'$q$),
   'withdrawal is recorded and the earlier consent time is kept for the audit trail');
 
 -- --- self-only RLS on notification_prefs --------------------------------------
@@ -150,8 +152,9 @@ select test_assert(
     $q$delete from public.notification_prefs where user_id = '33333333-3333-3333-3333-333333333333'$q$) = 0,
   'Ben cannot delete Ann''s prefs');
 select test_assert(
-  (select reminders = false and marketing = false from public.notification_prefs
-    where user_id = '33333333-3333-3333-3333-333333333333'),
+  test_bool_as90('33333333-3333-3333-3333-333333333333', $q$
+    select reminders = false and marketing = false from public.notification_prefs
+     where user_id = '33333333-3333-3333-3333-333333333333'$q$),
   'Ann''s prefs are untouched by Ben''s attempts');
 
 -- --- profile isolation (name, phone, photo, pending email) -------------------
@@ -209,12 +212,20 @@ select test_assert(
   'a file outside the user folder, in a sub-folder, or with no name is not allowed');
 
 -- Where Supabase Storage exists, the bucket itself must be private and limited.
-select test_assert(
-  case when to_regclass('storage.buckets') is null then true
-       else (select not public and file_size_limit = 2097152
-                    and allowed_mime_types @> array['image/jpeg','image/png','image/webp']
-               from storage.buckets where id = 'avatars') end,
-  'avatars bucket is private, 2 MB, jpg/png/webp only (skipped without a storage schema)');
+-- (A DO block with dynamic SQL: a plain CASE would still need storage.buckets to exist at parse time.)
+do $$
+declare ok boolean := true;
+begin
+  if to_regclass('storage.buckets') is not null then
+    execute $q$select not public and file_size_limit = 2097152
+                      and allowed_mime_types @> array['image/jpeg','image/png','image/webp']
+                 from storage.buckets where id = 'avatars'$q$ into ok;
+  end if;
+  if ok is distinct from true then
+    raise exception 'FAIL  avatars bucket is private, 2 MB, jpg/png/webp only';
+  end if;
+end $$;
+select test_assert(true, 'avatars bucket is private, 2 MB, jpg/png/webp only (skipped without a storage schema)');
 
 -- --- F2: account deletion clears pending_email, the prefs row and queues the photo file
 update public.profiles
@@ -222,6 +233,8 @@ update public.profiles
  where id = '44444444-4444-4444-4444-444444444444';
 insert into public.notification_prefs (user_id) values ('44444444-4444-4444-4444-444444444444')
   on conflict (user_id) do nothing;
+-- (Ben may already have a completed request from 50_pdpa_isolation; one row per user and status.)
+delete from public.deletion_requests where user_id = '44444444-4444-4444-4444-444444444444' and status = 'completed';
 insert into public.deletion_requests (user_id, requested_at)
 values ('44444444-4444-4444-4444-444444444444', now() - interval '45 days');
 
@@ -241,8 +254,7 @@ select test_assert(
            where path = '44444444-4444-4444-4444-444444444444/photo-1.jpg'),
   'deletion queues the stored photo file for removal');
 delete from public.avatar_cleanup_queue where path like '44444444-4444-4444-4444-444444444444/%';
-delete from public.deletion_requests
- where user_id = '44444444-4444-4444-4444-444444444444' and requested_at < now() - interval '44 days';
+delete from public.deletion_requests where user_id = '44444444-4444-4444-4444-444444444444';
 
 -- --- clean up so later files see an unchanged database -----------------------
 delete from public.notification_prefs

@@ -107,9 +107,19 @@ select test_assert(
     = 'TN-2099-000001,TN-2099-000002',
   'invoice numbers are sequential from 1 with the agreed format');
 
+-- Two statements on purpose: a row written by a function is not visible to another
+-- sub-select of the SAME statement, so allocate first, then look at the counter.
+do $$
+declare s integer;
+begin
+  select seq into s from public.allocate_invoice_number(2100);
+  if s is distinct from 1 then
+    raise exception 'FAIL  a new year does not restart at 1 (got %)', s;
+  end if;
+end $$;
+
 select test_assert(
-  (select (select count(*) from public.allocate_invoice_number(2100))) = 1
-  and (select last_seq from public.invoice_counters where year = 2100) = 1,
+  (select last_seq from public.invoice_counters where year = 2100) = 1,
   'a new year restarts at 1');
 
 select test_assert(
@@ -365,9 +375,12 @@ update public.subscriptions set plan_id = 'studio', status = 'active', previous_
 update public.staff set is_active = true where business_id = 'bbbbbbbb-0000-0000-0000-000000000002';
 update public.subscriptions set plan_id = 'free', previous_plan_id = 'studio', status = 'downgraded'
  where business_id = 'bbbbbbbb-0000-0000-0000-000000000002';
+-- (Two statements: the staff rows the function changes are not visible to another
+-- sub-select of the same statement.)
+select public.apply_free_limits('bbbbbbbb-0000-0000-0000-000000000002',
+    array['88888888-0000-0000-0000-000000000006', '88888888-0000-0000-0000-000000000005']::uuid[]) as n_off \gset
 select test_assert(
-  public.apply_free_limits('bbbbbbbb-0000-0000-0000-000000000002',
-    array['88888888-0000-0000-0000-000000000006', '88888888-0000-0000-0000-000000000005']::uuid[]) = 4
+  :n_off = 4
   and (select string_agg(name, ',' order by name) from public.staff
        where business_id = 'bbbbbbbb-0000-0000-0000-000000000002' and is_active) = 'B5,B6',
   'the owner''s choice of who stays is honoured');
