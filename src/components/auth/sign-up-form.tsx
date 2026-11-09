@@ -194,6 +194,15 @@ export function SignUpForm({
         </Link>
         {t("auth.termsNoticeSuffix")}
       </p>
+
+      <p className="text-center">
+        <Link
+          href="/about"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-accent-ink underline underline-offset-4"
+        >
+          {t("about.signUpLink")}
+        </Link>
+      </p>
     </div>
   );
 }
