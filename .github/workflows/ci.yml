@@ -92,8 +92,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # next/font/google needs to reach Google Fonts at build time — GitHub's
-      # runners have normal outbound internet access, so this works unstubbed.
+      # Webfonts are self-hosted (src/app/fonts), so the build needs no network
+      # for fonts.
       - name: Build (mock mode)
         run: npm run build
 
