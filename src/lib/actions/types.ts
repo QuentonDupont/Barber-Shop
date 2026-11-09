@@ -22,6 +22,11 @@ export interface ActionState {
    * (QA report #7 §5, handoff 07).
    */
   consentBlocked?: boolean;
+  /**
+   * Set by the staff actions when the plan's barber limit refused the change,
+   * so the form can show a link to the plans (QA advisory A4, handoff 07).
+   */
+  limitReached?: boolean;
 }
 
 export const idleState: ActionState = { status: "idle" };

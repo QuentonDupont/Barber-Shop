@@ -14,11 +14,9 @@ import { useT } from "@/lib/i18n/context";
 export function ProfileForm({
   fullName,
   phone,
-  email,
 }: {
   fullName: string;
   phone: string | null;
-  email: string | null;
 }) {
   const [state, formAction] = useActionState(saveProfileAction, idleState);
   const errors = state.fieldErrors ?? {};
@@ -60,14 +58,6 @@ export function ProfileForm({
           defaultValue={phone ?? ""}
           required
         />
-      </Field>
-
-      <Field
-        label={t("account.email")}
-        htmlFor="email"
-        hint={t("account.emailHint")}
-      >
-        <Input id="email" value={email ?? ""} disabled readOnly />
       </Field>
 
       <SaveButton />

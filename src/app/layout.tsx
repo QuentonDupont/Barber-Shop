@@ -1,37 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Anuphan, Mitr, Noto_Sans_Thai } from "next/font/google";
 import { Toaster } from "sonner";
 import { ServiceWorker } from "@/components/shared/service-worker";
 import { LocaleProvider } from "@/lib/i18n/context";
 import { LocaleToggle } from "@/components/shared/locale-toggle";
 import { getLocale } from "@/lib/i18n/server";
+import { fontVariables } from "./fonts";
 import "./globals.css";
 
-// Type system: Anuphan (bilingual Thai+Latin) carries every operated
-// surface; Noto Sans Thai is the Thai-safe fallback so a slow load never shows
-// tofu. Mitr (Cadson Demak, rounded Thai+Latin, close to hand-painted shop
-// signage) is the display face for public headings only — see the `.display`
-// class in globals.css. Anuphan's variable axis tops out at 700.
-const anuphan = Anuphan({
-  subsets: ["thai", "latin"],
-  weight: "variable",
-  variable: "--font-anuphan",
-  display: "swap",
-});
-
-const mitr = Mitr({
-  subsets: ["thai", "latin"],
-  weight: ["500", "600"],
-  variable: "--font-mitr",
-  display: "swap",
-});
-
-const notoSansThai = Noto_Sans_Thai({
-  subsets: ["thai"],
-  weight: ["400", "700"],
-  variable: "--font-noto-thai",
-  display: "swap",
-});
+// Type system (fonts are self-hosted, see ./fonts.ts): Anuphan carries every
+// operated surface; Noto Sans Thai is the Thai-safe fallback; Mitr is the
+// display face for public headings only (`.display` in globals.css).
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -111,7 +89,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${anuphan.variable} ${mitr.variable} ${notoSansThai.variable}`}
+      className={fontVariables}
       suppressHydrationWarning
     >
       <head>

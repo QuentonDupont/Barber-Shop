@@ -160,9 +160,9 @@
 
   /* Anuphan (bilingual Thai+Latin) carries the UI; Noto Sans Thai is the
      Thai-safe fallback. Mitr is the display face for public headings only. */
-  --font-sans: var(--font-anuphan), var(--font-noto-thai), ui-sans-serif, system-ui,
+  --font-sans: var(--font-anuphan-latin), var(--font-anuphan-thai), var(--font-noto-thai), ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-mitr), var(--font-anuphan), var(--font-noto-thai),
+  --font-display: var(--font-mitr-latin), var(--font-mitr-thai), var(--font-anuphan-latin), var(--font-anuphan-thai), var(--font-noto-thai),
     ui-sans-serif, sans-serif;
 
   /* Only floating things (sheets, dialogs, menus, sticky bar, toasts). */
